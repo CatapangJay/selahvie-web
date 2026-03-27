@@ -1,0 +1,120 @@
+@import "tailwindcss";
+
+@theme {
+  /* ─── Color Tokens ─── */
+  --color-primary: #7c5454;
+  --color-primary-container: #c99999;
+  --color-secondary: #6b7c6b;
+  --color-secondary-container: #b8ccb8;
+  --color-tertiary: #a08540;
+  --color-tertiary-fixed-dim: #c9a96e;
+
+  --color-surface: #fdf9f6;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f7f3f0;
+  --color-surface-container: #f0ebe6;
+  --color-surface-container-high: #eae5e0;
+  --color-surface-container-highest: #e5e2df;
+
+  --color-on-surface: #1c1b1a;
+  --color-on-surface-variant: #4a4542;
+  --color-outline: #786b61;
+  --color-outline-variant: #d1c5b4;
+
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+
+  /* ─── Typography ─── */
+  --font-serif: "Noto Serif", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+
+  /* ─── Spacing ─── */
+  --spacing-section: 5.5rem;     /* spacing.16 equivalent */
+  --spacing-section-xl: 7rem;    /* spacing.20 equivalent */
+
+  /* ─── Radius ─── */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-full: 9999px;
+}
+
+/* ─── Base Styles ─── */
+* {
+  border-color: transparent;
+}
+
+html {
+  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Typography Utilities ─── */
+.font-serif { font-family: var(--font-serif); }
+.font-sans  { font-family: var(--font-sans); }
+
+.display-lg {
+  font-family: var(--font-serif);
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--color-on-surface);
+}
+
+.headline-md {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
+  font-weight: 400;
+  line-height: 1.2;
+  color: var(--color-on-surface);
+}
+
+.headline-sm {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--color-on-surface);
+}
+
+.title-md {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.label-luxury {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ─── Gradient CTAs ─── */
+.btn-gradient {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-container));
+}
+
+/* ─── Glass Effect ─── */
+.glass {
+  background: rgba(253, 249, 246, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ─── Ambient Shadow ─── */
+.shadow-ambient {
+  box-shadow: 0 8px 24px rgba(28, 27, 26, 0.06);
+}
+
+/* ─── Ghost Border ─── */
+.border-ghost {
+  border: 1px solid rgba(209, 197, 180, 0.2);
+}
