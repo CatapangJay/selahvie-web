@@ -19,6 +19,9 @@ export interface TemplateComponentProps {
 import RoseElegyTemplate    from "./rose-elegy";
 import ObsidianVowTemplate  from "./obsidian-vow";
 import WonderstuckTemplate  from "./wonderstruck";
+import EnchantedGroveTemplate from "./enchanted-grove";
+import ForestBloomTemplate    from "./forest-bloom";
+import GoldenDuskTemplate     from "./golden-dusk";
 
 /**
  * Map of template ID → renderer component.
@@ -28,6 +31,9 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
   t1: RoseElegyTemplate,
   t6: ObsidianVowTemplate,
   t7: WonderstuckTemplate,
+  t8: EnchantedGroveTemplate,
+  t9: ForestBloomTemplate,
+  t10: GoldenDuskTemplate,
   // t2: SageAndThistleTemplate,  ← add future templates here
 };
 
