@@ -14,21 +14,34 @@ export default function Navbar() {
   return (
     <header
       className="glass sticky top-0 z-40 w-full"
-      style={{ borderBottom: "1px solid rgba(209,197,180,0.2)" }}
+      style={{ borderBottom: "1px solid var(--color-outline)" }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
-        <Link href="/" className="font-serif text-xl font-normal tracking-wide text-[var(--color-on-surface)]" style={{ fontFamily: "var(--font-noto-serif, var(--font-serif))" }}>
+        <Link
+          href="/"
+          className="font-serif tracking-wide transition-opacity hover:opacity-75"
+          style={{
+            fontFamily: "var(--font-serif)",
+            fontSize: "1.375rem",
+            fontWeight: 300,
+            color: "var(--color-on-surface)",
+            letterSpacing: "0.04em",
+          }}
+        >
           {APP_NAME}
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-10 md:flex">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="label-luxury text-[var(--color-on-surface-variant)] transition-colors hover:text-[var(--color-on-surface)]"
+              className="label-luxury transition-colors"
+              style={{ color: "var(--color-on-surface-variant)", letterSpacing: "0.12em" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-primary)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-on-surface-variant)")}
             >
               {link.label}
             </Link>
@@ -36,17 +49,18 @@ export default function Navbar() {
         </nav>
 
         {/* Actions */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <button
             onClick={openCart}
-            className="relative flex items-center gap-1 text-[var(--color-on-surface)] transition-opacity hover:opacity-70"
+            className="relative flex items-center gap-1 transition-opacity hover:opacity-70"
+            style={{ color: "var(--color-on-surface)" }}
             aria-label="Open cart"
           >
-            <ShoppingBag size={20} strokeWidth={1.5} />
+            <ShoppingBag size={18} strokeWidth={1.25} />
             {count > 0 && (
               <span
-                className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white"
-                style={{ background: "var(--color-primary)" }}
+                className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold"
+                style={{ background: "var(--color-primary)", color: "var(--color-surface)" }}
               >
                 {count}
               </span>
@@ -55,11 +69,12 @@ export default function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
-            className="md:hidden text-[var(--color-on-surface)]"
+            className="md:hidden"
+            style={{ color: "var(--color-on-surface)" }}
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
-            {menuOpen ? <X size={22} /> : <Menu size={22} />}
+            {menuOpen ? <X size={20} strokeWidth={1.25} /> : <Menu size={20} strokeWidth={1.25} />}
           </button>
         </div>
       </div>
@@ -67,14 +82,15 @@ export default function Navbar() {
       {/* Mobile Nav */}
       {menuOpen && (
         <nav
-          className="flex flex-col px-6 pb-4 gap-4 md:hidden"
-          style={{ background: "var(--color-surface-container-low)" }}
+          className="flex flex-col px-6 pb-6 gap-5 md:hidden"
+          style={{ borderTop: "1px solid var(--color-outline)", background: "var(--color-surface-container-low)", paddingTop: "1.25rem" }}
         >
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="label-luxury text-[var(--color-on-surface-variant)]"
+              className="label-luxury"
+              style={{ color: "var(--color-on-surface-variant)" }}
               onClick={() => setMenuOpen(false)}
             >
               {link.label}

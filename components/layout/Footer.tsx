@@ -4,50 +4,98 @@ import { APP_NAME } from "@/lib/constants";
 export default function Footer() {
   return (
     <footer
-      className="mt-24"
-      style={{ background: "var(--color-surface-container-low)" }}
+      style={{
+        background: "var(--color-surface-container-low)",
+        borderTop: "1px solid var(--color-outline)",
+      }}
     >
-      <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-6 py-20">
+        {/* Top row */}
+        <div className="grid grid-cols-1 gap-14 md:grid-cols-[1fr_auto_auto]">
           {/* Brand */}
-          <div className="md:col-span-2">
+          <div className="max-w-xs">
             <p
-              className="font-serif text-2xl text-[var(--color-on-surface)]"
-              style={{ fontFamily: "var(--font-noto-serif, var(--font-serif))" }}
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "1.375rem",
+                fontWeight: 500,
+                fontStyle: "italic",
+                letterSpacing: "0.01em",
+                color: "var(--color-on-surface)",
+              }}
             >
               {APP_NAME}
             </p>
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-[var(--color-on-surface-variant)]">
-              Beautifully crafted wedding websites for the modern couple. From template to "I do" in minutes.
+            <p
+              className="mt-4 text-sm leading-relaxed"
+              style={{ color: "var(--color-on-surface-variant)", maxWidth: 260 }}
+            >
+              Beautifully crafted wedding websites for the modern couple.
             </p>
           </div>
 
-          {/* Links */}
+          {/* Product links */}
           <div>
-            <p className="label-luxury mb-4 text-[var(--color-on-surface)]">Product</p>
-            <ul className="space-y-2 text-sm text-[var(--color-on-surface-variant)]">
-              <li><Link href="/templates" className="hover:text-[var(--color-on-surface)] transition-colors">Templates</Link></li>
-              <li><Link href="/#pricing" className="hover:text-[var(--color-on-surface)] transition-colors">Pricing</Link></li>
-              <li><Link href="/dashboard" className="hover:text-[var(--color-on-surface)] transition-colors">Dashboard</Link></li>
+            <p className="label-luxury mb-5">Product</p>
+            <ul className="space-y-3 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+              {[
+                { href: "/templates", label: "Templates" },
+                { href: "/#pricing", label: "Pricing" },
+                { href: "/dashboard", label: "Dashboard" },
+              ].map(({ href, label }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="transition-colors duration-200 hover:text-[var(--color-primary)]"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
+          {/* Company links */}
           <div>
-            <p className="label-luxury mb-4 text-[var(--color-on-surface)]">Company</p>
-            <ul className="space-y-2 text-sm text-[var(--color-on-surface-variant)]">
-              <li><Link href="#" className="hover:text-[var(--color-on-surface)] transition-colors">About</Link></li>
-              <li><Link href="#" className="hover:text-[var(--color-on-surface)] transition-colors">Contact</Link></li>
-              <li><Link href="#" className="hover:text-[var(--color-on-surface)] transition-colors">Privacy Policy</Link></li>
+            <p className="label-luxury mb-5">Company</p>
+            <ul className="space-y-3 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+              {[
+                { href: "#", label: "About" },
+                { href: "#", label: "Contact" },
+                { href: "#", label: "Privacy policy" },
+                { href: "#", label: "Terms of service" },
+              ].map(({ href, label }) => (
+                <li key={label}>
+                  <Link
+                    href={href}
+                    className="transition-colors duration-200 hover:text-[var(--color-primary)]"
+                  >
+                    {label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
+        {/* Bottom bar */}
         <div
-          className="mt-12 pt-6 flex flex-col items-center justify-between gap-4 text-xs text-[var(--color-on-surface-variant)] sm:flex-row"
-          style={{ borderTop: "1px solid rgba(209,197,180,0.3)" }}
+          className="mt-16 pt-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"
+          style={{ borderTop: "1px solid var(--color-outline)" }}
         >
-          <p>© {new Date().getFullYear()} {APP_NAME}. All rights reserved.</p>
-          <p>Made with love, for love.</p>
+          <p className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>
+            © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
+          </p>
+          <p
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontStyle: "italic",
+              fontSize: "0.9375rem",
+              color: "var(--color-on-surface-muted)",
+            }}
+          >
+            Made with love, for love.
+          </p>
         </div>
       </div>
     </footer>

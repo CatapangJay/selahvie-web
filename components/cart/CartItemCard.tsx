@@ -11,31 +11,45 @@ export default function CartItemCard({ item }: { item: CartItem }) {
 
   return (
     <div
-      className="flex gap-4 rounded-xl p-3 transition-colors"
-      style={{ background: "var(--color-surface-container-low)" }}
+      className="flex gap-4"
+      style={{
+        background: "var(--color-surface-container)",
+        borderRadius: "var(--radius-sm)",
+        border: "1px solid var(--color-outline)",
+        padding: "0.875rem",
+      }}
     >
       {/* Preview thumbnail */}
-      <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-lg">
+      <div
+        className="relative shrink-0 overflow-hidden"
+        style={{ width: 72, height: 56, borderRadius: "var(--radius-sm)" }}
+      >
         <Image
           src={item.template.previewImage}
           alt={item.template.name}
           fill
           className="object-cover"
-          sizes="80px"
+          sizes="72px"
         />
       </div>
 
       {/* Info */}
-      <div className="flex flex-1 flex-col justify-between">
+      <div className="flex flex-1 flex-col justify-between min-w-0">
         <div>
-          <p className="title-md text-[var(--color-on-surface)] text-sm">{item.template.name}</p>
-          <div className="mt-1 flex flex-wrap gap-1">
-            {item.template.tags.map((tag) => (
-              <span key={tag} className="label-luxury text-[10px] text-[var(--color-on-surface-variant)]">{tag}</span>
-            ))}
-          </div>
+          <p
+            className="text-sm font-medium truncate"
+            style={{ color: "var(--color-on-surface)" }}
+          >
+            {item.template.name}
+          </p>
+          <p className="label-luxury mt-1" style={{ color: "var(--color-on-surface-muted)" }}>
+            {item.template.tags.slice(0, 2).join(" · ")}
+          </p>
         </div>
-        <p className="text-sm font-semibold" style={{ color: "var(--color-tertiary)" }}>
+        <p
+          className="font-serif text-sm"
+          style={{ fontFamily: "var(--font-serif)", fontSize: "1rem", fontWeight: 300, color: "var(--color-primary)" }}
+        >
           {formatPrice(item.template.price)}
         </p>
       </div>
@@ -43,10 +57,11 @@ export default function CartItemCard({ item }: { item: CartItem }) {
       {/* Remove */}
       <button
         onClick={() => removeItem(item.templateId)}
-        className="self-start text-[var(--color-on-surface-variant)] hover:text-[var(--color-error)] transition-colors"
+        className="self-start transition-opacity hover:opacity-60"
+        style={{ color: "var(--color-on-surface-muted)" }}
         aria-label="Remove item"
       >
-        <X size={16} />
+        <X size={14} strokeWidth={1.25} />
       </button>
     </div>
   );

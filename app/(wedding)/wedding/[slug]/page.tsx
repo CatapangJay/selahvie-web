@@ -105,6 +105,38 @@ const WONDERSTRUCK_DEMO_CONFIG: WeddingConfig = {
   musicCustomUrl: "",
 };
 
+const BOTANICAL_SERENITY_DEMO_CONFIG: WeddingConfig = {
+  id: "botanical-serenity-demo",
+  templateId: "t11",
+  slug: "botanical-serenity-demo",
+  status: "published",
+  partner1Name: "Mei",
+  partner2Name: "Luca",
+  weddingDate: "September 20, 2026",
+  venueName: "Jardin Botanica",
+  venueAddress: "14 Via delle Rose",
+  venueCity: "Florence, Italy",
+  primaryColor: "#3d6b2e",
+  accentColor: "#c8745a",
+  themePresetId: "bs1",
+  heroImageUrl: "https://picsum.photos/seed/botanical-hero/1200/1600",
+  galleryImageUrls: [
+    "https://picsum.photos/seed/bs-g1/800/1000",
+    "https://picsum.photos/seed/bs-g2/800/1000",
+    "https://picsum.photos/seed/bs-g3/800/1000",
+    "https://picsum.photos/seed/bs-g4/1000/800",
+    "https://picsum.photos/seed/bs-g5/1000/800",
+  ],
+  coupleStory:
+    "They met at a botanical illustration workshop in a sun-filled atelier, both drawing the same persimmon branch from opposite sides of the table.\n\nLuca passed his sketchbook across first. Mei laughed at how different their lines were — his bold and gestural, hers precise and quiet. By the end of the afternoon they had swapped notebooks, and something important had shifted.\n\nTwo years later, standing in the same garden that first brought them together, he asked. She had already answered before the words fully formed.",
+  rsvpDeadline: "2026-08-01",
+  mealOptions: ["Garden Tasting Menu", "Grilled Sea Bass", "Roasted Vegetable"],
+  allowPlusOne: true,
+  customQuestions: [],
+  musicTrackId: "romantic",
+  musicCustomUrl: "",
+};
+
 const GOLDEN_DUSK_DEMO_CONFIG: WeddingConfig = {
   id: "golden-dusk-demo",
   templateId: "t10",
@@ -220,7 +252,8 @@ export default function PublicWeddingPage({ params }: Props) {
   const isWonderstruck       = params.slug === "wonderstruck-demo";
   const isEnchanted          = params.slug === "enchanted-demo";
   const isForestBloom         = params.slug === "forest-bloom-demo";
-  const isGoldenDusk           = params.slug === "golden-dusk-demo";
+  const isGoldenDusk             = params.slug === "golden-dusk-demo";
+  const isBotanicalSerenity       = params.slug === "botanical-serenity-demo";
 
   const config: WeddingConfig | undefined =
     isDemo              ? DEMO_CONFIG :
@@ -229,6 +262,7 @@ export default function PublicWeddingPage({ params }: Props) {
     isEnchanted         ? ENCHANTED_DEMO_CONFIG :
     isForestBloom       ? FOREST_BLOOM_DEMO_CONFIG :
     isGoldenDusk        ? GOLDEN_DUSK_DEMO_CONFIG :
+    isBotanicalSerenity ? BOTANICAL_SERENITY_DEMO_CONFIG :
     // Try matching by unique config ID first, then fall back to slug
     Object.values(configs).find((c) => c.id === params.slug) ??
     Object.values(configs).find((c) => c.slug === params.slug && c.status === "published");

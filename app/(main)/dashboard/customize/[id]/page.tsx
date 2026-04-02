@@ -95,10 +95,10 @@ export default function CustomizePage({ params }: Props) {
         Back to Dashboard
       </Link>
 
-      <p className="label-luxury mb-2" style={{ color: "var(--color-tertiary)" }}>Customization Studio</p>
+      <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-muted)" }}>Customization studio</p>
       <h1
         className="headline-md mb-10"
-        style={{ fontFamily: "var(--font-noto-serif, var(--font-serif))" }}
+        style={{ fontFamily: "var(--font-serif)", fontWeight: 300 }}
       >
         {template?.name ?? "Your Wedding Website"}
       </h1>
@@ -114,8 +114,8 @@ export default function CustomizePage({ params }: Props) {
               <div
                 className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all"
                 style={{
-                  background: step === s.num ? "var(--color-primary)" : step > s.num ? "var(--color-secondary)" : "var(--color-surface-container-high)",
-                  color: step >= s.num ? "white" : "var(--color-on-surface-variant)",
+                  background: step === s.num ? "var(--color-primary)" : step > s.num ? "var(--color-primary-dim)" : "var(--color-surface-container-high)",
+                  color: step >= s.num ? "var(--color-surface)" : "var(--color-on-surface-variant)",
                 }}
               >
                 {step > s.num ? <Check size={14} /> : s.num}
@@ -130,7 +130,7 @@ export default function CustomizePage({ params }: Props) {
             {i < STEPS.length - 1 && (
               <div
                 className="flex-1 h-px mx-2 transition-colors"
-                style={{ background: step > s.num ? "var(--color-secondary)" : "var(--color-outline-variant)" }}
+                style={{ background: step > s.num ? "var(--color-primary-dim)" : "var(--color-outline)" }}
               />
             )}
           </div>
@@ -140,7 +140,7 @@ export default function CustomizePage({ params }: Props) {
       {/* Step content */}
       <div
         className="rounded-2xl p-8"
-        style={{ background: "var(--color-surface-container-low)" }}
+        style={{ background: "var(--color-surface-container)", border: "1px solid var(--color-outline)" }}
       >
         {/* Step 1: Couple Info */}
         {step === 1 && (
@@ -386,7 +386,7 @@ export default function CustomizePage({ params }: Props) {
                   <div
                     key={opt}
                     className="flex items-center gap-2 rounded-full px-3 py-1"
-                    style={{ background: "var(--color-secondary-container, #b8ccb8)" }}
+                    style={{ background: "var(--color-surface-container-high)", border: "1px solid var(--color-outline)" }}
                   >
                     <span className="text-sm">{opt}</span>
                     <button
@@ -430,7 +430,7 @@ export default function CustomizePage({ params }: Props) {
                 onClick={() => update({ allowPlusOne: !config.allowPlusOne })}
                 className="flex h-6 w-11 items-center rounded-full transition-all"
                 style={{
-                  background: config.allowPlusOne ? "var(--color-secondary)" : "var(--color-surface-container-highest)",
+                  background: config.allowPlusOne ? "var(--color-primary)" : "var(--color-surface-container-highest)",
                   padding: "2px",
                 }}
               >
@@ -469,8 +469,8 @@ export default function CustomizePage({ params }: Props) {
                   return musicTracks.find(t => t.id === tid)?.name ?? "—";
                 })() },
               ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl p-4" style={{ background: "var(--color-surface)" }}>
-                  <p className="label-luxury text-[10px]" style={{ color: "var(--color-on-surface-variant)" }}>{label}</p>
+                <div key={label} className="rounded-xl p-4" style={{ background: "var(--color-surface-container-high)", border: "1px solid var(--color-outline)" }}>
+                  <p className="label-luxury text-[10px]" style={{ color: "var(--color-on-surface-muted)" }}>{label}</p>
                   <p className="mt-1 text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>{value}</p>
                 </div>
               ))}

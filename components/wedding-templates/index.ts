@@ -21,7 +21,8 @@ import ObsidianVowTemplate  from "./obsidian-vow";
 import WonderstuckTemplate  from "./wonderstruck";
 import EnchantedGroveTemplate from "./enchanted-grove";
 import ForestBloomTemplate    from "./forest-bloom";
-import GoldenDuskTemplate     from "./golden-dusk";
+import GoldenDuskTemplate          from "./golden-dusk";
+import BotanicalSerenityTemplate   from "./botanical-serenity";
 
 /**
  * Map of template ID → renderer component.
@@ -34,6 +35,7 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
   t8: EnchantedGroveTemplate,
   t9: ForestBloomTemplate,
   t10: GoldenDuskTemplate,
+  t11: BotanicalSerenityTemplate,
   // t2: SageAndThistleTemplate,  ← add future templates here
 };
 

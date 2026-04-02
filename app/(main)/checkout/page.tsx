@@ -37,10 +37,8 @@ export default function CheckoutPage() {
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
 
     setLoading(true);
-    // Simulate payment processing
     await new Promise((r) => setTimeout(r, 1800));
 
-    // Create wedding configs for purchased templates
     const ids: string[] = [];
     items.forEach((item) => {
       const id = createConfig(item.templateId);
@@ -53,40 +51,53 @@ export default function CheckoutPage() {
 
   if (items.length === 0) {
     return (
-      <div className="mx-auto max-w-lg px-6 py-24 text-center">
-        <p className="text-4xl mb-4">🛒</p>
-        <h1 className="headline-sm mb-4">Your cart is empty</h1>
+      <div className="mx-auto max-w-lg px-6 py-24 text-center flex flex-col items-center gap-6">
+        <p
+          className="font-serif"
+          style={{ fontFamily: "var(--font-serif)", fontSize: "4rem", fontWeight: 300, color: "var(--color-outline)", fontStyle: "italic" }}
+        >
+          &empty;
+        </p>
+        <h1 className="headline-sm" style={{ fontWeight: 300 }}>Your cart is empty</h1>
         <Link href="/templates">
-          <ButtonPrimary>Browse Templates</ButtonPrimary>
+          <ButtonPrimary>Browse templates</ButtonPrimary>
         </Link>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6" style={{ paddingTop: "var(--spacing-section)", paddingBottom: "var(--spacing-section-xl)" }}>
+    <div
+      className="mx-auto max-w-6xl px-6"
+      style={{ paddingTop: "var(--spacing-section)", paddingBottom: "var(--spacing-section-xl)" }}
+    >
       <Link
         href="/templates"
-        className="inline-flex items-center gap-2 mb-10 label-luxury transition-opacity hover:opacity-70"
+        className="inline-flex items-center gap-2 mb-12 label-luxury transition-opacity hover:opacity-70"
         style={{ color: "var(--color-on-surface-variant)" }}
       >
-        <ArrowLeft size={14} />
-        Continue Shopping
+        <ArrowLeft size={12} />
+        Continue shopping
       </Link>
 
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-5">
         {/* Form */}
         <div className="lg:col-span-3">
-          <p className="label-luxury mb-2" style={{ color: "var(--color-tertiary)" }}>Secure Checkout</p>
-          <h1 className="headline-md mb-10">Complete Your Purchase</h1>
+          <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-muted)" }}>Secure checkout</p>
+          <h1 className="headline-md mb-10" style={{ fontWeight: 300 }}>Complete your purchase</h1>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-10">
             {/* Contact */}
             <fieldset>
-              <legend className="label-luxury mb-5" style={{ color: "var(--color-on-surface-variant)" }}>Contact Details</legend>
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <legend
+                className="label-luxury mb-6"
+                style={{ color: "var(--color-on-surface-muted)" }}
+              >
+                Contact details
+              </legend>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <InputField
-                  label="Full Name"
+                  label="Full name"
                   id="name"
                   placeholder="Alexandra Chen"
                   value={form.name}
@@ -94,7 +105,7 @@ export default function CheckoutPage() {
                   error={errors.name}
                 />
                 <InputField
-                  label="Email Address"
+                  label="Email address"
                   id="email"
                   type="email"
                   placeholder="hello@example.com"
@@ -107,13 +118,16 @@ export default function CheckoutPage() {
 
             {/* Payment */}
             <fieldset>
-              <legend className="label-luxury mb-5 flex items-center gap-2" style={{ color: "var(--color-on-surface-variant)" }}>
-                <Lock size={12} />
-                Payment Details
+              <legend
+                className="label-luxury mb-6 flex items-center gap-2"
+                style={{ color: "var(--color-on-surface-muted)" }}
+              >
+                <Lock size={10} />
+                Payment details
               </legend>
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <InputField
-                  label="Card Number"
+                  label="Card number"
                   id="card"
                   placeholder="4242 4242 4242 4242"
                   maxLength={19}
@@ -124,9 +138,9 @@ export default function CheckoutPage() {
                   }}
                   error={errors.card}
                 />
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-2 gap-6">
                   <InputField
-                    label="Expiry Date"
+                    label="Expiry date"
                     id="expiry"
                     placeholder="MM/YY"
                     maxLength={5}
@@ -152,11 +166,14 @@ export default function CheckoutPage() {
             </fieldset>
 
             <ButtonPrimary type="submit" size="lg" fullWidth disabled={loading}>
-              {loading ? "Processing…" : `Complete Purchase · ${formatPrice(total())}`}
+              {loading ? "Processing…" : `Complete purchase · ${formatPrice(total())}`}
             </ButtonPrimary>
 
-            <p className="text-center text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
-              🔒 Your payment is encrypted and secure. This is a demo — no real charges will be made.
+            <p
+              className="text-center label-luxury"
+              style={{ color: "var(--color-on-surface-muted)" }}
+            >
+              Your payment is encrypted and secure. This is a demo — no real charges will be made.
             </p>
           </form>
         </div>
@@ -164,32 +181,45 @@ export default function CheckoutPage() {
         {/* Order Summary */}
         <div className="lg:col-span-2">
           <div
-            className="rounded-2xl p-6 sticky top-28"
-            style={{ background: "var(--color-surface-container-low)" }}
+            className="sticky top-24 p-6 space-y-5"
+            style={{
+              background: "var(--color-surface-container)",
+              borderRadius: "var(--radius-md)",
+              border: "1px solid var(--color-outline)",
+            }}
           >
-            <p className="label-luxury mb-6" style={{ color: "var(--color-on-surface-variant)" }}>Order Summary</p>
+            <p className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>Order summary</p>
 
             <div className="space-y-4">
               {items.map((item) => (
                 <div key={item.templateId} className="flex gap-3">
                   <div
-                    className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg"
+                    className="relative shrink-0 overflow-hidden"
+                    style={{ width: 64, height: 52, borderRadius: "var(--radius-sm)" }}
                   >
                     <Image
                       src={item.template.previewImage}
                       alt={item.template.name}
                       fill
                       className="object-cover"
-                      sizes="80px"
+                      sizes="64px"
                     />
                   </div>
-                  <div className="flex flex-1 flex-col justify-center">
-                    <p className="text-sm font-semibold" style={{ color: "var(--color-on-surface)" }}>{item.template.name}</p>
-                    <p className="text-xs mt-0.5" style={{ color: "var(--color-on-surface-variant)" }}>
-                      {item.template.tags.join(" · ")}
+                  <div className="flex flex-1 flex-col justify-center min-w-0">
+                    <p
+                      className="text-sm font-medium truncate"
+                      style={{ color: "var(--color-on-surface)" }}
+                    >
+                      {item.template.name}
+                    </p>
+                    <p className="label-luxury mt-0.5" style={{ color: "var(--color-on-surface-muted)" }}>
+                      {item.template.tags.slice(0, 2).join(" · ")}
                     </p>
                   </div>
-                  <p className="text-sm font-semibold shrink-0" style={{ color: "var(--color-tertiary)" }}>
+                  <p
+                    className="font-serif shrink-0 text-sm"
+                    style={{ fontFamily: "var(--font-serif)", fontWeight: 300, color: "var(--color-primary)", fontSize: "1rem" }}
+                  >
                     {formatPrice(item.template.price)}
                   </p>
                 </div>
@@ -197,11 +227,16 @@ export default function CheckoutPage() {
             </div>
 
             <div
-              className="mt-6 pt-4 flex items-center justify-between"
-              style={{ borderTop: "1px solid rgba(209,197,180,0.4)" }}
+              className="pt-5 flex items-center justify-between"
+              style={{ borderTop: "1px solid var(--color-outline)" }}
             >
-              <p className="label-luxury" style={{ color: "var(--color-on-surface-variant)" }}>Total</p>
-              <p className="title-md" style={{ color: "var(--color-tertiary)" }}>{formatPrice(total())}</p>
+              <p className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>Total</p>
+              <p
+                className="font-serif"
+                style={{ fontFamily: "var(--font-serif)", fontSize: "1.375rem", fontWeight: 300, color: "var(--color-primary)" }}
+              >
+                {formatPrice(total())}
+              </p>
             </div>
           </div>
         </div>
