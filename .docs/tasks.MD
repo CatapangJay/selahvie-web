@@ -1,366 +1,157 @@
-# Selah Vie — Wedding Management Platform: Task Breakdown
+# Selah Vie — Redesign & Feature Task Breakdown
+
+> **Complete redesign — soft & romantic, product-primary, V1 mock backend.**
+> Supersedes the original build plan. Strategy: [../PRODUCT.md](../PRODUCT.md).
+> Visual system: [../DESIGN.md](../DESIGN.md) + [design.MD](./design.MD).
+> Structure: [architecture.MD](./architecture.MD).
+>
+> Status legend: ✅ done · 🔄 exists, needs rework for redesign · ⬜ new/not started.
+> The V1 foundation (Next 14 app, template registry, cart/checkout, studio, 7 templates)
+> already ships; this plan **redesigns** it and adds four feature groups.
 
 ---
 
-## Phase 1: Project Foundation & Infrastructure 🏗️
+## Phase 0 — Foundations already shipped ✅
 
-### 1.1 Project Setup
-- [x] **Task 1.1.1:** Initialize Next.js 14 project with TypeScript
-  - Bootstrap with `create-next-app` using App Router
-  - Configure TypeScript strict mode
-  - Set up path aliases (`@/`)
-  - Configure ESLint + Prettier
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 1.1.2:** Configure Tailwind CSS + Design Token system
-  - Install and configure Tailwind CSS v3
-  - Map all design tokens from `design.MD` into `tailwind.config.ts` (colors, typography, spacing, radius)
-  - Configure `Noto Serif` + `Plus Jakarta Sans` from Google Fonts
-  - Create global CSS with surface hierarchy variables
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 1.1.3:** Set up state management & utilities
-  - Install Zustand for global cart state
-  - Install Framer Motion for animations
-  - Install Lucide React for icons
-  - Set up folder structure: `app/`, `components/`, `lib/`, `store/`, `types/`, `data/`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 1.1.4:** Initialize version control
-  - Create `.gitignore` for sensitive files and Next.js artifacts
-  - Write initial `README.md` documenting project overview and local setup
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
+- ✅ Next.js 14 App Router with `(main)` / `(wedding)` route groups, TypeScript strict.
+- ✅ Tailwind v4 `@theme` token system in `globals.css`.
+- ✅ Zustand `cartStore` + `weddingStore` (localStorage).
+- ✅ Template registry + `resolveTemplate`, 7 self-contained templates, shared AudioPlayer.
+- ✅ Cart drawer, mock checkout + success, 5-step customization studio, music picker.
+- ✅ Live template preview at `/preview/[id]` with synthesized-config fallback.
+- ✅ **Audit remediation** (accessibility baseline): darkened muted token, global
+  `:focus-visible` ring, `prefers-reduced-motion` CSS block, semantic z-index scale,
+  44px touch targets, numeric `inputMode`/`autocomplete`, emoji/copy fixes.
 
 ---
 
-## Phase 2: Design System Implementation 🎨
+## Phase 1 — Redesign the design system 🎨
 
-### 2.1 Design Token Configuration
-- [x] **Task 2.1.1:** Implement color palette in Tailwind
-  - Map `primary` (#7c5454), `primary-container` (#c99999), `secondary` (sage), `tertiary` (gold)
-  - Map all `surface` hierarchy tokens: `surface`, `surface-container-low`, `surface-container`, `surface-container-highest`, `surface-container-lowest`
-  - Map `on-surface` (#1c1b1a), `outline-variant` (#d1c5b4)
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
-
-- [x] **Task 2.1.2:** Configure typography scale
-  - Set up `display-lg`, `headline-sm`, `title-md`, `label-md`, `label-sm` utility classes
-  - Configure Noto Serif for headings, Plus Jakarta Sans for UI
-  - Add luxury label letter-spacing utilities
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
-
-### 2.2 Core UI Component Library
-- [x] **Task 2.2.1:** Build Button components
-  - `ButtonPrimary` — silk-sheen gradient, full-radius, no shadow
-  - `ButtonSecondary` — ghost style, outline border at 30% opacity
-  - `ButtonTertiary` — label-md with underline in `tertiary_fixed_dim`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 2.2.2:** Build Card components
-  - `TemplateCard` — `surface-container-low` bg, `roundedness.lg`, zero dividers
-  - `CartItemCard` — compact variant with remove action
-  - Hover state with ambient shadow (on-surface 6% opacity, 24px blur, 8px Y)
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 2.2.3:** Build navigation & layout shells
-  - `Navbar` — glassmorphism sticky nav (80% opacity, backdrop-blur 12px)
-  - `Footer` — editorial layout with brand mark
-  - `PageLayout` wrapper with proper section spacing (`spacing.16` = 5.5rem)
-  - `CartBadge` indicator in navbar
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 2.2.4:** Build form Input components
-  - Minimalist underline-style text inputs
-  - Focus state: `surface-container-lowest` bg + `tertiary` underline
-  - `ColorPickerInput`, `ImageUploadInput`, `TextareaInput` variants
-  - **Priority:** P1 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 2.2.5:** Build wedding-specific components
-  - `TimelineRail` — vertical `outline-variant` line with `secondary` nodes
-  - `RSVPToggle` — custom selection chip using `secondary-container`
-  - `ThemeSwatchPicker` — color code input with visual preview chip
-  - **Priority:** P1 | **Status:** Completed | **Duration:** 1 day
+- ✅ **1.1 Repalette to rose identity.** `globals.css` now carries the OKLCH rose surface
+  family + rose-tinted ink + brand/semantic tokens (DESIGN.md §2). Shipped a11y fixes
+  preserved; muted token kept contrast-safe (`#67595F`, ≥4.5:1 on every panel). **P0**
+- ✅ **1.2 Token compat map.** `--color-*` names retained with new values; new canonical
+  `--surface`/`--ink`/`--rose`/`--bordeaux`/`--gold`/`--sage` aliases added pointing at the
+  same values, so all 17 consuming components keep working while new code adopts the new
+  names. Full rename of consumers deferred (non-breaking, incremental). **P0**
+- ✅ **1.3 Typography swap.** Fraunces (display/headings) + Inter (UI/body) loaded in
+  `layout.tsx`; `--font-serif`/`--font-sans` updated with Playfair/Outfit as fallbacks;
+  body inline font updated. Fixed-rem-vs-clamp discipline documented; applying it per
+  surface is Phase 2/7 work. **P0**
+- 🔄 **1.4 Retire AI/legacy tells.** ✅ Bounce/overshoot easing removed from buttons +
+  cards; ✅ glass downgraded to rare-use only (still on nav); ✅ shadow tints moved to ink.
+  Remaining: gradient "silk-sheen" CTAs already absent in shipped buttons (verify per
+  surface); ⬜ uppercase-eyebrow-on-every-section retirement is per-surface (Phase 2/7). **P1**
+- ⬜ **1.5 Component state matrix.** Ensure every UI component defines default/hover/
+  focus-visible/active/disabled/loading/error/selected; add skeletons. **P1**
+- ⬜ **1.6 Re-audit.** Run `/impeccable audit` after repalette; target AA everywhere. **P1**
 
 ---
 
-## Phase 3: Template Gallery & Discovery 🖼️
+## Phase 2 — Redesign the couple's app (product-primary) 🖥️
 
-### 3.1 Template Data Layer
-- [x] **Task 3.1.1:** Define template data model & seed data
-  - Create `types/template.ts` with full `WeddingTemplate` interface
-  - Seed 6+ mock templates with names, descriptions, price, tags, preview images, features list, color palettes
-  - Create `data/templates.ts` static data file
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-### 3.2 Gallery Page (`/templates`)
-- [x] **Task 3.2.1:** Build template gallery page
-  - Asymmetric masonry-style grid layout following design north star
-  - Filter chips by style tags (e.g., "Romantic", "Modern", "Rustic")
-  - `TemplateCard` with hover overlay showing quick preview CTA
-  - Smooth Framer Motion entrance animations (stagger)
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1 day
-
-- [x] **Task 3.2.2:** Implement filter & sort controls
-  - Filter by style, price range
-  - Sort by "Most Popular", "Price: Low to High", "Newest"
-  - URL-based filter state for shareability
-  - **Priority:** P1 | **Status:** Completed | **Duration:** 0.5 day
+- ✅ **2.1 App shell / navigation IA.** Dashboard is the home base; each website card
+  routes to Customize (`/dashboard/customize/[id]`) and Guests & RSVPs
+  (`/dashboard/manage/[id]`, new). Aggregate glance (websites / published / attending) in
+  the header. **P0**
+- ✅ **2.2 Dashboard redesign.** New `WebsiteCard` with real status incl. **RSVP-active**
+  (published + responses arriving), per-site RSVP glance (attending / guests / declined),
+  and Customize + Guests quick actions. **P0**
+- 🔄 **2.3 Customization studio → persistent editor.** Not yet reworked — still the linear
+  5-step form (functional). Deferred: live device preview + section reorder land with
+  Phase 5. **P1**
+- 🔄 **2.4 Checkout + success polish.** Inherits the new palette/type via tokens; a
+  dedicated warmer confirmation pass is still pending. **P2**
+- ✅ **2.5 Empty/loading states.** Shared `EmptyState` (teach-the-interface) used on
+  dashboard, guest list, and RSVP views; shared `Skeleton` primitive + shimmer added
+  (reduced-motion safe). **P1**
 
 ---
 
-## Phase 4: Template Detail & Add to Cart 🛒
+## Phase 3 — Feature: Guest & RSVP management 👥 ✅
 
-### 4.1 Template Detail Page (`/templates/[id]`)
-- [x] **Task 4.1.1:** Build template detail page
-  - Hero section: large preview image + template name (`display-lg` Noto Serif)
-  - Features list, included items (invitation design, RSVP portal, custom domain)
-  - Pricing display with `tertiary` gold accent
-  - "Add to Cart" `ButtonPrimary` (silk-sheen gradient CTA)
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1 day
-
-- [x] **Task 4.1.2:** Build template preview modal/section
-  - Embedded iframe or image carousel showing live template preview
-  - Desktop / Mobile toggle for responsive preview
-  - **Priority:** P1 | **Status:** Completed | **Duration:** 0.5 day
-
----
-
-## Phase 5: Cart & Checkout Flow 🛍️
-
-### 5.1 Cart State Management
-- [x] **Task 5.1.1:** Implement Zustand cart store
-  - `addToCart(template)`, `removeFromCart(id)`, `clearCart()` actions
-  - Persist cart to `localStorage`
-  - Derived selectors: `cartTotal`, `cartCount`, `isInCart(id)`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-### 5.2 Cart Sidebar / Drawer
-- [x] **Task 5.2.1:** Build cart drawer component
-  - Slide-in panel (right side) with glassmorphism overlay
-  - List of `CartItemCard` components with remove action
-  - Order summary: subtotal, line items
-  - Single "Checkout" `ButtonPrimary`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-### 5.3 Checkout Page (`/checkout`)
-- [x] **Task 5.3.1:** Build checkout page
-  - Order review section listing all cart items
-  - Payment form (Stripe-ready fields: card number, expiry, CVC — mock implementation)
-  - Billing info form (name, email, address)
-  - "Complete Purchase" CTA with loading state
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1 day
-
-- [x] **Task 5.3.2:** Build order confirmation page (`/checkout/success`)
-  - Celebration hero with `tertiary` gold accents
-  - Summary of purchased templates
-  - CTA: "Customize Your Website Now" → redirects to dashboard
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
+- ✅ **3.1 Data layer.** `RSVPEntry` (with `plusOne`) + `GuestListEntry` persisted in
+  `weddingStore` (version 2 + migration preserving v1 configs); selectors `getRsvps`,
+  `getRsvpSummary` (counts, attending/declined, guest heads incl. plus-ones, meal tally),
+  and guest CRUD. **P0**
+- ✅ **3.2 Wire published-site RSVP to the store.** Shared `useRsvpSubmit` hook persists
+  submissions for all four RSVP templates (rose-elegy, obsidian-vow, enchanted-grove,
+  wonderstruck); **no-ops on demo/preview** configs so previews don't pollute real data. **P0**
+- ✅ **3.3 Guest list management.** `GuestListManager`: add / status-change / remove,
+  party size, email, search + status filter, running head count. **P0**
+- ✅ **3.4 RSVP dashboard.** `RsvpDashboard`: summary stats, meal breakdown, attending vs.
+  declined, plus-one and wishes per response; hosted with the guest list under tabs at
+  `/dashboard/manage/[id]`. **P0**
+- ✅ **3.5 Export.** CSV export of the guest list (`toCsv` + `downloadFile`, RFC-escaped).
+  Reminder-send remains a future stub. **P2**
 
 ---
 
-## Phase 6: User Dashboard & Customization ✍️
+## Phase 4 — Feature: Richer wedding-site sections 💍
 
-### 6.1 Dashboard (`/dashboard`)
-- [x] **Task 6.1.1:** Build user dashboard page
-  - List of purchased wedding website templates
-  - Status badges: "Draft", "Published", "RSVP Active"
-  - CTA per template: "Customize", "Preview", "Share Link"
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1 day
+Config-driven, optional, render-nothing-when-empty; each honors reduced motion and
+visible-by-default content.
 
-### 6.2 Wedding Customization Studio (`/dashboard/customize/[id]`)
-- [x] **Task 6.2.1:** Build multi-step customization form
-  - Step 1 — Couple Info: partner names, wedding date, venue name & address
-  - Step 2 — Theme & Colors: color palette picker, accent color code input, theme preset selector
-  - Step 3 — Media: hero photo upload, gallery image uploads (up to 8), couple story text
-  - Step 4 — RSVP Settings: RSVP deadline, meal options, plus-one policy, custom questions
-  - Step 5 — Review & Publish: live preview thumbnail + "Publish Website" button
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 2 days
-
-- [x] **Task 6.2.2:** Implement wedding data store
-  - Zustand store for current wedding customization state
-  - Persist to `localStorage` as draft
-  - Merge with template on publish
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 6.2.3:** Build live customization preview panel
-  - Side-by-side layout: form on left, live template preview on right
-  - Preview updates in real-time as user fills in data
-  - Mobile / Desktop preview toggle
-  - **Priority:** P1 | **Status:** Completed | **Duration:** 1 day
+- ⬜ **4.1 Registry / gift links** section + config (`registryLinks[]`). **P1**
+- ⬜ **4.2 Travel & accommodation** (hotels, directions, notes). **P1**
+- ⬜ **4.3 FAQ** accordion (`faq[]`). **P1**
+- ⬜ **4.4 Wedding party** (names, roles, photos). **P2**
+- ⬜ **4.5 Schedule / itinerary** (multi-event timeline). **P2**
+- ⬜ **4.6 Guestbook / well-wishes** (guest-submitted, V1 local). **P2**
 
 ---
 
-## Phase 7: Published Wedding Website 💍
+## Phase 5 — Feature: Deeper customization ✍️
 
-### 7.1 Public Wedding Site (`/wedding/[slug]`)
-- [x] **Task 7.1.1:** Build public wedding website template renderer
-  - Route: `/wedding/[slug]` renders the purchased + customized template
-  - Hero section: couple names, wedding date, countdown timer
-  - Our Story section with couple-uploaded images
-  - Details section: venue map placeholder, schedule/timeline
-  - Gallery section: uploaded photos
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1.5 days
-
-- [x] **Task 7.1.2:** Build RSVP form on public wedding site
-  - Guest name, attending yes/no, meal choice, plus-one, message to couple
-  - Submit confirmation with `RSVPToggle` component
-  - Store RSVP responses in local state (mock backend)
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1 day
+- ⬜ **5.1 Font & theme controls** beyond palette presets (`fontPresetId`, tuned tokens). **P1**
+- ⬜ **5.2 Section reorder + show/hide** (`sectionOrder[]`, `sectionVisibility{}`). **P1**
+- ⬜ **5.3 Live device preview** (mobile/desktop toggle) inside the studio. **P1**
+- ⬜ **5.4 Custom-domain setup flow** (mock: instructions + status). **P2**
+- ⬜ **5.5 Multi-language toggle** for published sites (stretch). **P3**
 
 ---
 
-## Phase 8: Marketing & Landing Page 🌸
+## Phase 6 — Feature: Discovery & delight ✨
 
-### 8.1 Landing Page (`/`)
-- [x] **Task 8.1.1:** Build hero section
-  - `display-lg` Noto Serif headline: "Your Dream Wedding, Online."
-  - Subheadline in Plus Jakarta Sans
-  - Dual CTAs: "Browse Templates" (`ButtonPrimary`) + "See Demo" (`ButtonSecondary`)
-  - Asymmetric hero layout with floating editorial image
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1 day
-
-- [x] **Task 8.1.2:** Build features & social proof sections
-  - 3-column feature grid: "Beautiful Templates", "Easy RSVP", "Custom Invitations"
-  - Testimonial section with `tertiary` gold star ratings
-  - Template showcase carousel (3 featured templates)
-  - Pricing section with single tier
-  - **Priority:** P1 | **Status:** Completed | **Duration:** 1 day
+- 🔄 **6.1 Richer live previews.** Build on `/preview/[id]`: device toggle, palette
+  switching in-preview. **P2**
+- ⬜ **6.2 Template favorites** (`favorites` in store; heart on cards; saved view). **P2**
+- ⬜ **6.3 First-run onboarding.** Post-purchase guided setup that activates the couple. **P1**
+- ⬜ **6.4 Save-the-date sender** (mock share/email of the published link). **P3**
+- ⬜ **6.5 Couple account profile** (names, contact, wedding basics reused across sites). **P3**
 
 ---
 
-## Phase 9: Polish, Testing & Deployment 🚀
+## Phase 7 — Marketing surface (brand intensity) 🌸
 
-### 9.1 Quality Assurance
-- [ ] **Task 9.1.1:** Responsive design audit
-  - Test all pages at mobile (375px), tablet (768px), desktop (1280px+)
-  - Fix any layout or typography regressions
-  - **Priority:** P0 | **Status:** Not Started | **Duration:** 1 day
-
-- [ ] **Task 9.1.2:** Accessibility audit
-  - Ensure all interactive elements have focus states
-  - Check color contrast ratios
-  - Add ARIA labels to form inputs and icon buttons
-  - **Priority:** P1 | **Status:** Not Started | **Duration:** 0.5 day
-
-### 9.2 Deployment
-- [ ] **Task 9.2.1:** Configure Vercel deployment
-  - Connect GitHub repo to Vercel
-  - Set up environment variables
-  - Configure custom domain
-  - **Priority:** P0 | **Status:** Not Started | **Duration:** 0.5 day
+- 🔄 **7.1 Landing redesign.** Bordeaux drenched hero, rose-forward sections, real proof;
+  retire hero-metric/eyebrow tells. **P1**
+- 🔄 **7.2 Gallery + detail redesign.** Apply system; favorites entry point; stronger
+  live-preview CTA. **P2**
 
 ---
 
-## Phase 10: Template Component System 🖼️
+## Phase 8 — Published-site correctness & a11y 💒
 
-### 10.1 Template Architecture
-- [x] **Task 10.1.1:** Build template component folder structure
-  - Create `components/wedding-templates/` as the root for all template renderers
-  - Each template lives in its own named subfolder (e.g., `rose-elegy/`)
-  - Templates export a default component via an `index.ts` barrel file
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
+- ⬜ **8.1 Reduced motion across all 7 templates.** Gate parallax/particles/loops via
+  `useReducedMotion()`; global CSS fallback already present. **P1**
+- ⬜ **8.2 Un-gate scroll reveals.** Content visible by default; motion as enhancement —
+  fixes blank render on crawlers/no-JS/background tabs. **P1**
+- ⬜ **8.3 Heading outline.** One `<h1>` per template hero (dedupe partner-name h1s). **P2**
+- ⬜ **8.4 Contrast pass** on template accent-on-dark text. **P2**
 
-- [x] **Task 10.1.2:** Build template registry & resolver
-  - Create `components/wedding-templates/index.ts` as the central registry
-  - `templateRegistry` maps template IDs → React components
-  - `resolveTemplate(id)` helper with fallback to Rosé Elegy
-  - Export shared `TemplateComponentProps` interface (`config`, `showBranding`)
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
+---
 
-- [x] **Task 10.1.3:** Refactor public wedding page to use registry
-  - `app/wedding/[slug]/page.tsx` now delegates rendering to `resolveTemplate(config.templateId)`
-  - Removed all inline rendering logic from the page — page is now ~76 lines
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
+## Phase 9 — QA & deployment 🚀
 
-### 10.2 Rosé Elegy Template (`t1`)
-- [x] **Task 10.2.1:** Build Rosé Elegy sample template
-  - Location: `components/wedding-templates/rose-elegy/RoseElegyTemplate.tsx`
-  - Full-screen hero with layered gradient overlay, large serif couple names, live countdown (days/hours/minutes/seconds)
-  - Save-the-date announcement banner with `primary` gradient
-  - Our Story section: two-column layout with story text + couple photo
-  - Details section: Date / Venue / Time cards with icon + hover animation
-  - Day-Of Schedule timeline rail with `outline-variant` line and `primary` nodes
-  - Asymmetric photo gallery grid with hover zoom effect
-  - RSVP section with decorative radial background, gradient attending toggle, meal chips, plus-one field, wishes textarea
-  - Branded footer with couple names and Selah Vie attribution
-  - All sections driven by `WeddingConfig` props — zero hardcoded content
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1 day
+- ⬜ **9.1 Responsive audit** at 375 / 768 / 1280px across app + published sites. **P0**
+- ⬜ **9.2 Accessibility audit** — WCAG 2.1 AA, focus, keyboard, contrast, reduced motion. **P1**
+- ⬜ **9.3 Vercel deploy** — env, domain. **P0**
 
-- [x] **Task 10.2.2:** Split Rosé Elegy into isolated sub-components
-  - Refactored `RoseElegyTemplate.tsx` from a 735-line monolith into a thin ~65-line compositor
-  - Each section lives in its own file under `components/wedding-templates/rose-elegy/components/`
-  - Sub-components: `Countdown`, `Divider`, `SectionLabel`, `HeroSection`, `SaveTheDateBanner`, `StorySection`, `DetailsSection`, `ScheduleSection`, `GallerySection`, `RsvpSection`, `TemplateFooter`
-  - Changes to one section never touch another; new templates share no code with Rosé Elegy
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
+---
 
-### 10.3 Obsidian Vow Template (`t6`)
-- [x] **Task 10.3.1:** Build Obsidian Vow advanced template with animations & music
-  - Location: `components/wedding-templates/obsidian-vow/ObsidianVowTemplate.tsx`
-  - Dark-mode cinematic aesthetic: obsidian `#0a0908` base, gold `#c9a84c` accent, warm-white type
-  - **AudioPlayer** (`components/AudioPlayer.tsx`): floating bottom-right music toggle, pulsing ring animation, HTML5 Audio API, graceful error handling, tooltip prompting user to play
-  - **HeroSection**: CSS starfield background (80 twinkling stars via keyframe animation), Framer Motion staggered entrance (`container` + `line` + `fadeUp` variants), gold diamond ornament divider, gold glow orb via radial gradient, animated scroll hint arrow
-  - **Countdown**: flip animation using `AnimatePresence` + `mode="popLayout"` for each digit change
-  - **SaveTheDateBanner**: sweeping shimmer animation across the gold banner on loop
-  - **StorySection**: slide-in-from-sides entrance (`x: ±40`) for text and image, decorative gold quote mark, gold corner frame accents on image
-  - **DetailsSection**: staggered card entrance, gold corner brackets that expand on hover, icon framed in gold border square
-  - **ScheduleSection**: timeline rail with gradient fade, `whileHover` node glow, staggered item slide-in
-  - **GallerySection**: `scale: 0.95 → 1` entrance per image, dark overlay lifts on hover, gold border frame appears on hover, varied aspect ratios for masonry feel
-  - **RsvpSection**: `AnimatePresence` form↔confirmation swap, gold-filled attending buttons, all inputs dark-themed with gold underline
-  - **TemplateFooter**: ambient top glow, gold diamond ornament, attribution
-  - Demo accessible at `/wedding/obsidian-demo`
-  - All 11 sub-components fully isolated under `obsidian-vow/components/`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 1.5 days
+## Deferred to V2 (not in this redesign)
 
-### 10.5 Music Configuration System
-- [x] **Task 10.5.1:** Define music data layer
-  - Created `data/musicTracks.ts` with `MusicTrack` interface and catalog of 6 royalty-free Bensound tracks: Romantic, Sweet, Memories, Tenderness, Dreams, Jazzy Frenchy
-  - Exported `CUSTOM_TRACK_ID = "custom"` and `NO_MUSIC_ID = "none"` sentinel constants
-  - Exported `resolveMusicSrc(musicTrackId?, musicCustomUrl?)` helper that returns a resolved `string | null`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
-
-- [x] **Task 10.5.2:** Update data model & store
-  - Added `musicTrackId: string` and `musicCustomUrl: string` to `WeddingConfig` interface in `types/wedding.ts`
-  - Updated `defaultConfig()` in `store/weddingStore.ts` with defaults `musicTrackId: "none"` and `musicCustomUrl: ""`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.1 day
-
-- [x] **Task 10.5.3:** Build shared `AudioPlayer` component
-  - Created `components/wedding-templates/_shared/AudioPlayer.tsx`
-  - Accepts `src: string | null | undefined` and optional `accentColor` prop
-  - Hides entirely when `src` is null/undefined; shows after 1.5 s entrance delay
-  - Floating bottom-right button with pulsing ring when playing, tooltip label "Play Ambient Music"
-  - Graceful error handling (catches audio load/play failures silently)
-  - Replaces the old Obsidian-Vow-specific AudioPlayer; all templates use this shared version
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
-
-- [x] **Task 10.5.4:** Wire both templates to shared AudioPlayer
-  - `RoseElegyTemplate.tsx`: added `AudioPlayer` (was absent), calls `resolveMusicSrc()`, passes result as `src` prop
-  - `ObsidianVowTemplate.tsx`: replaced local `./components/AudioPlayer` import with shared `_shared/AudioPlayer`, now config-driven
-  - Demo configs in `app/wedding/[slug]/page.tsx` updated: `/wedding/demo` uses `"romantic"`, `/wedding/obsidian-demo` uses `"dreams"`
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.25 day
-
-- [x] **Task 10.5.5:** Add music picker to customization studio (Step 3)
-  - Added full music picker UI to the end of Step 3 (Media & Story) in `app/dashboard/customize/[id]/page.tsx`
-  - "No Music" chip and "Custom MP3 URL" chip as quick-select options
-  - 2-column grid displaying all 6 built-in tracks with name, mood badge, description, and a play/pause preview button (live in-browser preview via `HTMLAudioElement`)
-  - Custom URL `InputField` appears only when the Custom option is selected
-  - Bensound attribution note with link per license requirement
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.5 day
-
-- [x] **Task 10.5.6:** Show music selection in Step 5 review summary
-  - Added `{ label: "Music", value: <resolved name> }` entry to the review grid in Step 5
-  - Displays "No music", "Custom URL", "Custom (no URL set)", or the track name depending on selection
-  - **Priority:** P0 | **Status:** Completed | **Duration:** 0.1 day
-
-### 10.4 Future Templates (Planned)
-- [ ] **Task 10.4.1:** Build Sage & Thistle template (`t2`)
-  - Earthy sage palette, botanical motifs, timeline rail
-  - Location: `components/wedding-templates/sage-and-thistle/`
-  - **Priority:** P1 | **Status:** Not Started | **Duration:** 1 day
-
-- [ ] **Task 10.4.2:** Build Champagne Reverie template (`t3`)
-  - Gold-foil aesthetic, seating chart module, guest messaging wall
-  - Location: `components/wedding-templates/champagne-reverie/`
-  - **Priority:** P1 | **Status:** Not Started | **Duration:** 1 day
-
-- [ ] **Task 10.4.3:** Build remaining template variants (`t4` Linen & Light, `t5` Wildflower Barn)
-  - One component per template ID; register each in `templateRegistry`
-  - **Priority:** P2 | **Status:** Not Started | **Duration:** 1 day each
+Real backend (Supabase/Postgres), auth, live Stripe + `/api/*` route handlers, object
+storage for uploads, tiered pricing. See [architecture.MD §10](./architecture.MD).
+All redesign features above are built against **V1 localStorage/mock** data.

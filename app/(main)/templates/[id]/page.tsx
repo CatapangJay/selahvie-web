@@ -8,7 +8,7 @@ import { useCartStore } from "@/store/cartStore";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { formatPrice } from "@/lib/utils";
-import { Check, ShoppingBag, ArrowLeft } from "lucide-react";
+import { Check, ShoppingBag, ArrowLeft, Eye } from "lucide-react";
 
 interface Props {
   params: { id: string };
@@ -140,14 +140,20 @@ export default function TemplateDetailPage({ params }: Props) {
               <ShoppingBag size={16} />
               {inCart ? "View in cart" : "Add to cart"}
             </ButtonPrimary>
-            {inCart && (
-              <Link href="/checkout" className="flex-1">
-                <ButtonSecondary size="lg" fullWidth>
-                  Checkout
-                </ButtonSecondary>
-              </Link>
-            )}
+            <Link href={`/preview/${template.id}`} className="flex-1">
+              <ButtonSecondary size="lg" fullWidth>
+                <Eye size={16} />
+                Live preview
+              </ButtonSecondary>
+            </Link>
           </div>
+          {inCart && (
+            <Link href="/checkout" className="mt-3 block">
+              <ButtonSecondary size="lg" fullWidth>
+                Checkout
+              </ButtonSecondary>
+            </Link>
+          )}
 
           {/* Features */}
           <div className="mt-10">

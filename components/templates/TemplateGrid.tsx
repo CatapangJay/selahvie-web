@@ -37,7 +37,7 @@ export default function TemplateGrid({ templates }: Props) {
             <button
               key={tag}
               onClick={() => setActiveTag(tag)}
-              className="label-luxury px-3 py-1.5 transition-all duration-200 cursor-pointer"
+              className="label-luxury inline-flex items-center px-3 py-1.5 min-h-[36px] transition-all duration-200 cursor-pointer"
               style={{
                 background: activeTag === tag ? "var(--color-primary)" : "transparent",
                 color: activeTag === tag ? "var(--color-surface)" : "var(--color-on-surface-variant)",
@@ -54,7 +54,7 @@ export default function TemplateGrid({ templates }: Props) {
         <select
           value={sort}
           onChange={(e) => setSort(e.target.value)}
-          className="label-luxury px-4 py-2 outline-none cursor-pointer"
+          className="label-luxury px-4 py-2 min-h-[36px] outline-none cursor-pointer"
           style={{
             background: "var(--color-surface-container)",
             color: "var(--color-on-surface-variant)",

@@ -3,7 +3,7 @@
 import { useWeddingStore } from "@/store/weddingStore";
 import { templates } from "@/data/templates";
 import { notFound, useRouter } from "next/navigation";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { InputField, TextareaField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
@@ -55,6 +55,9 @@ export default function CustomizePage({ params }: Props) {
     setPreviewingId(id);
     audio.addEventListener("ended", stopPreview);
   };
+
+  // Stop any playing preview when the page unmounts (e.g. navigating away)
+  useEffect(() => stopPreview, []);
 
   const update = (data: Partial<typeof config>) => updateConfig(params.id, data);
 
@@ -484,7 +487,7 @@ export default function CustomizePage({ params }: Props) {
 
             <div className="mt-4">
               <ButtonPrimary size="lg" fullWidth onClick={handlePublish}>
-                🌸 Publish My Wedding Website
+                Publish my wedding website
               </ButtonPrimary>
               <p className="mt-3 text-center text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
                 You can edit your website after publishing from your dashboard.

@@ -99,6 +99,7 @@ export default function CheckoutPage() {
                 <InputField
                   label="Full name"
                   id="name"
+                  autoComplete="name"
                   placeholder="Alexandra Chen"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -108,6 +109,8 @@ export default function CheckoutPage() {
                   label="Email address"
                   id="email"
                   type="email"
+                  inputMode="email"
+                  autoComplete="email"
                   placeholder="hello@example.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -129,6 +132,8 @@ export default function CheckoutPage() {
                 <InputField
                   label="Card number"
                   id="card"
+                  inputMode="numeric"
+                  autoComplete="cc-number"
                   placeholder="4242 4242 4242 4242"
                   maxLength={19}
                   value={form.card}
@@ -142,6 +147,8 @@ export default function CheckoutPage() {
                   <InputField
                     label="Expiry date"
                     id="expiry"
+                    inputMode="numeric"
+                    autoComplete="cc-exp"
                     placeholder="MM/YY"
                     maxLength={5}
                     value={form.expiry}
@@ -155,6 +162,8 @@ export default function CheckoutPage() {
                   <InputField
                     label="CVC"
                     id="cvc"
+                    inputMode="numeric"
+                    autoComplete="cc-csc"
                     placeholder="123"
                     maxLength={4}
                     value={form.cvc}

@@ -5,6 +5,7 @@ import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Check } from "lucide-react";
 import type { WeddingConfig } from "@/types/wedding";
 import Divider from "./Divider";
+import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
 
 interface Props {
   config: WeddingConfig;
@@ -50,10 +51,18 @@ const inputStyle = (accent: string): React.CSSProperties => ({
 export default function RsvpSection({ config, accent, gold }: Props) {
   const [rsvp, setRsvp]       = useState<RsvpState>({ name: "", attending: null, mealChoice: "", plusOne: false, wishes: "" });
   const [submitted, setSubmit] = useState(false);
+  const { submit } = useRsvpSubmit(config);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rsvp.name || !rsvp.attending) return;
+    submit({
+      guestName: rsvp.name,
+      attending: rsvp.attending === "yes",
+      mealChoice: rsvp.mealChoice || undefined,
+      plusOne: rsvp.plusOne,
+      message: rsvp.wishes || undefined,
+    });
     setSubmit(true);
   };
 

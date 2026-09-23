@@ -57,11 +57,11 @@ export default function CartItemCard({ item }: { item: CartItem }) {
       {/* Remove */}
       <button
         onClick={() => removeItem(item.templateId)}
-        className="self-start transition-opacity hover:opacity-60"
+        className="-mr-1 -mt-1 flex h-11 w-11 shrink-0 items-start justify-end transition-opacity hover:opacity-60"
         style={{ color: "var(--color-on-surface-muted)" }}
-        aria-label="Remove item"
+        aria-label={`Remove ${item.template.name} from cart`}
       >
-        <X size={14} strokeWidth={1.25} />
+        <X size={16} strokeWidth={1.25} />
       </button>
     </div>
   );

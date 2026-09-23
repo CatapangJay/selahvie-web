@@ -13,8 +13,8 @@ export default function Navbar() {
 
   return (
     <header
-      className="glass sticky top-0 z-40 w-full"
-      style={{ borderBottom: "1px solid var(--color-outline)" }}
+      className="glass sticky top-0 w-full"
+      style={{ borderBottom: "1px solid var(--color-outline)", zIndex: "var(--z-sticky)" }}
     >
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         {/* Logo */}
@@ -52,14 +52,14 @@ export default function Navbar() {
         <div className="flex items-center gap-5">
           <button
             onClick={openCart}
-            className="relative flex items-center gap-1 transition-opacity hover:opacity-70"
+            className="relative flex h-11 w-11 items-center justify-center transition-opacity hover:opacity-70"
             style={{ color: "var(--color-on-surface)" }}
             aria-label="Open cart"
           >
             <ShoppingBag size={18} strokeWidth={1.25} />
             {count > 0 && (
               <span
-                className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold"
+                className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold"
                 style={{ background: "var(--color-primary)", color: "var(--color-surface)" }}
               >
                 {count}
@@ -69,10 +69,11 @@ export default function Navbar() {
 
           {/* Mobile menu toggle */}
           <button
-            className="md:hidden"
+            className="flex h-11 w-11 items-center justify-center md:hidden"
             style={{ color: "var(--color-on-surface)" }}
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
+            aria-expanded={menuOpen}
           >
             {menuOpen ? <X size={20} strokeWidth={1.25} /> : <Menu size={20} strokeWidth={1.25} />}
           </button>

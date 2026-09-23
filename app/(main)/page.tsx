@@ -249,7 +249,7 @@ export default function HomePage() {
               },
               {
                 num: "III",
-                title: "Share &amp; celebrate",
+                title: "Share & celebrate",
                 body: "Send your link. Watch RSVPs arrive while you focus on the day ahead.",
               },
             ].map(({ num, title, body }) => (
@@ -274,8 +274,9 @@ export default function HomePage() {
                 <p
                   className="text-sm leading-relaxed font-light"
                   style={{ color: "var(--color-on-surface-variant)", maxWidth: 280 }}
-                  dangerouslySetInnerHTML={{ __html: body }}
-                />
+                >
+                  {body}
+                </p>
               </div>
             ))}
           </div>
@@ -392,7 +393,7 @@ export default function HomePage() {
               fontSize: "clamp(1.75rem, 4vw, 3.5rem)",
               fontWeight: 300,
               fontStyle: "italic",
-              color: "#FAFAF8",
+              color: "var(--color-surface)",
               letterSpacing: "0.02em",
               maxWidth: 700,
               lineHeight: 1.3,

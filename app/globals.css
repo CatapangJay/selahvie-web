@@ -1,39 +1,67 @@
 @import "tailwindcss";
 
 @theme {
-  /* ─── Color Tokens ─── */
-  /* Primary: desaturated sage green — single editorial accent */
-  --color-primary: #5D6B55;
-  --color-primary-dim: #47533F;
-  --color-primary-container: rgba(93, 107, 85, 0.08);
-  --color-primary-container-strong: rgba(93, 107, 85, 0.14);
+  /* ═══════════════════════════════════════════════════════════════
+     REDESIGN — "soft & romantic" rose identity (see DESIGN.md §2).
+     OKLCH-authored, WCAG 2.1 AA verified. The `--color-*` names are
+     kept as a COMPAT MAP so existing components keep working; the
+     `--surface` / `--ink` / `--rose` names below are the new canonical
+     aliases pointing at the same values. Migrate consumers to the new
+     names over time; deleting a `--color-*` alias is a breaking change.
+     ═══════════════════════════════════════════════════════════════ */
 
-  /* Surfaces: warm parchment */
-  --color-surface: #FAFAF8;
+  /* ─── Brand (rose) ─── */
+  /* Primary action / selection / links. rose = oklch(0.55 0.11 10) */
+  --color-primary: #A75463;
+  --color-primary-dim: #8A3A4A;                    /* hover / pressed */
+  --color-primary-container: rgba(167, 84, 99, 0.08);
+  --color-primary-container-strong: rgba(167, 84, 99, 0.14);
+
+  /* ─── Rose surface family (warm neutrals tinted toward brand hue, NOT beige) ─── */
+  --color-surface: #FDF8F7;                          /* app canvas / body */
   --color-surface-container-lowest: #FFFFFF;
-  --color-surface-container-low: #F5F2EC;
-  --color-surface-container: #EDEAD3;
-  --color-surface-container-high: #E6E2DA;
-  --color-surface-container-highest: #DDD9CF;
+  --color-surface-container-low: #FAF1F1;            /* structural sections */
+  --color-surface-container: #F6E9E9;                /* cards / panels */
+  --color-surface-container-high: #EFDEDF;           /* nested / active fill */
+  --color-surface-container-highest: #E9D7D8;        /* deepest interactive */
 
-  /* Text — warm stone scale */
-  --color-on-surface: #1C1B19;
-  --color-on-surface-variant: #6B6560;
-  --color-on-surface-muted: #A8A29E;
+  /* ─── Ink (warm rose-tinted text neutrals) ─── */
+  --color-on-surface: #2F1E26;                       /* headings / primary — 14.9:1 */
+  --color-on-surface-variant: #604C55;               /* body / labels — 7.5:1, safe on all panels */
+  /* Muted: rose-tinted, darkened so it clears 4.5:1 on EVERY panel in the
+     ramp (incl. surface-container-highest). Preserves the audit contrast fix. */
+  --color-on-surface-muted: #67595F;
 
-  /* Borders */
-  --color-outline: #D8D4CC;
-  --color-outline-variant: rgba(93, 107, 85, 0.18);
+  /* ─── Borders ─── */
+  --color-outline: #DFD4D4;                          /* hairline dividers/borders */
+  --color-outline-variant: rgba(167, 84, 99, 0.18);  /* rose-tinted ghost border */
 
-  /* Status */
-  --color-error: #9B3422;
+  /* ─── Status ─── */
+  --color-error: #AE3F2C;                            /* 5.6:1 on surface */
   --color-on-error: #FFFFFF;
-  --color-error-container: rgba(155, 52, 34, 0.08);
-  --color-success: #3D6B4A;
+  --color-error-container: rgba(174, 63, 44, 0.08);
+  --color-success: #3F774D;                          /* 5.0:1 on surface */
+  --color-warning: #C08A3E;                          /* large text only */
+
+  /* ─── New canonical aliases (DESIGN.md naming) ─── */
+  --surface: var(--color-surface);
+  --surface-1: var(--color-surface-container-low);
+  --surface-2: var(--color-surface-container);
+  --surface-3: var(--color-surface-container-high);
+  --ink: var(--color-on-surface);
+  --ink-variant: var(--color-on-surface-variant);
+  --ink-muted: var(--color-on-surface-muted);
+  --rose: var(--color-primary);
+  --rose-dim: var(--color-primary-dim);
+  --bordeaux: #611C2A;                               /* drenched heroes/footers */
+  --gold: #C69D63;                                   /* rare delight only */
+  --sage: #6B8971;                                   /* quiet secondary accent */
 
   /* ─── Typography ─── */
-  --font-serif: "Playfair Display", "Georgia", serif;
-  --font-sans: "Outfit", system-ui, sans-serif;
+  /* Fraunces = romantic editorial serif; Inter = humanist sans for all UI.
+     Playfair/Outfit kept in the stack as graceful fallbacks. */
+  --font-serif: "Fraunces", "Playfair Display", "Georgia", serif;
+  --font-sans: "Inter", "Outfit", system-ui, sans-serif;
 
   /* ─── Spacing ─── */
   --spacing-section: 6rem;
@@ -45,6 +73,17 @@
   --radius-lg: 1rem;
   --radius-xl: 1.5rem;
   --radius-full: 9999px;
+
+  /* ─── Z-index scale (semantic, not arbitrary) ─── */
+  --z-base: 0;
+  --z-dropdown: 10;
+  --z-sticky: 40;
+  --z-drawer-backdrop: 50;
+  --z-drawer: 60;
+  --z-modal-backdrop: 70;
+  --z-modal: 80;
+  --z-toast: 90;
+  --z-grain: 100;
 }
 
 /* ─── Base Styles ─── */
@@ -68,10 +107,36 @@ body::before {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-grain);
   opacity: 0.018;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
   background-size: 160px 160px;
+}
+
+/* ─── Focus visibility (keyboard) ─── */
+/* Single accessible ring for every interactive element. Mouse clicks don't
+   trigger :focus-visible, so this only appears for keyboard/AT users. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+/* Remove the UA default focus ring only where our :focus-visible replaces it */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* ─── Reduced motion ─── */
+/* Honors the OS "reduce motion" setting: neutralizes CSS transitions/animations
+   and framer-motion is separately gated via useReducedMotion(). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  html { scroll-behavior: auto; }
 }
 
 /* ─── Typography Utilities ─── */
@@ -140,16 +205,17 @@ body::before {
   font-family: var(--font-sans);
   font-weight: 500;
   letter-spacing: 0.04em;
+  /* Ease-out only — no bounce/overshoot (retired in redesign). */
   transition: background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1),
+              transform 120ms cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 200ms ease;
 }
 .btn-primary:hover {
   background: var(--color-primary-dim);
-  box-shadow: 0 6px 24px rgba(93, 107, 85, 0.28);
+  box-shadow: 0 6px 24px rgba(167, 84, 99, 0.28);
 }
 .btn-primary:active {
-  transform: scale(0.975) translateY(1px);
+  transform: scale(0.985);
 }
 
 .btn-outline {
@@ -160,7 +226,7 @@ body::before {
   font-weight: 500;
   letter-spacing: 0.04em;
   transition: border-color 200ms ease, color 200ms ease,
-              background 200ms ease, transform 120ms cubic-bezier(0.34, 1.56, 0.64, 1);
+              background 200ms ease, transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .btn-outline:hover {
   border-color: var(--color-primary);
@@ -168,28 +234,28 @@ body::before {
   background: var(--color-primary-container);
 }
 .btn-outline:active {
-  transform: scale(0.975) translateY(1px);
+  transform: scale(0.985);
 }
 
-/* ─── Glass Effect (light) ─── */
+/* ─── Glass Effect (rare — sticky nav only, not a default card treatment) ─── */
 .glass {
-  background: rgba(250, 250, 248, 0.88);
-  backdrop-filter: blur(16px) saturate(1.8);
-  -webkit-backdrop-filter: blur(16px) saturate(1.8);
-  /* Liquid glass inner edge */
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9),
-              inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+  background: rgba(253, 248, 247, 0.85);
+  backdrop-filter: blur(16px) saturate(1.6);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  /* Soft inner edge */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85),
+              inset 0 -1px 0 rgba(47, 30, 38, 0.04);
 }
 
-/* ─── Ambient Shadow (light — tinted warm) ─── */
+/* ─── Ambient Shadow (soft daylight — ink-tinted) ─── */
 .shadow-ambient {
-  box-shadow: 0 4px 24px rgba(28, 27, 25, 0.07),
-              0 1px 4px rgba(28, 27, 25, 0.04);
+  box-shadow: 0 4px 24px rgba(47, 30, 38, 0.07),
+              0 1px 4px rgba(47, 30, 38, 0.04);
 }
 
 .shadow-lift {
-  box-shadow: 0 12px 40px rgba(28, 27, 25, 0.09),
-              0 2px 8px rgba(28, 27, 25, 0.05);
+  box-shadow: 0 12px 40px rgba(47, 30, 38, 0.10),
+              0 2px 8px rgba(47, 30, 38, 0.05);
 }
 
 /* ─── Ghost Border ─── */
@@ -204,12 +270,28 @@ body::before {
   background: var(--color-outline);
 }
 
-/* ─── Card hover (light — spring) ─── */
+/* ─── Loading skeleton shimmer ─── */
+.skeleton-shimmer {
+  background: linear-gradient(
+    100deg,
+    var(--color-surface-container) 30%,
+    var(--color-surface-container-high) 50%,
+    var(--color-surface-container) 70%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-slide 1.4s ease-in-out infinite;
+}
+@keyframes skeleton-slide {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Card hover (ease-out — no spring overshoot) ─── */
 .card-hover {
-  transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1),
               box-shadow 280ms ease;
 }
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 40px rgba(28, 27, 25, 0.1), 0 2px 8px rgba(28, 27, 25, 0.06);
+  box-shadow: 0 16px 40px rgba(47, 30, 38, 0.10), 0 2px 8px rgba(47, 30, 38, 0.06);
 }

@@ -1,179 +1,142 @@
 # Design System Specification: Selah Vie
 
-
-
-## 1. Overview & Creative North Star
-
-
-
-### Creative North Star: "The Curated Heirloom"
-
-This design system moves away from the transactional nature of project management and toward the emotional resonance of an editorial boutique. We are not building a "utility tool"; we are crafting a digital concierge. The experience should feel like flipping through a high-end bridal magazine—spacious, intentional, and deeply tactile.
-
-
-
-To break the "template" look, we leverage **Intentional Asymmetry**. Do not feel forced to center-align every hero or balance every grid. Use the `display-lg` typography to anchor a page, then allow UI elements to "float" around it using the layering principles below. The goal is to create a rhythm of "tension and release"—compressed information in high-utility areas and expansive, breathing room in celebratory moments.
-
-
+> **Redesign — soft & romantic.** This is the engineering-side design spec, kept in
+> sync with the root [DESIGN.md](../DESIGN.md) (canonical) and [PRODUCT.md](../PRODUCT.md).
+> It documents the **target** system for the complete redesign, and notes where the
+> shipped code still reflects the previous system so implementation can close the gap.
+> Register is **product**: the couple's app leads; marketing/published surfaces reuse
+> these tokens at higher intensity.
 
 ---
 
+## 1. Creative North Star
 
+**"A love letter, well-kept."** We are moving away from both the transactional SaaS look
+*and* the previous quiet sage-on-parchment build, toward a **committed, romantic rose
+identity**. The app is the calm, cared-for corner of an overwhelming wedding; the
+published guest sites feel handmade. Warmth is carried by a dusty-rose surface family and
+a deep bordeaux for drenched moments — **never** by a beige/cream/parchment body (the AI
+default this brand rejects).
+
+Intentional asymmetry and "tension and release" (compressed utility areas, expansive
+celebratory moments) still apply — but as a rhythm tool, not a license for decoration.
+
+---
 
 ## 2. Colors
 
+Authored in **OKLCH**, contrast-checked to WCAG 2.1 AA. Full table with ratios lives in
+[DESIGN.md §2](../DESIGN.md). Summary:
 
+**Rose surface family** (warm neutrals tinted toward the brand hue, not beige):
+`--surface #FDF8F7` · `--surface-1 #FAF1F1` · `--surface-2 #F6E9E9` · `--surface-3 #EFDEDF`
 
-The palette is rooted in organic, celebratory tones: **Dusty Rose (`primary`)**, **Soft Sage (`secondary`)**, and **Champagne Gold (`tertiary`)**.
+**Ink** (rose-tinted text neutrals): `--ink #2F1E26` (14.95:1) · `--ink-variant #604C55`
+(7.49:1, use for body + labels + placeholders) · `--ink-muted #7D6A72` (4.78:1 on
+`--surface` only — **never** on tinted panels; decorative/large captions only).
 
+**Brand & accent:** `--rose #A75463` (primary action/selection/link, 4.88:1) ·
+`--rose-dim #8A3A4A` (hover/pressed) · `--bordeaux #611C2A` (drenched heroes/footers,
+white text 12.3:1) · `--gold #C69D63` (rare delight only) · `--sage #6B8971` (quiet
+secondary).
 
+**Semantic:** `--success #3F774D` · `--error #AE3F2C` · `--warning #C08A3E` ·
+`--outline #DFD4D4` (1px hairlines).
 
-### The "No-Line" Rule
-
-**Borders are a failure of hierarchy.** To maintain a premium feel, 1px solid borders are strictly prohibited for sectioning. Contrast must be achieved through background shifts.
-
-* *Implementation:* Place a `surface-container-low` section (for a "vendor list") directly onto a `surface` background. The shift in tone is sufficient to define the boundary without the "boxed-in" feeling of a line.
-
-
-
-### Surface Hierarchy & Nesting
-
-Treat the UI as a physical stack of fine paper.
-
-1. **Base:** `surface` (#fdf9f6) - The canvas.
-
-2. **Structural Sections:** `surface-container-low` (#f7f3f0) - Use for large secondary areas.
-
-3. **Interactive Elements:** `surface-container-highest` (#e5e2df) - Use for active states or deeply nested utility panels.
-
-
-
-### The "Glass & Gradient" Rule
-
-For floating modals or sticky navigation, use **Glassmorphism**. Apply a background of `surface_container_lowest` at 80% opacity with a `backdrop-blur` of 12px.
-
-* **Signature Textures:** For primary CTAs, use a subtle linear gradient from `primary` (#7c5454) to `primary_container` (#c99999) at a 135-degree angle. This adds a "silk-sheen" quality that feels bespoke.
-
-
+### Rules
+- **Hairlines are allowed now.** The old "borders are a failure of hierarchy / no 1px
+  lines" rule is **retired**. Use hairline `--outline` dividers and full borders freely;
+  side-stripe accent borders remain banned.
+- **Contrast is a hard gate.** Body/label/placeholder ≥ 4.5:1; large/decorative ≥ 3:1.
+  Do not use `--ink-muted` for text on `--surface-2`/`--surface-3`.
+- No pure black. No gray text on colored fills (darken the fill's hue instead).
+- App = Restrained (rose for action/state only). Marketing/published heroes = Committed →
+  Drenched (bordeaux + white + rare gold).
 
 ---
-
-
 
 ## 3. Typography
 
+High-contrast pairing on a real axis: **Fraunces** (romantic editorial serif; `Playfair
+Display` is the current shipped fallback) for display/headings, **Inter** (humanist sans;
+`Outfit` currently shipped) for all UI, labels, body, and data.
 
-
-The system utilizes a high-contrast pairing: **Noto Serif** for the "soul" (Headings) and **Plus Jakarta Sans** for the "engine" (UI/Labels).
-
-
-
-* **Display & Headlines (Noto Serif):** These are your editorial anchors. Use `display-lg` for hero moments (e.g., "The Big Day"). Always use `on_surface` (#1c1b1a) to maintain authority.
-
-* **Titles & Body (Plus Jakarta Sans):** Designed for clarity. `title-md` should be used for card headings to ensure they don't compete with the editorial serifs.
-
-* **Letter Spacing:** For `label-md` and `label-sm`, increase letter spacing by 0.05rem and use uppercase for a "luxury brand" feel on small metadata.
-
-
+- **App uses a fixed rem scale**; fluid `clamp()` only on marketing/published heroes.
+- Scale ratio ~1.2 in-app; display ceiling ≤ 6rem, letter-spacing floor ≥ -0.04em.
+- Serifs only for display + couple/wedding content. **Never** serif UI labels/buttons/data.
+- Retire the uppercase-tracked eyebrow above every section — one deliberate kicker max,
+  otherwise sentence-case labels.
+- `text-wrap: balance` on h1–h3; body prose 65–75ch.
 
 ---
-
-
 
 ## 4. Elevation & Depth
 
-
-
-### The Layering Principle
-
-Avoid "shadow-heavy" designs. Instead, stack your surface tokens. A `surface-container-lowest` card sitting on a `surface-container` background creates a "natural lift" that feels architectural rather than digital.
-
-
-
-### Ambient Shadows
-
-When an element must float (e.g., a "Save Date" FAB), use an **Ambient Shadow**:
-
-* **Color:** `on_surface` at 6% opacity.
-
-* **Blur:** 24px.
-
-* **Y-Offset:** 8px.
-
-This mimics soft, natural light filtered through a window.
-
-
-
-### The "Ghost Border" Fallback
-
-If a border is legally or functionally required for accessibility, use the `outline_variant` (#d1c5b4) token at **20% opacity**. It should be felt, not seen.
-
-
+Prefer **surface-tone stacking** over shadows (a `--surface` card on `--surface-1` reads
+as a natural lift). When an element must float, use an **ambient shadow**: `--ink` at ~7%,
+24px blur, 8px Y. No Material pops. **Glassmorphism is rare and purposeful** (sticky nav at
+most) — the old "use glass for all floating surfaces" rule is retired.
 
 ---
-
-
 
 ## 5. Components
 
+Every interactive component ships **all** states: default, hover, **focus-visible**,
+active, disabled, loading, error, selected.
 
-
-### Buttons
-
-* **Primary:** Gradient of `primary` to `primary_container`. Roundedness: `full`. No shadow.
-
-* **Secondary:** Ghost style. No background, `outline` token border (at 30% opacity), `primary` text.
-
-* **Tertiary:** `label-md` styling with a 2px underline in `tertiary_fixed_dim`.
-
-
-
-### Cards & Lists
-
-* **Constraint:** Zero dividers. Use vertical white space `spacing.6` (2rem) to separate items.
-
-* **Styling:** Use `surface-container-low` for card backgrounds with `roundedness.lg`.
-
-
-
-### Input Fields
-
-* **Styling:** Fields should not be boxes. Use a "Minimalist Undersline" or a very soft `surface-variant` background with `roundedness.sm`.
-
-* **Focus State:** Shift background to `surface_container_lowest` and change underline to `tertiary`.
-
-
-
-### Wedding-Specific Components
-
-* **The Timeline Rail:** A vertical line using `outline_variant` with `secondary` nodes to track wedding day events.
-
-* **The RSVP Toggle:** A custom "selection chip" using `secondary_container` for the active state to evoke a sense of calm and growth (Sage).
-
-
+- **Buttons** — Primary: solid `--rose`, white text, `--rose-dim` hover, radius `sm`,
+  **min 44px height** (36px `sm`). Secondary: hairline outline + rose-tint hover.
+  Tertiary: underlined sans label. **No gradient "silk-sheen"** (retired), no bounce.
+- **Inputs** — underline (text) / `--surface-2` fill (textarea); rose focus underline +
+  global focus ring; labels & placeholders in `--ink-variant`; numeric fields carry
+  `inputMode` + `autocomplete`.
+- **Cards & lists** — `--surface-2`, hairline or tone-shift, radius `md`, ambient hover
+  shadow. **Never nested.**
+- **Wedding-specific** — Timeline rail (`--outline` line, `--rose`/`--sage` nodes); RSVP
+  toggle (selection chip, `--sage`-tinted "attending" for calm, `--rose` otherwise);
+  theme swatch picker with live preview chip.
+- **Skeletons** for loading (not center-spinners). **Empty states teach** the next action.
+- **Status badges** — draft (`--surface-3`), published (`--success`), RSVP-active
+  (`--rose`).
 
 ---
 
+## 6. Motion
 
+- 150–250ms app transitions; motion = state, never decoration. Ease-out exponential
+  curves. **No bounce/elastic.**
+- **`prefers-reduced-motion` mandatory** (global CSS block in place; gate framer via
+  `useReducedMotion()`).
+- **Reveals enhance an already-visible default** — never gate visibility on `whileInView`
+  (ships blank to crawlers/no-JS/background tabs). Required fix on published templates.
 
-## 6. Do's and Don'ts
+---
 
+## 7. Z-index scale
 
+Semantic, defined in `globals.css`: `base 0 · dropdown 10 · sticky 40 · drawer-backdrop
+50 · drawer 60 · modal-backdrop 70 · modal 80 · toast 90 · grain 100`. No arbitrary values.
 
-### Do:
+---
 
-* **Do** use `spacing.16` (5.5rem) or even `spacing.20` (7rem) between major sections to let the design breathe.
+## 8. Do / Don't
 
-* **Do** mix serif and sans-serif in close proximity (e.g., a `label-md` category tag sitting above a `headline-sm` title).
+**Do:** breathe (3–4rem app sections, 6–9rem marketing); mix serif display with sans
+labels in close proximity; use `--gold` sparingly for moments of delight; use hairlines
+and surface-tone shifts for structure; define every interactive state.
 
-* **Do** use the `tertiary` (Gold) sparingly for "moments of delight"—icon accents, star ratings, or price highlights.
+**Don't:** use pure black; use `--ink-muted` for text on tinted panels; ship gradient
+CTAs, default glassmorphism, side-stripe borders, gradient text, or an eyebrow on every
+section; animate without a reduced-motion path; gate content on scroll reveals; nest cards.
 
+---
 
+## 9. Migration note (shipped → target)
 
-### Don't:
-
-* **Don't** use pure black (#000000). Always use `on_surface` (#1c1b1a) to keep the look soft and premium.
-
-* **Don't** use standard "Material" shadows. If an element looks like it’s "popping" off the screen too hard, it has lost its elegance.
-
-* **Don't** use hard corners. Even "square" elements should have at least `roundedness.sm` (0.25rem) to maintain a soft, welcoming feel.
+The shipped `app/globals.css` currently implements the **previous** system: sage-green
+`--color-primary #5D6B55` on warm-parchment surfaces, Playfair + Outfit, plus the audit
+fixes already applied (darkened muted token `#605A53`, global focus ring, reduced-motion
+block, semantic z-scale). The redesign replaces the palette and type per §2–3 while
+**keeping** those accessibility fixes. Token names may migrate from `--color-*` to the
+`--surface`/`--ink`/`--rose` naming above; do it in one pass with a compatibility map so
+components update predictably.

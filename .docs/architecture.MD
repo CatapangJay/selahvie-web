@@ -1,354 +1,205 @@
 # Selah Vie — System Architecture
 
+> Updated for the **redesign** (soft & romantic, product-primary, V1 mock backend).
+> Reflects the **actual shipped structure** (route groups, template registry, real data
+> models) and the new features planned in [tasks.MD](./tasks.MD). Strategy is in
+> [../PRODUCT.md](../PRODUCT.md); visual system in [../DESIGN.md](../DESIGN.md).
+
 ---
 
 ## 1. System Overview
 
-Selah Vie is a **wedding management SaaS platform** that allows couples to browse, purchase, and fully customize wedding websites complete with digital invitations and RSVP management. The architecture follows a **monolithic Next.js application** pattern for V1, enabling fast iteration with a clear upgrade path to microservices.
+Selah Vie is a **wedding website + guest-management platform**. Couples browse, purchase,
+and fully customize a wedding website, publish it for guests, and then run **RSVP and guest
+management** from a single dashboard. V1 is a **monolithic Next.js 14 (App Router)
+application** with client-side persistence (`localStorage` via Zustand) and mock payments —
+a deliberate fast-iteration stage with a clear upgrade path (§10).
+
+The redesign does not change the V1 backend posture. It changes (a) the **visual system**
+(see DESIGN.md), (b) the **information architecture** of the couple's app, and (c) the
+**feature surface** — real guest/RSVP management, richer published-site sections, deeper
+customization, and discovery/onboarding — all still against mock/local data.
 
 ---
 
-## 2. High-Level Architecture Diagram
+## 2. Three surfaces, two audiences
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                         CLIENT (Browser)                         │
-│                                                                  │
-│  ┌────────────┐  ┌─────────────┐  ┌───────────────────────────┐ │
-│  │ Marketing  │  │  App Shell  │  │  Public Wedding Site      │ │
-│  │  Pages     │  │  (Auth'd)   │  │  /wedding/[slug]          │ │
-│  │  /         │  │  /dashboard │  │  (Guest-Facing)           │ │
-│  │  /templates│  │  /checkout  │  │                           │ │
-│  └────────────┘  └─────────────┘  └───────────────────────────┘ │
-│         │               │                      │                 │
-│         └───────────────┴──────────────────────┘                 │
-│                          │                                       │
-│              Next.js App Router (SSR + CSR)                      │
-└──────────────────────────┬───────────────────────────────────────┘
-                           │
-           ┌───────────────┼───────────────┐
-           │               │               │
-    ┌──────▼──────┐ ┌──────▼──────┐ ┌─────▼──────┐
-    │  Next.js    │ │  Zustand    │ │  Static    │
-    │  API Routes │ │  (Client    │ │  Data      │
-    │  /api/*     │ │   State)    │ │  Layer     │
-    └──────┬──────┘ └─────────────┘ └────────────┘
-           │
-    ┌──────▼──────────────────────────┐
-    │         Data / Services         │
-    │                                 │
-    │  ┌───────────┐  ┌────────────┐  │
-    │  │  Database │  │  Storage   │  │
-    │  │  (Future: │  │  (Future:  │  │
-    │  │  Supabase)│  │  S3/R2)    │  │
-    │  └───────────┘  └────────────┘  │
-    │                                 │
-    │  ┌───────────────────────────┐  │
-    │  │  Payment (Stripe)         │  │
-    │  └───────────────────────────┘  │
-    └─────────────────────────────────┘
-```
+| Surface | Routes | Audience | Register | Rendering |
+|---|---|---|---|---|
+| **Marketing** | `/`, `/templates`, `/templates/[id]` | Prospective couples | brand-leaning | mostly static + client filters |
+| **Couple's app** | `/dashboard`, `/dashboard/customize/[id]`, `/checkout`, `/checkout/success` | The couple (organizer) | **product (primary)** | CSR (client state) |
+| **Published sites** | `/wedding/[slug]`, `/preview/[id]` | Wedding guests | brand (design-is-product) | CSR now; SSR target (§9) |
+
+Two route groups isolate chrome:
+- `app/(main)/` — marketing + app, wrapped in `Navbar` + `Footer` + `CartDrawer`.
+- `app/(wedding)/` — chrome-free published sites and live previews.
 
 ---
 
 ## 3. Technology Stack
 
-| Layer | Technology | Rationale |
-|-------|-----------|-----------|
-| **Framework** | Next.js 14 (App Router) | SSR for SEO on marketing/wedding pages, CSR for interactive dashboard |
-| **Language** | TypeScript | Type safety across all data models |
-| **Styling** | Tailwind CSS v3 | Utility-first, maps perfectly to design token system |
-| **Animations** | Framer Motion | Polished entrance animations for editorial feel |
-| **Icons** | Lucide React | Lightweight, consistent icon set |
-| **State Management** | Zustand | Lightweight global state for cart + wedding customization |
-| **Persistence** | localStorage (V1) → Supabase (V2) | Fast iteration in V1, real backend in V2 |
-| **Payments** | Stripe (mock in V1) | Industry standard, easy migration from mock to live |
-| **Deployment** | Vercel | Zero-config Next.js deployment, edge CDN |
-| **Fonts** | Google Fonts (Noto Serif + Plus Jakarta Sans) | As specified in design system |
+| Layer | Technology | Notes |
+|---|---|---|
+| Framework | Next.js 14 (App Router) | Route groups `(main)` / `(wedding)` |
+| Language | TypeScript (strict) | |
+| Styling | **Tailwind CSS v4** (`@theme` in `app/globals.css`) | *(docs previously said v3; actual is v4, `@tailwindcss/postcss`)* |
+| Animations | Framer Motion | Gated via `useReducedMotion()` |
+| Icons | Lucide React | |
+| State | Zustand (+ `persist`) | `cartStore`, `weddingStore`, both `localStorage` |
+| Persistence | localStorage (V1) → real backend (V2, §10) | |
+| Payments | Mock form (V1) → Stripe (V2) | |
+| Fonts | Google Fonts | Redesign target: **Fraunces + Inter** (shipped: Playfair Display + Outfit) |
+| Deployment | Vercel (planned) | |
 
 ---
 
-## 4. Folder Structure
+## 4. Folder Structure (actual)
 
 ```
 selahvie-web/
-├── .docs/                        # Project documentation
-│   ├── architecture.MD
-│   ├── design.MD
-│   └── tasks.MD
+├── PRODUCT.md · DESIGN.md            # Root strategic + visual docs (impeccable)
+├── .docs/                            # Engineering docs (this folder)
+│   ├── architecture.MD · design.MD · tasks.MD
 │
-├── app/                          # Next.js App Router
-│   ├── layout.tsx                # Root layout (fonts, navbar, cart drawer)
-│   ├── page.tsx                  # Landing page (/)
+├── app/
+│   ├── layout.tsx                    # Root: fonts, globals.css
+│   ├── globals.css                   # Tailwind v4 @theme tokens + base + a11y
 │   │
-│   ├── templates/
-│   │   ├── page.tsx              # Template gallery (/templates)
-│   │   └── [id]/
-│   │       └── page.tsx          # Template detail (/templates/[id])
+│   ├── (main)/                       # Marketing + app (Navbar/Footer/CartDrawer)
+│   │   ├── layout.tsx
+│   │   ├── page.tsx                  # Landing (/)
+│   │   ├── templates/page.tsx        # Gallery
+│   │   ├── templates/[id]/page.tsx   # Template detail
+│   │   ├── checkout/page.tsx
+│   │   ├── checkout/success/page.tsx
+│   │   ├── dashboard/page.tsx
+│   │   └── dashboard/customize/[id]/page.tsx   # 5-step studio
 │   │
-│   ├── checkout/
-│   │   ├── page.tsx              # Checkout (/checkout)
-│   │   └── success/
-│   │       └── page.tsx          # Order confirmation (/checkout/success)
-│   │
-│   ├── dashboard/
-│   │   ├── page.tsx              # User dashboard (/dashboard)
-│   │   └── customize/
-│   │       └── [id]/
-│   │           └── page.tsx      # Customization studio (/dashboard/customize/[id])
-│   │
-│   ├── wedding/
-│   │   └── [slug]/
-│   │       └── page.tsx          # Public wedding site (/wedding/[slug])
-│   │
-│   └── api/                      # Next.js API Routes
-│       ├── checkout/
-│       │   └── route.ts          # POST /api/checkout (Stripe session)
-│       ├── rsvp/
-│       │   └── route.ts          # POST /api/rsvp (RSVP submission)
-│       └── wedding/
-│           └── [slug]/
-│               └── route.ts      # GET/PUT /api/wedding/[slug]
+│   └── (wedding)/                    # Chrome-free
+│       ├── layout.tsx
+│       ├── wedding/[slug]/page.tsx   # Published site (+ demo slugs)
+│       └── preview/[id]/page.tsx     # Live template preview (redesign add)
 │
-├── components/                   # Reusable UI Components
-│   ├── ui/                       # Primitive design system components
-│   │   ├── ButtonPrimary.tsx
-│   │   ├── ButtonSecondary.tsx
-│   │   ├── ButtonTertiary.tsx
-│   │   ├── Card.tsx
-│   │   └── InputField.tsx
-│   │
-│   ├── layout/                   # Layout components
-│   │   ├── Navbar.tsx
-│   │   ├── Footer.tsx
-│   │   └── PageLayout.tsx
-│   │
-│   ├── cart/                     # Cart feature components
-│   │   ├── CartDrawer.tsx
-│   │   ├── CartItemCard.tsx
-│   │   └── CartBadge.tsx
-│   │
-│   ├── templates/                # Template feature components
-│   │   ├── TemplateCard.tsx
-│   │   ├── TemplateGrid.tsx
-│   │   └── TemplateFilterBar.tsx
-│   │
-│   ├── customize/                # Customization studio components
-│   │   ├── StepIndicator.tsx
-│   │   ├── CoupleInfoStep.tsx
-│   │   ├── ThemeStep.tsx
-│   │   ├── MediaStep.tsx
-│   │   ├── RSVPSettingsStep.tsx
-│   │   └── ReviewStep.tsx
-│   │
-│   └── wedding/                  # Public wedding site components
-│       ├── WeddingHero.tsx
-│       ├── WeddingGallery.tsx
-│       ├── WeddingTimeline.tsx
-│       └── RSVPForm.tsx
+├── components/
+│   ├── ui/                           # ButtonPrimary/Secondary/Tertiary, InputField
+│   ├── layout/                       # Navbar, Footer
+│   ├── cart/                         # CartDrawer, CartItemCard
+│   ├── templates/                    # TemplateCard, TemplateGrid
+│   └── wedding-templates/            # Template renderers (registry, §7)
+│       ├── index.ts                  # templateRegistry + resolveTemplate
+│       ├── _shared/AudioPlayer.tsx
+│       └── <template>/               # rose-elegy, obsidian-vow, enchanted-grove,
+│                                     #   forest-bloom, golden-dusk, wonderstruck,
+│                                     #   botanical-serenity — each self-contained
 │
-├── store/                        # Zustand stores
-│   ├── cartStore.ts              # Cart state (items, add/remove/clear)
-│   └── weddingStore.ts           # Wedding customization state
-│
-├── types/                        # TypeScript type definitions
-│   ├── template.ts               # WeddingTemplate interface
-│   ├── cart.ts                   # CartItem interface
-│   ├── wedding.ts                # WeddingConfig, RSVPEntry interfaces
-│   └── order.ts                  # Order, CheckoutSession interfaces
-│
-├── data/                         # Static seed data (V1)
-│   └── templates.ts              # Mock template catalog
-│
-├── lib/                          # Utility functions
-│   ├── utils.ts                  # General helpers (cn, formatPrice, etc.)
-│   └── constants.ts              # App-wide constants
-│
-├── public/
-│   ├── templates/                # Template preview images
-│   └── icons/                    # Static icon assets
-│
-├── tailwind.config.ts            # Design token → Tailwind mapping
-├── next.config.ts
-└── tsconfig.json
+├── store/       cartStore.ts, weddingStore.ts
+├── types/       template.ts, cart.ts, wedding.ts, order.ts
+├── data/        templates.ts, musicTracks.ts, demoConfigs.ts (redesign add)
+└── lib/         utils.ts, constants.ts
 ```
+
+Note vs. the previous doc: there is **no `app/api/`** yet (V1 is client-only), and no
+`components/customize/` or `components/wedding/` split — the studio is one page file and
+published output is composed under `components/wedding-templates/`.
 
 ---
 
-## 5. Data Models
+## 5. Data Models (actual, `types/`)
 
-### `WeddingTemplate`
-```typescript
-interface WeddingTemplate {
-  id: string;
-  name: string;
-  slug: string;
-  description: string;
-  price: number;               // in cents
-  previewImage: string;
-  previewImages: string[];     // carousel images
-  tags: TemplateTag[];         // "Romantic" | "Modern" | "Rustic" | "Minimalist"
-  features: string[];          // included features list
-  colorPalettes: ColorPalette[];
-  isFeatured: boolean;
-  createdAt: string;
-}
-```
+`WeddingTemplate` (`types/template.ts`) — `id, name, slug, description, longDescription,
+price (₱ cents), previewImage, previewImages[], tags[], features[], colorPalettes[],
+isFeatured, createdAt`.
 
-### `CartItem`
-```typescript
-interface CartItem {
-  templateId: string;
-  template: WeddingTemplate;
-  quantity: 1;                 // always 1 per template
-  addedAt: string;
-}
-```
+`CartItem` (`types/cart.ts`) — `templateId, template, addedAt` (one per template).
 
-### `WeddingConfig`
-```typescript
-interface WeddingConfig {
-  id: string;
-  templateId: string;
-  slug: string;                // public URL slug, e.g. "sarah-and-james"
-  status: "draft" | "published";
+`WeddingConfig` (`types/wedding.ts`) — couple info, theme (`primaryColor`, `accentColor`,
+`themePresetId`), media (`heroImageUrl`, `galleryImageUrls[]`, `coupleStory`), RSVP
+settings (`rsvpDeadline`, `mealOptions[]`, `allowPlusOne`, `customQuestions[]`), and music
+(`musicTrackId`, `musicCustomUrl`).
 
-  // Step 1: Couple Info
-  partner1Name: string;
-  partner2Name: string;
-  weddingDate: string;         // ISO date
-  venueName: string;
-  venueAddress: string;
-  venueCity: string;
+`RSVPEntry` (`types/wedding.ts`) — defined but **not yet persisted** (RSVP submit is local
+UI state only). The redesign's guest-management feature (§6) makes this real.
 
-  // Step 2: Theme
-  primaryColor: string;        // hex code
-  accentColor: string;         // hex code
-  themePreset: string;         // references template color palette id
-
-  // Step 3: Media
-  heroImageUrl: string;
-  galleryImageUrls: string[];
-  coupleStory: string;
-
-  // Step 4: RSVP Settings
-  rsvpDeadline: string;
-  mealOptions: string[];
-  allowPlusOne: boolean;
-  customQuestions: string[];
-}
-```
-
-### `RSVPEntry`
-```typescript
-interface RSVPEntry {
-  id: string;
-  weddingId: string;
-  guestName: string;
-  email: string;
-  attending: boolean;
-  mealChoice?: string;
-  plusOneName?: string;
-  message?: string;
-  submittedAt: string;
-}
-```
+### Redesign additions to the data layer (V1, still local)
+- **`RSVPEntry` persistence** in `weddingStore` keyed by wedding id; derived selectors for
+  counts/meal tallies.
+- **`GuestListEntry`** (invited guest: name, contact, party size, status) for guest-list
+  management.
+- **`WeddingConfig` growth** for richer sections & deeper customization: `registryLinks[]`,
+  `travel` (hotels/notes), `faq[]`, `weddingParty[]`, `schedule[]`, `sectionOrder[]` +
+  `sectionVisibility{}`, and `fontPresetId` / theme controls.
+- **`favorites`** (template ids) for discovery.
 
 ---
 
-## 6. User Flow
+## 6. Feature Architecture (redesign scope)
 
-```
-Landing Page (/)
-      │
-      ▼
-Template Gallery (/templates)
-      │
-      │ Click template card
-      ▼
-Template Detail (/templates/[id])
-      │
-      │ "Add to Cart" click
-      ▼
-Cart Drawer (slides in)
-      │
-      │ "Checkout" click
-      ▼
-Checkout Page (/checkout)
-      │
-      │ "Complete Purchase" click
-      ▼
-Order Confirmation (/checkout/success)
-      │
-      │ "Customize Now" click
-      ▼
-User Dashboard (/dashboard)
-      │
-      │ "Customize" click on template
-      ▼
-Customization Studio (/dashboard/customize/[id])
-      │  Step 1: Couple Info
-      │  Step 2: Theme & Colors
-      │  Step 3: Media Uploads
-      │  Step 4: RSVP Settings
-      │  Step 5: Review & Publish
-      ▼
-Public Wedding Website (/wedding/[slug])
-      │
-      │ Guest visits → submits RSVP
-      ▼
-RSVP Dashboard (in /dashboard)
-```
+Four feature groups, all V1/local:
+
+1. **Guest & RSVP management** — a dashboard area per wedding: guest list CRUD, RSVP
+   response tracking, meal tallies, plus-one handling, CSV export, reminder stubs. Backed
+   by `RSVPEntry` + `GuestListEntry` in `weddingStore`.
+2. **Richer published-site sections** — registry/gift links, travel & accommodation, FAQ,
+   wedding party, schedule/itinerary, guestbook/well-wishes. New optional section
+   components under each template (or shared section primitives), config-driven.
+3. **Deeper customization** — font/theme controls, section reorder + show/hide, live device
+   (mobile/desktop) preview, custom-domain setup flow (mock). Studio grows from linear
+   5-step to a persistent editor with live preview.
+4. **Discovery & delight** — template favorites, richer live previews (already scaffolded
+   at `/preview/[id]`), first-run onboarding, save-the-date sender (mock), couple profile.
 
 ---
 
-## 7. State Management Architecture
+## 7. Template System (actual)
 
-### Cart Store (Zustand)
-- **Scope:** Global, persisted to `localStorage`
-- **State:** `items: CartItem[]`
-- **Actions:** `addItem`, `removeItem`, `clearCart`
-- **Derived:** `total`, `itemCount`, `isInCart(id)`
-- **Hydration:** Rehydrated on app load from `localStorage`
+`components/wedding-templates/index.ts` holds `templateRegistry` (template id → React
+component) and `resolveTemplate(id)` (falls back to Rosé Elegy). Each template is a
+self-contained folder composed of isolated section sub-components; all content is driven by
+`WeddingConfig` props (`TemplateComponentProps = { config, showBranding? }`). Demo configs
+live in `data/demoConfigs.ts` and power both `/wedding/<demo-slug>` and `/preview/[id]`
+(with a synthesized fallback so every catalog template is previewable).
 
-### Wedding Store (Zustand)
-- **Scope:** Global, persisted to `localStorage` as draft
-- **State:** `configs: Record<string, WeddingConfig>`
-- **Actions:** `updateConfig`, `publishConfig`, `resetConfig`
-
----
-
-## 8. API Routes (Next.js Route Handlers)
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| `POST` | `/api/checkout` | Creates Stripe checkout session |
-| `POST` | `/api/rsvp` | Submits guest RSVP for a wedding |
-| `GET` | `/api/wedding/[slug]` | Fetches published wedding config |
-| `PUT` | `/api/wedding/[slug]` | Updates wedding config (autosave draft) |
+Redesign requirement: templates must (a) honor `prefers-reduced-motion`, (b) render content
+visible-by-default (no scroll-gated reveals), and (c) support the new optional sections via
+config, rendering nothing when a section's data is absent.
 
 ---
 
-## 9. SEO & Rendering Strategy
+## 8. State Management
 
-| Route | Rendering | Reason |
-|-------|-----------|--------|
-| `/` | SSG | Static marketing content, max performance |
-| `/templates` | SSG + CSR filters | Template catalog is static, filters are client-side |
-| `/templates/[id]` | SSG | Pre-render all template detail pages |
-| `/checkout` | CSR | Requires live cart state |
-| `/dashboard/*` | CSR | Auth-protected, user-specific |
-| `/wedding/[slug]` | SSR | Dynamic per-wedding data, crawlable for couples |
+`cartStore` — `items[]`, `isOpen`; `addItem/removeItem/clearCart/openCart/closeCart`;
+derived `isInCart/total/itemCount`; persisted `selahvie-cart`.
+
+`weddingStore` — `configs: Record<id, WeddingConfig>`; `createConfig/updateConfig/
+publishConfig/getConfig`; persisted `selahvie-weddings`. Redesign extends this with RSVP +
+guest-list slices and their selectors (still `localStorage`).
 
 ---
 
-## 10. V2 Upgrade Path
+## 9. Rendering Strategy
 
-| V1 (Current) | V2 (Planned) |
+| Route | Now | Target |
+|---|---|---|
+| `/`, `/templates`, `/templates/[id]` | client components | prerender static + client filters |
+| `/checkout`, `/dashboard/*` | CSR | CSR (user/cart state) |
+| `/wedding/[slug]`, `/preview/[id]` | CSR (reads local store) | **SSR/SSG once a backend exists** — guest sites must be crawlable and fast |
+
+Guest sites are the SEO/perf priority; SSR is deferred only because V1 has no server data
+source. Until then, published output is optimized for first paint and reduced motion.
+
+---
+
+## 10. V1 → V2 Upgrade Path
+
+| V1 (current) | V2 (planned) |
 |---|---|
-| `localStorage` for cart/user data | Supabase (Postgres) for persistent data |
-| Mock payment form | Live Stripe integration |
-| Static image URLs | Cloudflare R2 / AWS S3 for image uploads |
-| No auth | Supabase Auth (magic link / Google OAuth) |
-| Single-tier pricing | Tiered plans (Basic, Premium, Elite) |
-| Manual deploy | CI/CD via GitHub Actions → Vercel |
+| localStorage (cart, configs, RSVPs, guest list) | Database (e.g. Supabase/Postgres) |
+| Mock payment form | Live Stripe (`/api/checkout`) |
+| Static image URLs (picsum) | Object storage (R2/S3) for uploads |
+| No auth | Auth (magic link / OAuth) |
+| RSVP/guest data client-only | `/api/rsvp`, `/api/wedding/[slug]` route handlers |
+| `next.config.js` `images.unoptimized:true` | Next image optimization on real assets |
+| Single-tier pricing | Tiered plans |
+
+API routes (`/api/checkout`, `/api/rsvp`, `/api/wedding/[slug]`) are a **V2** addition; they
+do not exist in V1 and the redesign does not introduce them.

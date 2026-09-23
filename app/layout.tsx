@@ -23,11 +23,11 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Inter:wght@300;400;500;600&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body style={{ fontFamily: "'Outfit', system-ui, sans-serif" }}>
+      <body style={{ fontFamily: "'Inter', 'Outfit', system-ui, sans-serif" }}>
         {children}
       </body>
     </html>

@@ -32,16 +32,69 @@ export interface WeddingConfig {
   musicTrackId: string;
   // Only used when musicTrackId === "custom"
   musicCustomUrl: string;
+
+  // ─── Redesign: richer published-site sections (all optional, V1 local) ───
+  registryLinks?: RegistryLink[];
+  travel?: TravelInfo;
+  faq?: FaqItem[];
+  weddingParty?: WeddingPartyMember[];
+  schedule?: ScheduleEvent[];
+}
+
+export interface RegistryLink {
+  id: string;
+  label: string; // e.g. "Amazon Registry", "Honeymoon Fund"
+  url: string;
+  note?: string;
+}
+
+export interface TravelInfo {
+  accommodations: string; // free-text hotel block / notes
+  directions: string;
+  notes: string;
+}
+
+export interface FaqItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+export interface WeddingPartyMember {
+  id: string;
+  name: string;
+  role: string; // "Maid of Honor", "Best Man", ...
+  photoUrl?: string;
+}
+
+export interface ScheduleEvent {
+  id: string;
+  time: string; // free-text, e.g. "4:00 PM"
+  title: string;
+  description?: string;
 }
 
 export interface RSVPEntry {
   id: string;
-  weddingId: string;
+  weddingId: string; // WeddingConfig.id this response belongs to
   guestName: string;
-  email: string;
+  email?: string;
   attending: boolean;
   mealChoice?: string;
+  plusOne: boolean;
   plusOneName?: string;
-  message?: string;
-  submittedAt: string;
+  message?: string; // wishes / note to the couple
+  submittedAt: string; // ISO
+}
+
+/** A guest the couple has invited (managed from the dashboard). */
+export interface GuestListEntry {
+  id: string;
+  weddingId: string;
+  name: string;
+  email?: string;
+  partySize: number; // 1 = just them; 2+ includes plus-ones/family
+  status: "invited" | "attending" | "declined" | "pending";
+  note?: string;
+  createdAt: string; // ISO
 }

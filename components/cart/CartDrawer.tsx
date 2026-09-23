@@ -7,11 +7,12 @@ import CartItemCard from "./CartItemCard";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 
 export default function CartDrawer() {
   const { isOpen, closeCart, items, total, clearCart } = useCartStore();
   const router = useRouter();
+  const reduceMotion = useReducedMotion();
 
   const handleCheckout = () => {
     closeCart();
@@ -29,20 +30,21 @@ export default function CartDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="fixed inset-0 z-40"
-            style={{ background: "rgba(28,27,25,0.45)" }}
+            className="fixed inset-0"
+            style={{ background: "rgba(28,27,25,0.45)", zIndex: "var(--z-drawer-backdrop)" }}
             onClick={closeCart}
           />
 
           {/* Drawer */}
           <motion.aside
             key="drawer"
-            initial={{ x: "100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "100%" }}
-            transition={{ type: "spring", damping: 28, stiffness: 260 }}
-            className="fixed right-0 top-0 z-50 h-full w-full max-w-md flex flex-col"
+            initial={reduceMotion ? { opacity: 0 } : { x: "100%" }}
+            animate={reduceMotion ? { opacity: 1 } : { x: 0 }}
+            exit={reduceMotion ? { opacity: 0 } : { x: "100%" }}
+            transition={reduceMotion ? { duration: 0.15 } : { type: "spring", damping: 28, stiffness: 260 }}
+            className="fixed right-0 top-0 h-full w-full max-w-md flex flex-col"
             style={{
+              zIndex: "var(--z-drawer)",
               background: "var(--color-surface-container-low)",
               boxShadow: "-12px 0 40px rgba(28,27,25,0.12), -2px 0 8px rgba(28,27,25,0.06)",
               borderLeft: "1px solid var(--color-outline)",
@@ -64,7 +66,7 @@ export default function CartDrawer() {
               </div>
               <button
                 onClick={closeCart}
-                className="transition-opacity hover:opacity-60"
+                className="-mr-2 flex h-11 w-11 items-center justify-center transition-opacity hover:opacity-60"
                 style={{ color: "var(--color-on-surface-variant)" }}
                 aria-label="Close cart"
               >
@@ -123,7 +125,7 @@ export default function CartDrawer() {
                 </ButtonPrimary>
                 <button
                   onClick={clearCart}
-                  className="w-full text-center label-luxury transition-colors"
+                  className="w-full min-h-[44px] text-center label-luxury transition-colors"
                   style={{ color: "var(--color-on-surface-muted)" }}
                   onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-error)")}
                   onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-on-surface-muted)")}

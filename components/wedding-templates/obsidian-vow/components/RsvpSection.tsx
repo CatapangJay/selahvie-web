@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { InputField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import SectionLabel from "./SectionLabel";
+import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
 import type { WeddingConfig, RSVPEntry } from "@/types/wedding";
 
 interface Props {
@@ -15,9 +16,19 @@ interface Props {
 export default function RsvpSection({ config, accent }: Props) {
   const [rsvp, setRsvp] = useState<Partial<RSVPEntry>>({ attending: true });
   const [submitted, setSubmitted] = useState(false);
+  const { submit } = useRsvpSubmit(config);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    submit({
+      guestName: rsvp.guestName ?? "",
+      email: rsvp.email,
+      attending: rsvp.attending ?? true,
+      mealChoice: rsvp.mealChoice,
+      plusOne: Boolean(rsvp.plusOneName?.trim()),
+      plusOneName: rsvp.plusOneName,
+      message: rsvp.message,
+    });
     setSubmitted(true);
   };
 

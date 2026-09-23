@@ -17,9 +17,9 @@ export default function ButtonSecondary({
   ...props
 }: Props) {
   const sizes = {
-    sm: "px-4 py-2 text-xs gap-1.5",
-    md: "px-5 py-2.5 text-xs gap-2",
-    lg: "px-7 py-3 text-xs gap-2",
+    sm: "px-4 py-2 text-xs gap-1.5 min-h-[36px]",
+    md: "px-5 py-2.5 text-xs gap-2 min-h-[44px]",
+    lg: "px-7 py-3 text-xs gap-2 min-h-[48px]",
   };
 
   return (
