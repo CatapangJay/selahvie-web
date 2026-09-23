@@ -5,11 +5,14 @@ import { templates } from "@/data/templates";
 import Link from "next/link";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import EmptyState from "@/components/ui/EmptyState";
+import Skeleton from "@/components/ui/Skeleton";
 import WebsiteCard from "@/components/dashboard/WebsiteCard";
+import { useHydrated } from "@/lib/useHydrated";
 
 export default function DashboardPage() {
   const configs = useWeddingStore((s) => s.configs);
   const rsvps = useWeddingStore((s) => s.rsvps);
+  const hydrated = useHydrated();
   const configList = Object.values(configs);
 
   // Aggregate glance across all of the couple's websites.
@@ -25,7 +28,7 @@ export default function DashboardPage() {
         <div>
           <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-muted)" }}>Your account</p>
           <h1 className="headline-md" style={{ fontFamily: "var(--font-serif)", fontWeight: 300 }}>Dashboard</h1>
-          {configList.length > 0 && (
+          {hydrated && configList.length > 0 && (
             <p className="mt-3 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
               {configList.length} {configList.length === 1 ? "website" : "websites"}
               {publishedCount > 0 && <> · {publishedCount} published</>}
@@ -38,7 +41,13 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      {configList.length === 0 ? (
+      {!hydrated ? (
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-72 w-full" rounded="md" />
+          ))}
+        </div>
+      ) : configList.length === 0 ? (
         <EmptyState
           glyph="∅"
           title="No websites yet"

@@ -3,6 +3,7 @@
 import { useWeddingStore } from "@/store/weddingStore";
 import { resolveTemplate } from "@/components/wedding-templates";
 import { getDemoConfigBySlug } from "@/data/demoConfigs";
+import TemplateMotionProvider from "@/components/wedding-templates/_shared/TemplateMotionProvider";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import Link from "next/link";
 import type { WeddingConfig } from "@/types/wedding";
@@ -76,6 +77,10 @@ export default function PublicWeddingPage({ params }: Props) {
   // Resolve the correct template component based on the config's templateId
   const TemplateComponent = resolveTemplate(config.templateId);
 
-  return <TemplateComponent config={config} showBranding />;
+  return (
+    <TemplateMotionProvider>
+      <TemplateComponent config={config} showBranding />
+    </TemplateMotionProvider>
+  );
 }
 

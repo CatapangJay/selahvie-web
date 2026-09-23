@@ -16,11 +16,11 @@ export type RsvpDraft = {
 };
 
 /**
- * Demo/preview configs must not write real RSVP entries. Bespoke demos use
- * fixed ids/slugs ending in "-demo"; the synthesized preview config uses a
- * "-preview" id (see data/demoConfigs.ts).
+ * Demo/preview configs must not write real entries. Bespoke demos use fixed
+ * ids/slugs ending in "-demo"; the synthesized preview config uses a "-preview"
+ * id (see data/demoConfigs.ts). Shared by RSVP + guestbook submission.
  */
-function isDemoConfig(config: WeddingConfig): boolean {
+export function isDemoConfig(config: WeddingConfig): boolean {
   return (
     config.id === "demo" ||
     config.id.endsWith("-demo") ||

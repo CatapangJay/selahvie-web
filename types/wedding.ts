@@ -39,7 +39,22 @@ export interface WeddingConfig {
   faq?: FaqItem[];
   weddingParty?: WeddingPartyMember[];
   schedule?: ScheduleEvent[];
+
+  // ─── Deeper customization ───
+  /** Font pairing preset id (see data/fontPresets.ts); undefined = template default. */
+  fontPresetId?: string;
+  /** Per-section show/hide for the optional shared sections. Absent key = shown. */
+  sectionVisibility?: Partial<Record<OptionalSectionKey, boolean>>;
 }
+
+/** Keys for the optional, couple-editable shared sections. */
+export type OptionalSectionKey =
+  | "schedule"
+  | "weddingParty"
+  | "travel"
+  | "registry"
+  | "faq"
+  | "guestbook";
 
 export interface RegistryLink {
   id: string;
@@ -85,6 +100,15 @@ export interface RSVPEntry {
   plusOneName?: string;
   message?: string; // wishes / note to the couple
   submittedAt: string; // ISO
+}
+
+/** A public well-wish left by a guest on the published site. */
+export interface GuestbookEntry {
+  id: string;
+  weddingId: string;
+  name: string;
+  message: string;
+  createdAt: string; // ISO
 }
 
 /** A guest the couple has invited (managed from the dashboard). */

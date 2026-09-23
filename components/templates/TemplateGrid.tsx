@@ -3,6 +3,9 @@
 import { WeddingTemplate, TemplateTag } from "@/types/template";
 import { TEMPLATE_TAGS, SORT_OPTIONS } from "@/lib/constants";
 import { useState } from "react";
+import { Heart } from "lucide-react";
+import { useFavoritesStore } from "@/store/favoritesStore";
+import { useHydrated } from "@/lib/useHydrated";
 import TemplateCard from "./TemplateCard";
 
 interface Props {
@@ -12,8 +15,14 @@ interface Props {
 export default function TemplateGrid({ templates }: Props) {
   const [activeTag, setActiveTag] = useState<string>("All");
   const [sort, setSort] = useState<string>("featured");
+  const [onlyFavorites, setOnlyFavorites] = useState(false);
+  const hydrated = useHydrated();
+  // Empty until hydrated so the server/first-render markup matches.
+  const favoriteIds = useFavoritesStore((s) => s.ids);
+  const favCount = hydrated ? favoriteIds.length : 0;
 
   const filtered = templates
+    .filter((t) => (onlyFavorites ? favoriteIds.includes(t.id) : true))
     .filter((t) =>
       activeTag === "All" ? true : t.tags.includes(activeTag as TemplateTag)
     )
@@ -33,6 +42,20 @@ export default function TemplateGrid({ templates }: Props) {
       >
         {/* Tag filters */}
         <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setOnlyFavorites((v) => !v)}
+            aria-pressed={onlyFavorites}
+            className="label-luxury inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] transition-all duration-200 cursor-pointer"
+            style={{
+              background: onlyFavorites ? "var(--color-primary)" : "transparent",
+              color: onlyFavorites ? "var(--color-surface)" : "var(--color-on-surface-variant)",
+              border: `1px solid ${onlyFavorites ? "var(--color-primary)" : "var(--color-outline)"}`,
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            <Heart size={12} fill={onlyFavorites ? "currentColor" : "none"} />
+            Saved{favCount > 0 ? ` (${favCount})` : ""}
+          </button>
           {TEMPLATE_TAGS.map((tag) => (
             <button
               key={tag}
@@ -78,7 +101,9 @@ export default function TemplateGrid({ templates }: Props) {
             &empty;
           </p>
           <p className="text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-            No templates match that filter.
+            {onlyFavorites
+              ? "You haven't saved any templates yet. Tap the heart on a template to save it here."
+              : "No templates match that filter."}
           </p>
         </div>
       ) : (

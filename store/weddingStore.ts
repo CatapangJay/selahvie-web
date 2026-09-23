@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { WeddingConfig, RSVPEntry, GuestListEntry } from "@/types/wedding";
+import { WeddingConfig, RSVPEntry, GuestListEntry, GuestbookEntry } from "@/types/wedding";
 
 /** Summary of RSVP activity for one wedding, derived from stored entries. */
 export interface RsvpSummary {
@@ -17,6 +17,7 @@ interface WeddingState {
   configs: Record<string, WeddingConfig>;
   rsvps: RSVPEntry[];
   guests: GuestListEntry[];
+  guestbook: GuestbookEntry[];
 
   // Config lifecycle
   updateConfig: (id: string, data: Partial<WeddingConfig>) => void;
@@ -34,6 +35,10 @@ interface WeddingState {
   updateGuest: (id: string, data: Partial<GuestListEntry>) => void;
   removeGuest: (id: string) => void;
   getGuests: (weddingId: string) => GuestListEntry[];
+
+  // Guestbook (well-wishes left by guests on the public site)
+  addGuestbookEntry: (entry: Omit<GuestbookEntry, "id" | "createdAt">) => void;
+  getGuestbook: (weddingId: string) => GuestbookEntry[];
 }
 
 const defaultConfig = (id: string, templateId: string): WeddingConfig => ({
@@ -81,6 +86,7 @@ export const useWeddingStore = create<WeddingState>()(
       configs: {},
       rsvps: [],
       guests: [],
+      guestbook: [],
 
       createConfig: (templateId) => {
         const id = `w-${Date.now()}`;
@@ -164,18 +170,32 @@ export const useWeddingStore = create<WeddingState>()(
 
       getGuests: (weddingId) =>
         get().guests.filter((g) => g.weddingId === weddingId),
+
+      // ─── Guestbook ───
+      addGuestbookEntry: (entry) =>
+        set((state) => ({
+          guestbook: [
+            ...state.guestbook,
+            { ...entry, id: uid("wish"), createdAt: new Date().toISOString() },
+          ],
+        })),
+
+      getGuestbook: (weddingId) =>
+        get().guestbook.filter((g) => g.weddingId === weddingId),
     }),
     {
       name: "selahvie-weddings",
-      version: 2,
-      // v1 stored only `configs`. Preserve them and seed the new slices so
-      // existing users don't lose their saved websites on upgrade.
-      migrate: (persisted: unknown, version) => {
+      version: 3,
+      // v1 stored only `configs`; v2 added rsvps/guests; v3 added guestbook.
+      // Preserve prior data and seed any missing slices on upgrade.
+      migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as Partial<WeddingState>;
-        if (version < 2) {
-          return { ...state, rsvps: state.rsvps ?? [], guests: state.guests ?? [] } as WeddingState;
-        }
-        return state as WeddingState;
+        return {
+          ...state,
+          rsvps: state.rsvps ?? [],
+          guests: state.guests ?? [],
+          guestbook: state.guestbook ?? [],
+        } as WeddingState;
       },
     }
   )

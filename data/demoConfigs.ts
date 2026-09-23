@@ -41,6 +41,34 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     customQuestions: [],
     musicTrackId: "romantic",
     musicCustomUrl: "",
+    // Showcase the redesign's richer sections in the primary demo/preview.
+    schedule: [
+      { id: "s1", time: "3:30 PM", title: "Guest Arrival", description: "Welcome drinks on the terrace" },
+      { id: "s2", time: "4:00 PM", title: "Ceremony", description: "In the rose garden" },
+      { id: "s3", time: "5:00 PM", title: "Cocktail Hour" },
+      { id: "s4", time: "6:30 PM", title: "Reception & Dinner" },
+      { id: "s5", time: "9:00 PM", title: "First Dance & Celebration" },
+    ],
+    weddingParty: [
+      { id: "p1", name: "Emily Chen", role: "Maid of Honor" },
+      { id: "p2", name: "Marcus James", role: "Best Man" },
+      { id: "p3", name: "Sofia Rossi", role: "Bridesmaid" },
+      { id: "p4", name: "David Park", role: "Groomsman" },
+    ],
+    travel: {
+      accommodations: "We've reserved a room block at The Rosewood Inn (mention 'Alexandra & James'). The Napa Grand is a lovely nearby alternative.",
+      directions: "The estate is a 45-minute drive from SFO. Complimentary shuttles run from The Rosewood Inn starting at 3:00 PM.",
+      notes: "Ceremony is outdoors on grass — kitten heels or flats recommended. Evenings cool down, so bring a wrap.",
+    },
+    registryLinks: [
+      { id: "r1", label: "Honeymoon Fund", url: "https://example.com/honeymoon", note: "Help us explore Italy" },
+      { id: "r2", label: "Home Registry", url: "https://example.com/registry", note: "The essentials for our new home" },
+    ],
+    faq: [
+      { id: "f1", question: "Can I bring a plus-one?", answer: "If your invitation includes a guest, you'll be able to add them on your RSVP." },
+      { id: "f2", question: "Is the wedding kid-friendly?", answer: "We adore your little ones, but this will be an adults-only celebration so everyone can relax." },
+      { id: "f3", question: "What's the dress code?", answer: "Garden formal — think florals, linens, and comfortable shoes for the lawn." },
+    ],
   },
   t6: {
     id: "obsidian-demo",

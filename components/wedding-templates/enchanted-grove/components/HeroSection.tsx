@@ -206,7 +206,7 @@ export default function HeroSection({ config, gold, accent, weddingDateFormatted
             <div className="h-px w-10 sm:w-16" style={{ background: `linear-gradient(to left, transparent, ${gold}70)` }} />
           </motion.div>
 
-          <motion.h1
+          <motion.p
             variants={rise}
             style={{
               fontFamily: "var(--font-serif)",
@@ -218,7 +218,7 @@ export default function HeroSection({ config, gold, accent, weddingDateFormatted
             }}
           >
             {config.partner2Name || "Rowan"}
-          </motion.h1>
+          </motion.p>
 
           {/* Date */}
           {weddingDateFormatted && (

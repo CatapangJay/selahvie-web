@@ -87,36 +87,50 @@
 
 ---
 
-## Phase 4 — Feature: Richer wedding-site sections 💍
+## Phase 4 — Feature: Richer wedding-site sections 💍 ✅
 
-Config-driven, optional, render-nothing-when-empty; each honors reduced motion and
-visible-by-default content.
+Built as **shared, config-driven section components** under
+`components/wedding-templates/_shared/sections/`, render-nothing-when-empty, styled via
+surface tokens + the couple's palette. Integrated into **rose-elegy** as the reference
+light template (with visibility gating). Rolling them into the other six templates is
+follow-up (tracked in Phase 8 alongside their a11y pass).
 
-- ⬜ **4.1 Registry / gift links** section + config (`registryLinks[]`). **P1**
-- ⬜ **4.2 Travel & accommodation** (hotels, directions, notes). **P1**
-- ⬜ **4.3 FAQ** accordion (`faq[]`). **P1**
-- ⬜ **4.4 Wedding party** (names, roles, photos). **P2**
-- ⬜ **4.5 Schedule / itinerary** (multi-event timeline). **P2**
-- ⬜ **4.6 Guestbook / well-wishes** (guest-submitted, V1 local). **P2**
+- ✅ **4.1 Registry / gift links** — `RegistrySection` + `registryLinks[]`. **P1**
+- ✅ **4.2 Travel & accommodation** — `TravelSection` (accommodations/directions/notes). **P1**
+- ✅ **4.3 FAQ** — `FaqSection` accordion (`faq[]`). **P1**
+- ✅ **4.4 Wedding party** — `WeddingPartySection` (names, roles, optional photos). **P2**
+- ✅ **4.5 Schedule / itinerary** — `ScheduleSection` timeline (`schedule[]`). **P2**
+- ✅ **4.6 Guestbook / well-wishes** — `GuestbookSection`, persisted to the store
+  (`guestbook` slice, v3 migration); no-ops on demo/preview. **P2**
 
 ---
 
 ## Phase 5 — Feature: Deeper customization ✍️
 
-- ⬜ **5.1 Font & theme controls** beyond palette presets (`fontPresetId`, tuned tokens). **P1**
-- ⬜ **5.2 Section reorder + show/hide** (`sectionOrder[]`, `sectionVisibility{}`). **P1**
+- ✅ **5.1 Font & theme controls** — `data/fontPresets.ts` (4 presets); studio picker;
+  applied on the published template by overriding `--font-serif`/`--font-sans` on the
+  template root. **P1**
+- 🔄 **5.2 Section show/hide** — ✅ `sectionVisibility{}` + studio toggles + gating in
+  rose-elegy. Section **reorder** (`sectionOrder[]`) not yet built. **P1**
 - ⬜ **5.3 Live device preview** (mobile/desktop toggle) inside the studio. **P1**
 - ⬜ **5.4 Custom-domain setup flow** (mock: instructions + status). **P2**
 - ⬜ **5.5 Multi-language toggle** for published sites (stretch). **P3**
+
+New studio step "Sections" (step 5; Review moved to 6) hosts the `SectionsEditor`:
+typography picker, show/hide chips, and add/remove editors for schedule, wedding party,
+travel, registry, and FAQ.
 
 ---
 
 ## Phase 6 — Feature: Discovery & delight ✨
 
-- 🔄 **6.1 Richer live previews.** Build on `/preview/[id]`: device toggle, palette
-  switching in-preview. **P2**
-- ⬜ **6.2 Template favorites** (`favorites` in store; heart on cards; saved view). **P2**
-- ⬜ **6.3 First-run onboarding.** Post-purchase guided setup that activates the couple. **P1**
+- 🔄 **6.1 Richer live previews.** ✅ Desktop/mobile **device toggle** on `/preview/[id]`
+  (phone-width frame). In-preview palette switching not yet built. **P2**
+- ✅ **6.2 Template favorites.** `favoritesStore` (localStorage), heart on each
+  `TemplateCard`, and a "Saved (n)" filter in the gallery with its own empty state. **P2**
+- ✅ **6.3 First-run onboarding.** `OnboardingChecklist` on the studio: reads the config,
+  shows an activation progress bar + step links, dismissible, auto-hides once complete or
+  published. **P1**
 - ⬜ **6.4 Save-the-date sender** (mock share/email of the published link). **P3**
 - ⬜ **6.5 Couple account profile** (names, contact, wedding basics reused across sites). **P3**
 
@@ -124,21 +138,31 @@ visible-by-default content.
 
 ## Phase 7 — Marketing surface (brand intensity) 🌸
 
-- 🔄 **7.1 Landing redesign.** Bordeaux drenched hero, rose-forward sections, real proof;
-  retire hero-metric/eyebrow tells. **P1**
-- 🔄 **7.2 Gallery + detail redesign.** Apply system; favorites entry point; stronger
-  live-preview CTA. **P2**
+- ✅ **7.1 Landing redesign.** Bordeaux **drenched hero** (white + gold, 12.3:1), inline
+  proof line replacing the hero-metric grid, and eyebrow-on-every-section retired
+  (Featured + Pricing kickers removed; "How it works" kept as a genuine labeled sequence). **P1**
+- ✅ **7.2 Gallery + detail.** Favorites entry point (heart + Saved filter) and the
+  live-preview CTA (from Phase 6) now live in the gallery/detail; system tokens applied. **P2**
 
 ---
 
 ## Phase 8 — Published-site correctness & a11y 💒
 
-- ⬜ **8.1 Reduced motion across all 7 templates.** Gate parallax/particles/loops via
-  `useReducedMotion()`; global CSS fallback already present. **P1**
-- ⬜ **8.2 Un-gate scroll reveals.** Content visible by default; motion as enhancement —
-  fixes blank render on crawlers/no-JS/background tabs. **P1**
-- ⬜ **8.3 Heading outline.** One `<h1>` per template hero (dedupe partner-name h1s). **P2**
-- ⬜ **8.4 Contrast pass** on template accent-on-dark text. **P2**
+- ✅ **8.1 Reduced motion across all templates.** Systemic fix: both render sites
+  (`/wedding/[slug]`, `/preview/[id]`) wrap templates in `TemplateMotionProvider`
+  (`<MotionConfig reducedMotion="user">`) so every descendant framer animation — incl. the
+  24 infinite loops — respects the OS setting, without editing 19 files. **P1**
+- 🔄 **8.2 Reveal robustness.** `MotionConfig` fixes the reduced-motion path (content
+  shows at end state). Remaining risk: no-JS/crawler render of `whileInView` content is
+  still `opacity:0` — acceptable for now since app data is client-side/CSR; revisit when
+  SSR lands (architecture.MD §9). **P1**
+- ✅ **8.3 Heading outline.** One `<h1>` per hero — deduped partner-name h1s in rose-elegy,
+  obsidian-vow, and enchanted-grove (second name → `<p>`, styling unchanged). **P2**
+- ⬜ **8.4 Contrast pass** on template accent-on-dark text (per-template rebalance,
+  deferred to avoid breaking each template's aesthetic). **P2**
+
+Note: the richer shared sections (Phase 4) are integrated into **rose-elegy** only;
+rolling them into the other six templates remains follow-up work.
 
 ---
 

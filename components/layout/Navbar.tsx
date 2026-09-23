@@ -5,10 +5,14 @@ import { useCartStore } from "@/store/cartStore";
 import { ShoppingBag, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { APP_NAME, NAV_LINKS } from "@/lib/constants";
+import { useHydrated } from "@/lib/useHydrated";
 
 export default function Navbar() {
   const { itemCount, openCart } = useCartStore();
-  const count = itemCount();
+  const hydrated = useHydrated();
+  // Only reflect the persisted cart count after hydration to avoid a
+  // server/client HTML mismatch (server always renders an empty cart).
+  const count = hydrated ? itemCount() : 0;
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (

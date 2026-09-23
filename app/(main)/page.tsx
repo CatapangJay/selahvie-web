@@ -11,54 +11,44 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* ─── Hero ─── */}
+      {/* ─── Hero — bordeaux drenched ─── */}
       <section
         className="relative overflow-hidden"
         style={{
-          paddingTop: "clamp(5rem, 12vw, 9rem)",
-          paddingBottom: "clamp(4rem, 8vw, 7rem)",
+          background: "var(--bordeaux)",
+          paddingTop: "clamp(6rem, 14vw, 11rem)",
+          paddingBottom: "clamp(5rem, 10vw, 9rem)",
         }}
       >
-        {/* Background image — full bleed, dark-overlaid */}
-        <div className="absolute inset-0">
+        {/* Full-bleed photo, low opacity for depth over the bordeaux */}
+        <div className="absolute inset-0" aria-hidden>
           <Image
             src="https://picsum.photos/seed/selahvie-hero/1920/1080"
             alt=""
             fill
             className="object-cover"
             priority
-            style={{ opacity: 0.12 }}
+            style={{ opacity: 0.16 }}
           />
           <div
             className="absolute inset-0"
-            style={{ background: "linear-gradient(to bottom, transparent 20%, var(--color-surface) 100%)" }}
+            style={{ background: "linear-gradient(to bottom, rgba(97,28,42,0.55) 0%, rgba(97,28,42,0.35) 40%, var(--bordeaux) 100%)" }}
           />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-6">
-          {/* Overline */}
-          <p
-            className="label-luxury mb-8 inline-block"
-            style={{
-              color: "var(--color-primary)",
-              borderBottom: "1px solid var(--color-outline-variant)",
-              paddingBottom: "0.5rem",
-            }}
-          >
-            Wedding websites &amp; invitations
-          </p>
-
-          {/* Headline — deliberately left-heavy, huge */}
           <div className="max-w-4xl">
-            <h1 className="display-lg" style={{ fontStyle: "italic" }}>
+            <h1
+              className="display-lg"
+              style={{ color: "#FDF8F7", fontStyle: "italic" }}
+            >
               Your story,<br />
               <span
-                className="font-serif"
                 style={{
                   fontFamily: "var(--font-serif)",
                   fontStyle: "normal",
-                  fontWeight: 300,
-                  color: "var(--color-primary)",
+                  fontWeight: 400,
+                  color: "var(--gold)",
                 }}
               >
                 beautifully told.
@@ -68,10 +58,10 @@ export default function HomePage() {
 
           <p
             className="mt-8 max-w-lg text-base leading-relaxed font-light"
-            style={{ color: "var(--color-on-surface-variant)" }}
+            style={{ color: "rgba(253,248,247,0.82)" }}
           >
-            Curated wedding website templates designed with restraint and craft.
-            Personalize every detail — share your love story with the people who matter.
+            Curated wedding websites you personalize in minutes — invitations, RSVPs, and your
+            whole love story, all in one calm place.
           </p>
 
           <div className="mt-10 flex flex-wrap gap-4">
@@ -79,64 +69,33 @@ export default function HomePage() {
               <ButtonPrimary size="lg">Browse templates</ButtonPrimary>
             </Link>
             <Link href="/wedding/demo">
-              <ButtonSecondary size="lg">View a live demo</ButtonSecondary>
+              <button
+                className="btn-outline label-luxury inline-flex min-h-[48px] items-center px-7"
+                style={{ borderRadius: "var(--radius-sm)", color: "#FDF8F7", borderColor: "rgba(253,248,247,0.4)" }}
+              >
+                View a live demo
+              </button>
             </Link>
           </div>
 
-          {/* Social proof strip */}
-          <div
-            className="mt-16 flex items-center gap-8 pt-8"
-            style={{ borderTop: "1px solid var(--color-outline)" }}
+          {/* Understated inline proof — not a hero-metric grid */}
+          <p
+            className="mt-14 text-sm font-light"
+            style={{ color: "rgba(253,248,247,0.72)" }}
           >
-            <div>
-              <p
-                className="font-serif"
-                style={{ fontSize: "2rem", fontWeight: 300, color: "var(--color-primary)", lineHeight: 1 }}
-              >
-                2,400+
-              </p>
-              <p className="label-luxury mt-1" style={{ color: "var(--color-on-surface-muted)" }}>
-                Couples
-              </p>
-            </div>
-            <div style={{ width: 1, height: 36, background: "var(--color-outline)" }} />
-            <div>
-              <p
-                className="font-serif"
-                style={{ fontSize: "2rem", fontWeight: 300, color: "var(--color-primary)", lineHeight: 1 }}
-              >
-                {templates.length}
-              </p>
-              <p className="label-luxury mt-1" style={{ color: "var(--color-on-surface-muted)" }}>
-                Templates
-              </p>
-            </div>
-            <div style={{ width: 1, height: 36, background: "var(--color-outline)" }} />
-            <div>
-              <p
-                className="font-serif"
-                style={{ fontSize: "2rem", fontWeight: 300, color: "var(--color-primary)", lineHeight: 1 }}
-              >
-                {formatPrice(minPrice)}
-              </p>
-              <p className="label-luxury mt-1" style={{ color: "var(--color-on-surface-muted)" }}>
-                Starting price
-              </p>
-            </div>
-          </div>
+            Loved by <span style={{ color: "var(--gold)" }}>2,400+ couples</span> ·{" "}
+            {templates.length} designs · from {formatPrice(minPrice)}, once.
+          </p>
         </div>
       </section>
 
       {/* ─── Featured Templates — asymmetric mosaic ─── */}
       <section style={{ paddingTop: "var(--spacing-section-xl)", paddingBottom: "var(--spacing-section-xl)" }}>
         <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-col gap-2 mb-12 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="label-luxury mb-3" style={{ color: "var(--color-on-surface-muted)" }}>
-                The collection
-              </p>
-              <h2 className="headline-md">Featured templates</h2>
-            </div>
+          <div className="flex flex-col gap-4 mb-12 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="headline-md" style={{ maxWidth: "18ch" }}>
+              A few of our favorite designs
+            </h2>
             <Link href="/templates">
               <ButtonSecondary size="sm">View all</ButtonSecondary>
             </Link>
@@ -292,7 +251,6 @@ export default function HomePage() {
           <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 items-center">
             {/* Left: copy */}
             <div>
-              <p className="label-luxury mb-4" style={{ color: "var(--color-on-surface-muted)" }}>Pricing</p>
               <h2 className="headline-md">One price.<br />Everything included.</h2>
               <p
                 className="mt-6 text-base font-light leading-relaxed"

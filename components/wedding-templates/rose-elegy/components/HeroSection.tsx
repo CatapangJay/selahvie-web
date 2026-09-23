@@ -94,8 +94,8 @@ export default function HeroSection({ config, primary, accent, weddingDateFormat
           />
         </div>
 
-        {/* Partner 2 */}
-        <h1
+        {/* Partner 2 — <p>, not a second <h1>, to keep one heading per page */}
+        <p
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: "clamp(3rem, 8vw, 6.5rem)",
@@ -106,7 +106,7 @@ export default function HeroSection({ config, primary, accent, weddingDateFormat
           }}
         >
           {config.partner2Name || "Partner Two"}
-        </h1>
+        </p>
 
         {weddingDateFormatted && (
           <p

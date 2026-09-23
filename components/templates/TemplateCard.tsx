@@ -2,11 +2,13 @@
 
 import { WeddingTemplate } from "@/types/template";
 import { useCartStore } from "@/store/cartStore";
+import { useFavoritesStore } from "@/store/favoritesStore";
+import { useHydrated } from "@/lib/useHydrated";
 import { formatPrice } from "@/lib/utils";
 import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { ShoppingBag, Eye } from "lucide-react";
+import { ShoppingBag, Eye, Heart } from "lucide-react";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 
 interface Props {
@@ -18,6 +20,12 @@ export default function TemplateCard({ template, index = 0 }: Props) {
   const { addItem, isInCart } = useCartStore();
   const inCart = isInCart(template.id);
   const reduceMotion = useReducedMotion();
+  const hydrated = useHydrated();
+  // Subscribe to the ids array so the heart re-renders on toggle; treat as
+  // not-favorited until hydrated so server/first-render markup matches.
+  const favoriteIds = useFavoritesStore((s) => s.ids);
+  const favorited = hydrated && favoriteIds.includes(template.id);
+  const toggleFavorite = useFavoritesStore((s) => s.toggle);
 
   return (
     <motion.div
@@ -82,6 +90,22 @@ export default function TemplateCard({ template, index = 0 }: Props) {
             Featured
           </div>
         )}
+
+        {/* Favorite heart — sits above the image link */}
+        <button
+          type="button"
+          onClick={() => toggleFavorite(template.id)}
+          aria-pressed={favorited}
+          aria-label={favorited ? `Remove ${template.name} from favorites` : `Save ${template.name} to favorites`}
+          className="absolute right-3 top-3 z-20 flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110"
+          style={{ background: "rgba(253,248,247,0.85)", backdropFilter: "blur(6px)" }}
+        >
+          <Heart
+            size={16}
+            style={{ color: favorited ? "var(--color-primary)" : "var(--color-on-surface-muted)" }}
+            fill={favorited ? "var(--color-primary)" : "none"}
+          />
+        </button>
       </div>
 
       {/* Info */}

@@ -1,12 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
+import { ArrowLeft, ShoppingBag, Monitor, Smartphone } from "lucide-react";
 import { templates } from "@/data/templates";
 import { getDemoConfig } from "@/data/demoConfigs";
 import { resolveTemplate } from "@/components/wedding-templates";
+import TemplateMotionProvider from "@/components/wedding-templates/_shared/TemplateMotionProvider";
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
 
@@ -19,6 +21,7 @@ export default function TemplatePreviewPage({ params }: Props) {
   const router = useRouter();
   const reduceMotion = useReducedMotion();
   const { addItem, isInCart, openCart } = useCartStore();
+  const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
 
   const template = templates.find((t) => t.id === id);
   const config = getDemoConfig(id);
@@ -53,10 +56,32 @@ export default function TemplatePreviewPage({ params }: Props) {
     router.push("/templates");
   };
 
+  const isMobile = device === "mobile";
+
   return (
-    <div className="relative">
-      {/* Live, full-bleed template render — no marketplace chrome. */}
-      <TemplateComponent config={config} showBranding={false} />
+    <div className="relative" style={{ paddingBottom: "5.5rem" }}>
+      {/* Live template render — no marketplace chrome. Mobile wraps it in a
+          phone-width frame on a muted backdrop; desktop is full-bleed. */}
+      <TemplateMotionProvider>
+        {isMobile ? (
+          <div className="flex justify-center px-4 py-10" style={{ background: "var(--color-surface-container-low)", minHeight: "100vh" }}>
+            <div
+              className="w-full overflow-hidden"
+              style={{
+                maxWidth: 400,
+                borderRadius: "var(--radius-xl)",
+                border: "1px solid var(--color-outline)",
+                boxShadow: "0 12px 40px rgba(47,30,38,0.12)",
+                background: "var(--color-surface)",
+              }}
+            >
+              <TemplateComponent config={config} showBranding={false} />
+            </div>
+          </div>
+        ) : (
+          <TemplateComponent config={config} showBranding={false} />
+        )}
+      </TemplateMotionProvider>
 
       {/* Floating preview action bar */}
       <motion.div
@@ -89,6 +114,32 @@ export default function TemplatePreviewPage({ params }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Device toggle */}
+          <div
+            className="hidden items-center gap-1 rounded-full p-1 sm:flex"
+            style={{ background: "var(--color-surface-container)", border: "1px solid var(--color-outline)" }}
+            role="group"
+            aria-label="Preview device"
+          >
+            {([["desktop", Monitor], ["mobile", Smartphone]] as const).map(([key, Icon]) => {
+              const active = device === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => setDevice(key)}
+                  aria-pressed={active}
+                  aria-label={`${key} preview`}
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-colors"
+                  style={{
+                    background: active ? "var(--color-primary)" : "transparent",
+                    color: active ? "#fff" : "var(--color-on-surface-muted)",
+                  }}
+                >
+                  <Icon size={15} />
+                </button>
+              );
+            })}
+          </div>
           <span
             className="font-serif hidden sm:block"
             style={{ fontFamily: "var(--font-serif)", fontSize: "1.125rem", fontWeight: 300, color: "var(--color-primary)" }}

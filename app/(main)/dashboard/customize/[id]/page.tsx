@@ -10,6 +10,8 @@ import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { ArrowLeft, ArrowRight, Check, Play, Pause } from "lucide-react";
 import { generateSlug } from "@/lib/utils";
 import { musicTracks, CUSTOM_TRACK_ID, NO_MUSIC_ID } from "@/data/musicTracks";
+import SectionsEditor from "@/components/customize/SectionsEditor";
+import OnboardingChecklist from "@/components/customize/OnboardingChecklist";
 import Link from "next/link";
 
 const STEPS = [
@@ -17,7 +19,8 @@ const STEPS = [
   { num: 2, label: "Theme & Colors" },
   { num: 3, label: "Media & Story" },
   { num: 4, label: "RSVP Settings" },
-  { num: 5, label: "Review & Publish" },
+  { num: 5, label: "Sections" },
+  { num: 6, label: "Review & Publish" },
 ];
 
 interface Props {
@@ -105,6 +108,8 @@ export default function CustomizePage({ params }: Props) {
       >
         {template?.name ?? "Your Wedding Website"}
       </h1>
+
+      <OnboardingChecklist config={config} onGoToStep={setStep} />
 
       {/* Step indicators */}
       <div className="mb-12 flex items-center gap-0">
@@ -447,8 +452,11 @@ export default function CustomizePage({ params }: Props) {
           </div>
         )}
 
-        {/* Step 5: Review & Publish */}
-        {step === 5 && (
+        {/* Step 5: Sections & extras */}
+        {step === 5 && <SectionsEditor config={config} update={update} />}
+
+        {/* Step 6: Review & Publish */}
+        {step === 6 && (
           <div className="space-y-6">
             <h2 className="title-md">Review & Publish</h2>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
@@ -507,9 +515,9 @@ export default function CustomizePage({ params }: Props) {
           <ArrowLeft size={14} />
           Previous
         </ButtonSecondary>
-        {step < 5 && (
+        {step < 6 && (
           <ButtonPrimary
-            onClick={() => setStep((s) => Math.min(5, s + 1))}
+            onClick={() => setStep((s) => Math.min(6, s + 1))}
             size="sm"
           >
             Next

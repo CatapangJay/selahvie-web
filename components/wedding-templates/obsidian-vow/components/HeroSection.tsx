@@ -155,7 +155,7 @@ export default function HeroSection({ config, primary, accent, weddingDateFormat
         </motion.div>
 
         {/* Partner 2 */}
-        <motion.h1
+        <motion.p
           variants={line}
           style={{
             fontFamily: "var(--font-serif)",
@@ -167,7 +167,7 @@ export default function HeroSection({ config, primary, accent, weddingDateFormat
           }}
         >
           {config.partner2Name || "Partner Two"}
-        </motion.h1>
+        </motion.p>
 
         {/* Date */}
         {weddingDateFormatted && (
