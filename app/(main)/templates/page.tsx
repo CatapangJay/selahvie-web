@@ -1,6 +1,7 @@
 import { templates } from "@/data/templates";
 import TemplateGrid from "@/components/templates/TemplateGrid";
 
+
 export const metadata = {
   title: "Wedding website templates — Selah Vie",
   description: "Browse our curated collection of beautiful, customizable wedding website templates.",

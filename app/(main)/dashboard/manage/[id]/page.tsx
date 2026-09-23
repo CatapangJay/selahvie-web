@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, use } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Users, MailCheck } from "lucide-react";
@@ -10,12 +10,13 @@ import GuestListManager from "@/components/manage/GuestListManager";
 import RsvpDashboard from "@/components/manage/RsvpDashboard";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 type Tab = "rsvps" | "guests";
 
-export default function ManageWeddingPage({ params }: Props) {
+export default function ManageWeddingPage(props: Props) {
+  const params = use(props.params);
   const config = useWeddingStore((s) => s.getConfig)(params.id);
   const summary = useWeddingStore((s) => s.getRsvpSummary)(params.id);
   const guestCount = useWeddingStore((s) => s.guests).filter((g) => g.weddingId === params.id).length;

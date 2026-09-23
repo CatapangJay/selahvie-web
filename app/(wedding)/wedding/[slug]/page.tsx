@@ -1,4 +1,5 @@
-"use client";
+"use client";;
+import { use } from "react";
 
 import { useWeddingStore } from "@/store/weddingStore";
 import { resolveTemplate } from "@/components/wedding-templates";
@@ -44,10 +45,11 @@ const DEMO_CONFIG: WeddingConfig = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default function PublicWeddingPage({ params }: Props) {
+export default function PublicWeddingPage(props: Props) {
+  const params = use(props.params);
   const { configs } = useWeddingStore();
 
   const config: WeddingConfig | undefined =

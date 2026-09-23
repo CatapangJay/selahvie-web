@@ -3,7 +3,7 @@
 import { useWeddingStore } from "@/store/weddingStore";
 import { templates } from "@/data/templates";
 import { notFound, useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, use } from "react";
 import { InputField, TextareaField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
@@ -24,10 +24,11 @@ const STEPS = [
 ];
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function CustomizePage({ params }: Props) {
+export default function CustomizePage(props: Props) {
+  const params = use(props.params);
   const { getConfig, updateConfig, publishConfig, configs } = useWeddingStore();
   const router = useRouter();
   const config = getConfig(params.id);

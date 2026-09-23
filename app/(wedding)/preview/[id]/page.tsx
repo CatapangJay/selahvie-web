@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, use } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
@@ -13,10 +13,11 @@ import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function TemplatePreviewPage({ params }: Props) {
+export default function TemplatePreviewPage(props: Props) {
+  const params = use(props.params);
   const { id } = params;
   const router = useRouter();
   const reduceMotion = useReducedMotion();

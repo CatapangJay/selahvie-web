@@ -1,4 +1,5 @@
-"use client";
+"use client";;
+import { use } from "react";
 
 import { templates } from "@/data/templates";
 import { notFound } from "next/navigation";
@@ -11,10 +12,11 @@ import { formatPrice } from "@/lib/utils";
 import { Check, ShoppingBag, ArrowLeft, Eye } from "lucide-react";
 
 interface Props {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
-export default function TemplateDetailPage({ params }: Props) {
+export default function TemplateDetailPage(props: Props) {
+  const params = use(props.params);
   const template = templates.find((t) => t.id === params.id);
   if (!template) notFound();
 
