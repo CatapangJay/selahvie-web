@@ -4,8 +4,9 @@ import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import VideoHero from "@/components/layout/VideoHero";
 import Reveal from "@/components/ui/Reveal";
 import ParallaxQuote from "@/components/ui/ParallaxQuote";
-import { Heart, Sparkles, Send, ArrowRight } from "lucide-react";
+import { Heart, ArrowRight, MailCheck, Palette, Globe, Quote } from "lucide-react";
 import { templates } from "@/data/templates";
+import { testimonials } from "@/data/testimonials";
 import { formatPrice } from "@/lib/utils";
 
 
@@ -28,6 +29,75 @@ export default function HomePage() {
           {" · "}{templates.length} designs{" · "}from {formatPrice(minPrice)}, once.
         </p>
       </div>
+
+      {/* ─── Value props — "made simple" benefit rows ─── */}
+      <section style={{ paddingTop: "clamp(4.5rem, 9vw, 8rem)", paddingBottom: "clamp(2rem, 5vw, 4rem)" }}>
+        <div className="mx-auto max-w-3xl px-6 text-center">
+          <Reveal>
+            <p className="label-luxury mb-3" style={{ color: "var(--color-primary)" }}>Everything, in one place</p>
+            <h2 className="headline-md">Your whole wedding, <em style={{ fontStyle: "italic", color: "var(--color-primary)" }}>made simple</em></h2>
+            <p className="mx-auto mt-5 max-w-xl text-base font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
+              A beautiful invitation, your love story, and stress-free RSVPs — designed to feel
+              effortless from the first click to the big day.
+            </p>
+          </Reveal>
+        </div>
+
+        <div className="mx-auto mt-16 flex max-w-6xl flex-col gap-16 px-6 sm:gap-24">
+          {[
+            {
+              icon: Palette,
+              kicker: "Your invitation",
+              title: "A design that looks like you",
+              body: "Start from a curated template, then make it yours — photos, colors, fonts, and your story. No design skills, no code, no compromise.",
+              img: "https://picsum.photos/seed/selahvie-invite/900/1100",
+              alt: "A customized wedding website invitation on a phone",
+            },
+            {
+              icon: MailCheck,
+              kicker: "Your guests",
+              title: "RSVPs that track themselves",
+              body: "Guests reply in a tap. You get a live headcount, meal preferences, and plus-ones — tallied automatically, exportable anytime.",
+              img: "https://picsum.photos/seed/selahvie-rsvp/900/1100",
+              alt: "An RSVP dashboard showing guest responses",
+            },
+            {
+              icon: Globe,
+              kicker: "Your day",
+              title: "One link to share it all",
+              body: "Registry, travel, schedule, gallery, and well-wishes — every detail lives on one link you'll be proud to send, live forever.",
+              img: "https://picsum.photos/seed/selahvie-share/900/1100",
+              alt: "A wedding website shared across devices",
+            },
+          ].map((row, i) => {
+            const flip = i % 2 === 1;
+            return (
+              <Reveal
+                key={row.title}
+                from={flip ? "right" : "left"}
+                className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2 lg:gap-16"
+              >
+                <div className={flip ? "lg:order-2" : ""}>
+                  <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "var(--color-primary-container-strong)" }}>
+                    <row.icon size={20} style={{ color: "var(--color-primary)" }} />
+                  </span>
+                  <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-muted)" }}>{row.kicker}</p>
+                  <h3 className="headline-sm" style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)" }}>{row.title}</h3>
+                  <p className="mt-4 max-w-md text-base font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
+                    {row.body}
+                  </p>
+                </div>
+                <div
+                  className={`relative overflow-hidden ${flip ? "lg:order-1" : ""}`}
+                  style={{ aspectRatio: "4/3", borderRadius: "var(--radius-xl)", border: "1px solid var(--color-outline)" }}
+                >
+                  <Image src={row.img} alt={row.alt} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 45vw" />
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
+      </section>
 
       {/* ─── The Collection — immersive offset portrait gallery ─── */}
       <section style={{ paddingTop: "clamp(4rem, 8vw, 7rem)", paddingBottom: "clamp(4rem, 9vw, 8rem)" }}>
@@ -115,46 +185,35 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ─── How it works — image-anchored, warm ─── */}
-      <section
-        style={{
-          paddingTop: "clamp(4.5rem, 9vw, 8rem)",
-          paddingBottom: "clamp(4.5rem, 9vw, 8rem)",
-          background: "var(--color-surface-container-low)",
-          borderTop: "1px solid var(--color-outline)",
-          borderBottom: "1px solid var(--color-outline)",
-        }}
-      >
+      {/* ─── Love notes — testimonials ─── */}
+      <section style={{ paddingTop: "clamp(4.5rem, 9vw, 8rem)", paddingBottom: "clamp(4.5rem, 9vw, 8rem)" }}>
         <div className="mx-auto max-w-7xl px-6">
           <Reveal className="mx-auto mb-14 max-w-2xl text-center">
-            <p className="label-luxury mb-3" style={{ color: "var(--color-primary)" }}>How it works</p>
-            <h2 className="headline-md">From "yes" to shared in three easy steps</h2>
+            <p className="label-luxury mb-3" style={{ color: "var(--color-primary)" }}>Love notes</p>
+            <h2 className="headline-md">Couples who said yes to Selah Vie</h2>
           </Reveal>
 
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {[
-              { icon: Heart, step: "01", title: "Choose a template", body: "Browse our curated gallery. Each design is crafted for elegance — find the one that feels like you." },
-              { icon: Sparkles, step: "02", title: "Make it yours", body: "Add your photos, story, colors, and RSVP settings. No design skills needed — it just works." },
-              { icon: Send, step: "03", title: "Share & celebrate", body: "Send your link and watch RSVPs arrive while you focus on the day ahead." },
-            ].map(({ icon: Icon, step, title, body }, i) => (
+            {testimonials.map((t, i) => (
               <Reveal
-                key={step}
+                key={t.id}
                 index={i}
-                className="card-hover flex flex-col gap-4 p-8"
-                style={{ background: "var(--color-surface-container-lowest)", borderRadius: "var(--radius-lg)", border: "1px solid var(--color-outline)" }}
+                className="flex flex-col p-8"
+                style={{ background: "var(--color-surface-container)", borderRadius: "var(--radius-lg)", border: "1px solid var(--color-outline)" }}
               >
-                <div className="flex items-center justify-between">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ background: "var(--color-primary-container-strong)" }}>
-                    <Icon size={20} style={{ color: "var(--color-primary)" }} />
-                  </span>
-                  <span className="font-serif" style={{ fontFamily: "var(--font-serif)", fontSize: "2.25rem", color: "var(--color-outline)", lineHeight: 1 }}>
-                    {step}
-                  </span>
-                </div>
-                <h3 className="headline-sm" style={{ fontSize: "1.25rem" }}>{title}</h3>
-                <p className="text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
-                  {body}
+                <Quote size={26} style={{ color: "var(--color-primary)", opacity: 0.5 }} aria-hidden />
+                <p className="mt-4 flex-1 text-base font-light leading-relaxed" style={{ color: "var(--color-on-surface)" }}>
+                  &ldquo;{t.quote}&rdquo;
                 </p>
+                <div className="mt-6 flex items-center gap-3 pt-5" style={{ borderTop: "1px solid var(--color-outline)" }}>
+                  <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-full">
+                    <Image src={`https://picsum.photos/seed/${t.avatarSeed}/100/100`} alt={t.names} fill className="object-cover" sizes="44px" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>{t.names}</p>
+                    <p className="label-luxury mt-0.5" style={{ color: "var(--color-on-surface-muted)" }}>{t.detail}</p>
+                  </div>
+                </div>
               </Reveal>
             ))}
           </div>

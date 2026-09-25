@@ -101,6 +101,12 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Offset in-page anchor jumps so targets clear the fixed/sticky navbar. */
+:target,
+[id] {
+  scroll-margin-top: 6rem;
+}
+
 /* ─── Grain Overlay (light — very subtle) ─── */
 body::before {
   content: "";

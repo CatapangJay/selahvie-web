@@ -104,9 +104,9 @@ export default function VideoHero() {
             textWrap: "balance",
           }}
         >
-          Where two stories become{" "}
+          Your wedding website,{" "}
           <em className="not-italic" style={{ color: "var(--gold)" }}>
-            one, beautifully told.
+            beautifully made simple.
           </em>
         </h1>
 

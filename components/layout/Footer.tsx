@@ -1,52 +1,65 @@
 import Link from "next/link";
 import { APP_NAME } from "@/lib/constants";
 
+const PRODUCT_LINKS = [
+  { href: "/templates", label: "Templates" },
+  { href: "/#pricing", label: "Pricing" },
+];
+
+const COMPANY_LINKS = [
+  { href: "/about", label: "About" },
+  { href: "#", label: "Contact" },
+  { href: "#", label: "Privacy policy" },
+  { href: "#", label: "Terms of service" },
+];
+
 export default function Footer() {
+  const year = new Date().getFullYear();
+
   return (
-    <footer
-      style={{
-        background: "var(--color-surface-container-low)",
-        borderTop: "1px solid var(--color-outline)",
-      }}
-    >
-      <div className="mx-auto max-w-7xl px-6 py-20">
-        {/* Top row */}
-        <div className="grid grid-cols-1 gap-14 md:grid-cols-[1fr_auto_auto]">
+    <footer style={{ background: "var(--bordeaux)", color: "#FDF8F7" }}>
+      <div className="mx-auto max-w-7xl px-6 pt-20 pb-10">
+        {/* Top: brand statement + link columns */}
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1.4fr_1fr_1fr]">
           {/* Brand */}
-          <div className="max-w-xs">
+          <div className="max-w-sm">
             <p
               style={{
                 fontFamily: "var(--font-serif)",
-                fontSize: "1.375rem",
-                fontWeight: 500,
-                fontStyle: "italic",
-                letterSpacing: "0.01em",
-                color: "var(--color-on-surface)",
+                fontSize: "1.75rem",
+                fontWeight: 400,
+                letterSpacing: "0.02em",
+                color: "#FDF8F7",
               }}
             >
               {APP_NAME}
             </p>
             <p
               className="mt-4 text-sm leading-relaxed"
-              style={{ color: "var(--color-on-surface-variant)", maxWidth: 260 }}
+              style={{ color: "rgba(253,248,247,0.66)", maxWidth: 320 }}
             >
-              Beautifully crafted wedding websites for the modern couple.
+              Beautifully crafted wedding websites for the modern couple — invitations, your
+              love story, and stress-free RSVPs, all in one place.
             </p>
+            <Link
+              href="/templates"
+              className="mt-7 inline-flex items-center gap-2 label-luxury transition-opacity hover:opacity-70"
+              style={{ color: "var(--gold)", borderBottom: "1px solid rgba(198,157,99,0.5)", paddingBottom: "0.35rem" }}
+            >
+              Find your template
+            </Link>
           </div>
 
-          {/* Product links */}
+          {/* Product */}
           <div>
-            <p className="label-luxury mb-5">Product</p>
-            <ul className="space-y-3 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
-              {[
-                { href: "/templates", label: "Templates" },
-                { href: "/#pricing", label: "Pricing" },
-                { href: "/dashboard", label: "Dashboard" },
-              ].map(({ href, label }) => (
+            <p className="label-luxury mb-5" style={{ color: "rgba(253,248,247,0.5)" }}>Product</p>
+            <ul className="space-y-3 text-sm">
+              {PRODUCT_LINKS.map(({ href, label }) => (
                 <li key={href}>
                   <Link
                     href={href}
-                    className="transition-colors duration-200 hover:text-[var(--color-primary)]"
+                    className="transition-colors duration-200"
+                    style={{ color: "rgba(253,248,247,0.8)" }}
                   >
                     {label}
                   </Link>
@@ -55,20 +68,16 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Company links */}
+          {/* Company */}
           <div>
-            <p className="label-luxury mb-5">Company</p>
-            <ul className="space-y-3 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
-              {[
-                { href: "#", label: "About" },
-                { href: "#", label: "Contact" },
-                { href: "#", label: "Privacy policy" },
-                { href: "#", label: "Terms of service" },
-              ].map(({ href, label }) => (
+            <p className="label-luxury mb-5" style={{ color: "rgba(253,248,247,0.5)" }}>Company</p>
+            <ul className="space-y-3 text-sm">
+              {COMPANY_LINKS.map(({ href, label }) => (
                 <li key={label}>
                   <Link
                     href={href}
-                    className="transition-colors duration-200 hover:text-[var(--color-primary)]"
+                    className="transition-colors duration-200"
+                    style={{ color: "rgba(253,248,247,0.8)" }}
                   >
                     {label}
                   </Link>
@@ -80,18 +89,18 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div
-          className="mt-16 pt-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center"
-          style={{ borderTop: "1px solid var(--color-outline)" }}
+          className="mt-16 flex flex-col items-start justify-between gap-3 pt-7 sm:flex-row sm:items-center"
+          style={{ borderTop: "1px solid rgba(253,248,247,0.14)" }}
         >
-          <p className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>
-            © {new Date().getFullYear()} {APP_NAME}. All rights reserved.
+          <p className="label-luxury" style={{ color: "rgba(253,248,247,0.5)" }}>
+            © {year} {APP_NAME}. All rights reserved.
           </p>
           <p
             style={{
               fontFamily: "var(--font-serif)",
               fontStyle: "italic",
               fontSize: "0.9375rem",
-              color: "var(--color-on-surface-muted)",
+              color: "rgba(253,248,247,0.66)",
             }}
           >
             Made with love, for love.

@@ -23,7 +23,9 @@ interface WeddingState {
   updateConfig: (id: string, data: Partial<WeddingConfig>) => void;
   publishConfig: (id: string) => void;
   getConfig: (id: string) => WeddingConfig | undefined;
-  createConfig: (templateId: string) => string;
+  createConfig: (templateId: string, ownerEmail?: string) => string;
+  /** Configs belonging to a given account (by lowercased email). */
+  getConfigsByOwner: (ownerEmail: string) => WeddingConfig[];
 
   // RSVP (written by public wedding sites, read by the dashboard)
   addRsvp: (entry: Omit<RSVPEntry, "id" | "submittedAt">) => void;
@@ -41,11 +43,12 @@ interface WeddingState {
   getGuestbook: (weddingId: string) => GuestbookEntry[];
 }
 
-const defaultConfig = (id: string, templateId: string): WeddingConfig => ({
+const defaultConfig = (id: string, templateId: string, ownerEmail?: string): WeddingConfig => ({
   id,
   templateId,
   slug: id,
   status: "draft",
+  ownerEmail,
   partner1Name: "",
   partner2Name: "",
   weddingDate: "",
@@ -88,12 +91,18 @@ export const useWeddingStore = create<WeddingState>()(
       guests: [],
       guestbook: [],
 
-      createConfig: (templateId) => {
-        const id = `w-${Date.now()}`;
+      createConfig: (templateId, ownerEmail) => {
+        const id = `w-${Date.now()}-${(seq++).toString(36)}`;
+        const owner = ownerEmail ? ownerEmail.trim().toLowerCase() : undefined;
         set((state) => ({
-          configs: { ...state.configs, [id]: defaultConfig(id, templateId) },
+          configs: { ...state.configs, [id]: defaultConfig(id, templateId, owner) },
         }));
         return id;
+      },
+
+      getConfigsByOwner: (ownerEmail) => {
+        const owner = ownerEmail.trim().toLowerCase();
+        return Object.values(get().configs).filter((c) => c.ownerEmail === owner);
       },
 
       updateConfig: (id, data) =>

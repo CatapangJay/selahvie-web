@@ -5,11 +5,20 @@ import { useCartStore } from "@/store/cartStore";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useHydrated } from "@/lib/useHydrated";
 import { formatPrice } from "@/lib/utils";
-import Image from "next/image";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { ShoppingBag, Eye, Heart } from "lucide-react";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
+import TemplatePreviewMock from "./TemplatePreviewMock";
+
+// Rotating sample couples so the generated preview mocks don't all read alike.
+const SAMPLE_COUPLES: [string, string][] = [
+  ["Ava", "Liam"],
+  ["Sofia", "Noah"],
+  ["Mia", "Ethan"],
+  ["Isla", "Kai"],
+  ["Lena", "Theo"],
+];
 
 interface Props {
   template: WeddingTemplate;
@@ -41,19 +50,14 @@ export default function TemplateCard({ template, index = 0 }: Props) {
     >
       {/* Preview Image */}
       <div className="relative overflow-hidden" style={{ aspectRatio: "4/5" }}>
-        {/* Full-image click → template details */}
+        {/* Full-card click → template details; the mock preview uses the
+            template's own palette + serif so it truly represents the design. */}
         <Link
           href={`/templates/${template.id}`}
-          className="absolute inset-0 z-10"
+          className="absolute inset-0 z-10 transition-transform duration-700 group-hover:scale-[1.03]"
           aria-label={`View ${template.name} details`}
         >
-          <Image
-            src={template.previewImage}
-            alt={template.name}
-            fill
-            className="object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          />
+          <TemplatePreviewMock template={template} couple={SAMPLE_COUPLES[index % SAMPLE_COUPLES.length]} />
         </Link>
 
         {/* Hover overlay — live preview affordance (sits above the image link) */}

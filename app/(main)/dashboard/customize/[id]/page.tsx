@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, use } from "react";
 import { InputField, TextareaField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
-import { ArrowLeft, ArrowRight, Check, Play, Pause } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, Play, Pause, Eye } from "lucide-react";
 import { generateSlug } from "@/lib/utils";
 import { musicTracks, CUSTOM_TRACK_ID, NO_MUSIC_ID } from "@/data/musicTracks";
 import SectionsEditor from "@/components/customize/SectionsEditor";
@@ -91,66 +91,95 @@ export default function CustomizePage(props: Props) {
     router.push(`/wedding/${params.id}`);
   };
 
-  return (
-    <div className="mx-auto max-w-5xl px-6" style={{ paddingTop: "var(--spacing-section)", paddingBottom: "var(--spacing-section-xl)" }}>
-      <Link
-        href="/dashboard"
-        className="inline-flex items-center gap-2 mb-10 label-luxury transition-opacity hover:opacity-70"
-        style={{ color: "var(--color-on-surface-variant)" }}
-      >
-        <ArrowLeft size={14} />
-        Back to Dashboard
-      </Link>
+  const completed = STEPS.filter((s) => s.num < step).length;
 
-      <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-muted)" }}>Customization studio</p>
-      <h1
-        className="headline-md mb-10"
-        style={{ fontFamily: "var(--font-serif)", fontWeight: 300 }}
-      >
-        {template?.name ?? "Your Wedding Website"}
-      </h1>
+  return (
+    <div className="mx-auto max-w-6xl px-6" style={{ paddingTop: "var(--spacing-section)", paddingBottom: "var(--spacing-section-xl)" }}>
+      {/* Header */}
+      <div className="mb-10 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <Link
+            href="/dashboard"
+            className="mb-5 inline-flex items-center gap-2 label-luxury transition-opacity hover:opacity-70"
+            style={{ color: "var(--color-on-surface-variant)" }}
+          >
+            <ArrowLeft size={14} />
+            Back to dashboard
+          </Link>
+          <p className="label-luxury mb-2" style={{ color: "var(--color-primary)" }}>Customization studio</p>
+          <h1 className="headline-md" style={{ fontFamily: "var(--font-serif)", fontWeight: 300 }}>
+            {template?.name ?? "Your Wedding Website"}
+          </h1>
+        </div>
+        {config.status === "published" && (
+          <Link
+            href={`/wedding/${config.slug || config.id}`}
+            target="_blank"
+            className="btn-outline label-luxury inline-flex min-h-[44px] items-center gap-2 px-5"
+            style={{ borderRadius: "var(--radius-sm)" }}
+          >
+            <Eye size={14} />
+            View live site
+          </Link>
+        )}
+      </div>
 
       <OnboardingChecklist config={config} onGoToStep={setStep} />
 
-      {/* Step indicators */}
-      <div className="mb-12 flex items-center gap-0">
-        {STEPS.map((s, i) => (
-          <div key={s.num} className="flex items-center flex-1 last:flex-none">
-            <button
-              onClick={() => setStep(s.num)}
-              className="flex flex-col items-center gap-1.5 group"
-            >
-              <div
-                className="flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold transition-all"
-                style={{
-                  background: step === s.num ? "var(--color-primary)" : step > s.num ? "var(--color-primary-dim)" : "var(--color-surface-container-high)",
-                  color: step >= s.num ? "var(--color-surface)" : "var(--color-on-surface-variant)",
-                }}
-              >
-                {step > s.num ? <Check size={14} /> : s.num}
-              </div>
-              <span
-                className="label-luxury text-[10px] hidden sm:block"
-                style={{ color: step === s.num ? "var(--color-primary)" : "var(--color-on-surface-variant)" }}
-              >
-                {s.label}
-              </span>
-            </button>
-            {i < STEPS.length - 1 && (
-              <div
-                className="flex-1 h-px mx-2 transition-colors"
-                style={{ background: step > s.num ? "var(--color-primary-dim)" : "var(--color-outline)" }}
-              />
-            )}
+      {/* Two-column studio: sticky step rail + content panel */}
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[248px_1fr]">
+        {/* Step rail */}
+        <aside className="lg:sticky lg:top-24 lg:h-fit">
+          {/* Progress meter */}
+          <div className="mb-5">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>Progress</span>
+              <span className="label-luxury" style={{ color: "var(--color-primary)" }}>{completed}/{STEPS.length}</span>
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full" style={{ background: "var(--color-surface-container-high)" }}>
+              <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(completed / STEPS.length) * 100}%`, background: "var(--color-primary)" }} />
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Step content */}
-      <div
-        className="rounded-2xl p-8"
-        style={{ background: "var(--color-surface-container)", border: "1px solid var(--color-outline)" }}
-      >
+          <nav className="flex gap-2 overflow-x-auto lg:flex-col lg:gap-1" aria-label="Customization steps">
+            {STEPS.map((s) => {
+              const active = step === s.num;
+              const done = step > s.num;
+              return (
+                <button
+                  key={s.num}
+                  onClick={() => setStep(s.num)}
+                  aria-current={active ? "step" : undefined}
+                  className="flex shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors lg:shrink"
+                  style={{ background: active ? "var(--color-surface-container)" : "transparent" }}
+                >
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-all"
+                    style={{
+                      background: active ? "var(--color-primary)" : done ? "var(--color-primary-dim)" : "var(--color-surface-container-high)",
+                      color: active || done ? "#fff" : "var(--color-on-surface-variant)",
+                    }}
+                  >
+                    {done ? <Check size={13} /> : s.num}
+                  </span>
+                  <span
+                    className="whitespace-nowrap text-sm"
+                    style={{ color: active ? "var(--color-on-surface)" : "var(--color-on-surface-variant)", fontWeight: active ? 500 : 400 }}
+                  >
+                    {s.label}
+                  </span>
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* Content panel */}
+        <div className="min-w-0">
+          <div
+            className="rounded-2xl p-6 sm:p-8"
+            style={{ background: "var(--color-surface-container)", border: "1px solid var(--color-outline)" }}
+          >
         {/* Step 1: Couple Info */}
         {step === 1 && (
           <div className="space-y-6">
@@ -506,25 +535,27 @@ export default function CustomizePage(props: Props) {
         )}
       </div>
 
-      {/* Navigation */}
-      <div className="mt-8 flex justify-between">
-        <ButtonSecondary
-          onClick={() => setStep((s) => Math.max(1, s - 1))}
-          disabled={step === 1}
-          size="sm"
-        >
-          <ArrowLeft size={14} />
-          Previous
-        </ButtonSecondary>
-        {step < 6 && (
-          <ButtonPrimary
-            onClick={() => setStep((s) => Math.min(6, s + 1))}
-            size="sm"
-          >
-            Next
-            <ArrowRight size={14} />
-          </ButtonPrimary>
-        )}
+          {/* Navigation */}
+          <div className="mt-8 flex justify-between">
+            <ButtonSecondary
+              onClick={() => setStep((s) => Math.max(1, s - 1))}
+              disabled={step === 1}
+              size="sm"
+            >
+              <ArrowLeft size={14} />
+              Previous
+            </ButtonSecondary>
+            {step < 6 && (
+              <ButtonPrimary
+                onClick={() => setStep((s) => Math.min(6, s + 1))}
+                size="sm"
+              >
+                Next
+                <ArrowRight size={14} />
+              </ButtonPrimary>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -8,16 +8,25 @@ import EmptyState from "@/components/ui/EmptyState";
 import Skeleton from "@/components/ui/Skeleton";
 import WebsiteCard from "@/components/dashboard/WebsiteCard";
 import { useHydrated } from "@/lib/useHydrated";
+import { useAuthStore } from "@/store/authStore";
 
 export default function DashboardPage() {
   const configs = useWeddingStore((s) => s.configs);
   const rsvps = useWeddingStore((s) => s.rsvps);
   const hydrated = useHydrated();
-  const configList = Object.values(configs);
+  const account = useAuthStore((s) => s.currentAccount)();
 
-  // Aggregate glance across all of the couple's websites.
-  const totalAttending = rsvps.filter((r) => r.attending).length;
+  // Show only the signed-in account's purchases. Legacy configs created before
+  // ownership existed (no ownerEmail) fall back to visible so nothing is orphaned.
+  const configList = Object.values(configs).filter(
+    (c) => !c.ownerEmail || c.ownerEmail === account?.email
+  );
+  const ownedIds = new Set(configList.map((c) => c.id));
+
+  // Aggregate glance across this account's websites.
+  const totalAttending = rsvps.filter((r) => r.attending && ownedIds.has(r.weddingId)).length;
   const publishedCount = configList.filter((c) => c.status === "published").length;
+  const firstName = account?.name?.split(" ")[0];
 
   return (
     <div
@@ -26,7 +35,9 @@ export default function DashboardPage() {
     >
       <div className="mb-12 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-muted)" }}>Your account</p>
+          <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-muted)" }}>
+            {hydrated && firstName ? `Welcome back, ${firstName}` : "Your account"}
+          </p>
           <h1 className="headline-md" style={{ fontFamily: "var(--font-serif)", fontWeight: 300 }}>Dashboard</h1>
           {hydrated && configList.length > 0 && (
             <p className="mt-3 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>

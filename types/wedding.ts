@@ -3,6 +3,8 @@ export interface WeddingConfig {
   templateId: string;
   slug: string;
   status: "draft" | "published";
+  /** Lowercased email of the buyer this purchase belongs to (mock auth). */
+  ownerEmail?: string;
 
   // Step 1: Couple Info
   partner1Name: string;
