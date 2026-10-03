@@ -1,67 +1,127 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import type { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 
 /**
- * Mock authentication (V1, localStorage). No real backend, no password hashing —
- * this models the account/session flow so the purchase → account → login →
- * dashboard journey is complete. Any password "works" at login as long as an
- * account exists for that email (see architecture.MD §10 for the V2 real-auth
- * upgrade path).
+ * Client view of the Supabase Auth session. Supabase owns the session (stored in
+ * cookies and refreshed by the proxy); `AuthProvider` mirrors it into this store
+ * so components can read it synchronously.
  */
 export interface Account {
+  id: string;
   name: string;
-  email: string; // lowercased, unique key
+  email: string; // lowercased
   createdAt: string;
 }
 
-interface AuthState {
-  accounts: Record<string, Account>; // keyed by lowercased email
-  sessionEmail: string | null;
+/** Demo credentials shown on the login page. The user lives in Supabase Auth. */
+export const DEMO_ACCOUNT = {
+  name: "Alex & Sam",
+  email: "demo@selahvie.com",
+  password: "demo1234",
+} as const;
 
-  /** Create an account (idempotent by email). Returns the stored Account. */
-  createAccount: (name: string, email: string) => Account;
-  hasAccount: (email: string) => boolean;
-  /** Mock sign-in: succeeds if an account exists for the email. */
-  login: (email: string) => boolean;
-  logout: () => void;
-  currentAccount: () => Account | null;
+export type AuthStatus = "loading" | "authenticated" | "anonymous";
+
+export interface AuthResult {
+  error?: string;
+  /** Sign-up succeeded but the email must be confirmed before a session exists. */
+  needsConfirmation?: boolean;
 }
 
-const key = (email: string) => email.trim().toLowerCase();
+interface AuthState {
+  status: AuthStatus;
+  account: Account | null;
+  /** Lowercased email of the signed-in user, or null. */
+  sessionEmail: string | null;
 
-export const useAuthStore = create<AuthState>()(
-  persist(
-    (set, get) => ({
-      accounts: {},
-      sessionEmail: null,
+  /** Mirror a Supabase user into the store (called by AuthProvider). */
+  setUser: (user: User | null) => void;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signUp: (name: string, email: string, password: string, redirectPath?: string) => Promise<AuthResult>;
+  /** Sign into the demo account, creating it on first use. */
+  signInAsDemo: () => Promise<AuthResult>;
+  logout: () => Promise<void>;
+}
 
-      createAccount: (name, email) => {
-        const e = key(email);
-        const existing = get().accounts[e];
-        const account: Account =
-          existing ?? { name: name.trim() || "there", email: e, createdAt: new Date().toISOString() };
-        set((state) => ({ accounts: { ...state.accounts, [e]: account } }));
-        return account;
+function toAccount(user: User): Account {
+  const meta = user.user_metadata as { name?: unknown } | undefined;
+  return {
+    id: user.id,
+    name: typeof meta?.name === "string" ? meta.name.trim() : "",
+    email: (user.email ?? "").toLowerCase(),
+    createdAt: user.created_at,
+  };
+}
+
+/** Map Supabase auth errors to copy that fits the product voice. */
+function friendlyError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes("invalid login credentials")) return "That email and password don't match an account.";
+  if (m.includes("email not confirmed")) return "Confirm your email first — check your inbox for the link.";
+  if (m.includes("already registered")) return "An account already exists for this email. Log in instead.";
+  if (m.includes("password")) return message;
+  if (m.includes("rate limit")) return "Too many attempts. Wait a moment and try again.";
+  return "Something went wrong. Please try again.";
+}
+
+const normalize = (email: string) => email.trim().toLowerCase();
+
+export const useAuthStore = create<AuthState>()((set, get) => ({
+  status: "loading",
+  account: null,
+  sessionEmail: null,
+
+  setUser: (user) => {
+    const account = user ? toAccount(user) : null;
+    set({
+      account,
+      sessionEmail: account?.email ?? null,
+      status: account ? "authenticated" : "anonymous",
+    });
+  },
+
+  signIn: async (email, password) => {
+    const { data, error } = await createClient().auth.signInWithPassword({ email: normalize(email), password });
+    if (error) return { error: friendlyError(error.message) };
+    get().setUser(data.user);
+    return {};
+  },
+
+  signUp: async (name, email, password, redirectPath = "/dashboard") => {
+    const { data, error } = await createClient().auth.signUp({
+      email: normalize(email),
+      password,
+      options: {
+        data: { name: name.trim() },
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectPath)}`,
       },
+    });
+    if (error) return { error: friendlyError(error.message) };
+    // With confirmations on, an existing email returns a user with no identities.
+    if (data.user && data.user.identities?.length === 0) {
+      return { error: "An account already exists for this email. Log in instead." };
+    }
+    if (!data.session) return { needsConfirmation: true };
+    get().setUser(data.user);
+    return {};
+  },
 
-      hasAccount: (email) => Boolean(get().accounts[key(email)]),
+  signInAsDemo: async () => {
+    const { email, password, name } = DEMO_ACCOUNT;
+    const signedIn = await get().signIn(email, password);
+    if (!signedIn.error) return {};
+    const created = await get().signUp(name, email, password);
+    if (created.needsConfirmation) {
+      return { error: "The demo account needs its email confirmed in Supabase (Authentication → Users) first." };
+    }
+    return created.error ? signedIn : {};
+  },
 
-      login: (email) => {
-        const e = key(email);
-        if (!get().accounts[e]) return false;
-        set({ sessionEmail: e });
-        return true;
-      },
-
-      logout: () => set({ sessionEmail: null }),
-
-      currentAccount: () => {
-        const { sessionEmail, accounts } = get();
-        return sessionEmail ? accounts[sessionEmail] ?? null : null;
-      },
-    }),
-    { name: "selahvie-auth", version: 1 }
-  )
-);
+  logout: async () => {
+    await createClient().auth.signOut();
+    get().setUser(null);
+  },
+}));
