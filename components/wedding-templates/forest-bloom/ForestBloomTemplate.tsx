@@ -3,6 +3,8 @@
 import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
+import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 
 import HeroSection       from "./components/HeroSection";
 import InvitationSection from "./components/InvitationSection";
@@ -72,11 +74,14 @@ export default function ForestBloomTemplate({ config, showBranding = true }: Pro
         gold={gold}
         accent={accent}
       />
-      <GallerySection
-        config={config}
-        gold={gold}
-        accent={accent}
-      />
+      {isSectionVisible(config, "gallery") && (
+        <GallerySection
+          config={config}
+          gold={gold}
+          accent={accent}
+        />
+      )}
+      <PrivateSections config={config} accent={gold} tone="dark" />
       <WishesSection
         config={config}
         gold={gold}

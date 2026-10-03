@@ -20,6 +20,12 @@ Selah Vie lets couples browse, buy, and fully customize a wedding website — in
 
 Success looks like: a couple completes customization and publishes without hitting a wall, shares the link with confidence, and returns repeatedly to watch RSVPs land and manage their list — the dashboard becoming the calm home base for the guest side of their wedding.
 
+### Plans & personalized invitations
+
+Every purchase includes the guest list (groups, CSV import/export, status tracking). **Base** costs the template price. **Personalized** costs the template price plus ₱500 and lets the couple make the site feel addressed to each guest: private sections (a note, a photo, or an extra event such as a rehearsal dinner) shown only to chosen groups or individuals, existing sections shown or hidden per audience, and a greeting with the guest's name. Couples can also privilege specific guests with extra seats, so a guest invited with a party of four can name up to three additional guests on their own RSVP. Guests arrive through a personal or group link, or by entering their name or code, and the RSVP form already knows who they are. Personalized is the recommended default; Base owners can upgrade any time from the dashboard, and locked features stay visible with a gentle upgrade prompt rather than being hidden.
+
+This is presentation-level personalization, not access control: in V1 there is no backend, so private content is not secret from a determined guest. Copy must not promise confidentiality.
+
 ## Positioning
 
 A wedding website you'd be proud to have designed yourself — and a guest list that manages itself — without the price of a designer or the look of a template.

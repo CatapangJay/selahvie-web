@@ -3,6 +3,8 @@
 import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
+import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 import HeroSection from "./components/HeroSection";
 import SaveTheDateBanner from "./components/SaveTheDateBanner";
 import StorySection from "./components/StorySection";
@@ -42,11 +44,12 @@ export default function ObsidianVowTemplate({ config, showBranding = true }: Pro
         weddingDateFormatted={weddingDateFormatted}
       />
       <SaveTheDateBanner accent={accent} weddingDateFormatted={weddingDateFormatted} />
-      <StorySection config={config} accent={accent} />
+      {isSectionVisible(config, "story") && <StorySection config={config} accent={accent} />}
       <DetailsSection config={config} accent={accent} weddingDateFormatted={weddingDateFormatted} />
       <ScheduleSection accent={accent} />
-      <GallerySection config={config} accent={accent} />
-      <RsvpSection config={config} accent={accent} />
+      {isSectionVisible(config, "gallery") && <GallerySection config={config} accent={accent} />}
+      <PrivateSections config={config} accent={accent} tone="dark" />
+      {isSectionVisible(config, "rsvp") && <RsvpSection config={config} accent={accent} />}
       <TemplateFooter
         config={config}
         accent={accent}

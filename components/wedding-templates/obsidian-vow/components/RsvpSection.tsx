@@ -6,6 +6,7 @@ import { InputField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import SectionLabel from "./SectionLabel";
 import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
+import AdditionalGuestsField from "@/components/wedding-templates/_shared/AdditionalGuestsField";
 import type { WeddingConfig, RSVPEntry } from "@/types/wedding";
 
 interface Props {
@@ -14,9 +15,10 @@ interface Props {
 }
 
 export default function RsvpSection({ config, accent }: Props) {
-  const [rsvp, setRsvp] = useState<Partial<RSVPEntry>>({ attending: true });
+  const { submit, prefillName, maxPlusOnes } = useRsvpSubmit(config);
+  const [rsvp, setRsvp] = useState<Partial<RSVPEntry>>({ attending: true, guestName: prefillName });
+  const [extraNames, setExtraNames] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
-  const { submit } = useRsvpSubmit(config);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +29,7 @@ export default function RsvpSection({ config, accent }: Props) {
       mealChoice: rsvp.mealChoice,
       plusOne: Boolean(rsvp.plusOneName?.trim()),
       plusOneName: rsvp.plusOneName,
+      additionalGuestNames: extraNames,
       message: rsvp.message,
     });
     setSubmitted(true);
@@ -186,8 +189,19 @@ export default function RsvpSection({ config, accent }: Props) {
                 </div>
               )}
 
-              {/* Plus one */}
-              {rsvp.attending && config.allowPlusOne && (
+              {/* Plus one(s) */}
+              {rsvp.attending && maxPlusOnes > 1 && (
+                <AdditionalGuestsField
+                  max={maxPlusOnes}
+                  names={extraNames}
+                  onChange={setExtraNames}
+                  labelColor={`${accent}70`}
+                  textColor="rgba(245,240,232,0.85)"
+                  lineColor={`${accent}25`}
+                  accent={accent}
+                />
+              )}
+              {rsvp.attending && maxPlusOnes === 1 && (
                 <RSVPInputOverride
                   label="Plus One Name (optional)" id="plusOne"
                   placeholder="Guest's full name" accent={accent}

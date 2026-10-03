@@ -14,7 +14,7 @@ export default function DashboardPage() {
   const configs = useWeddingStore((s) => s.configs);
   const rsvps = useWeddingStore((s) => s.rsvps);
   const hydrated = useHydrated();
-  const account = useAuthStore((s) => s.currentAccount)();
+  const account = useAuthStore((s) => s.account);
 
   // Show only the signed-in account's purchases. Legacy configs created before
   // ownership existed (no ownerEmail) fall back to visible so nothing is orphaned.

@@ -2,24 +2,28 @@
 
 import { useState, use } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { ArrowLeft, Users, MailCheck } from "lucide-react";
+import { notFound, useRouter } from "next/navigation";
+import { ArrowLeft, Users, MailCheck, Sparkles, Lock } from "lucide-react";
 import { useWeddingStore } from "@/store/weddingStore";
+import { useCartStore } from "@/store/cartStore";
 import { templates } from "@/data/templates";
 import GuestListManager from "@/components/manage/GuestListManager";
 import RsvpDashboard from "@/components/manage/RsvpDashboard";
+import PersonalizationEditor from "@/components/manage/PersonalizationEditor";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-type Tab = "rsvps" | "guests";
+type Tab = "rsvps" | "guests" | "personalize";
 
 export default function ManageWeddingPage(props: Props) {
   const params = use(props.params);
+  const router = useRouter();
   const config = useWeddingStore((s) => s.getConfig)(params.id);
   const summary = useWeddingStore((s) => s.getRsvpSummary)(params.id);
   const guestCount = useWeddingStore((s) => s.guests).filter((g) => g.weddingId === params.id).length;
+  const addUpgrade = useCartStore((s) => s.addUpgrade);
 
   const [tab, setTab] = useState<Tab>("rsvps");
 
@@ -30,10 +34,17 @@ export default function ManageWeddingPage(props: Props) {
     config.partner1Name && config.partner2Name
       ? `${config.partner1Name} & ${config.partner2Name}`
       : template?.name ?? "Your wedding";
+  const personalized = config.tier === "personalized";
 
-  const tabs: { id: Tab; label: string; icon: typeof Users; badge: number }[] = [
+  const handleUpgrade = () => {
+    addUpgrade(config.id, template ?? templates[0], coupleLabel);
+    router.push("/checkout");
+  };
+
+  const tabs: { id: Tab; label: string; icon: typeof Users; badge: number; locked?: boolean }[] = [
     { id: "rsvps", label: "RSVPs", icon: MailCheck, badge: summary.total },
     { id: "guests", label: "Guest list", icon: Users, badge: guestCount },
+    { id: "personalize", label: "Personalize", icon: Sparkles, badge: 0, locked: !personalized },
   ];
 
   return (
@@ -69,7 +80,7 @@ export default function ManageWeddingPage(props: Props) {
         role="tablist"
         aria-label="Guests and RSVPs"
       >
-        {tabs.map(({ id, label, icon: Icon, badge }) => {
+        {tabs.map(({ id, label, icon: Icon, badge, locked }) => {
           const active = tab === id;
           return (
             <button
@@ -86,6 +97,7 @@ export default function ManageWeddingPage(props: Props) {
             >
               <Icon size={15} />
               {label}
+              {locked && <Lock size={12} aria-label="Locked on Base plan" />}
               {badge > 0 && (
                 <span
                   className="inline-flex h-5 min-w-5 items-center justify-center px-1 text-xs"
@@ -105,8 +117,16 @@ export default function ManageWeddingPage(props: Props) {
 
       {tab === "rsvps" ? (
         <RsvpDashboard weddingId={config.id} />
+      ) : tab === "guests" ? (
+        <GuestListManager
+          weddingId={config.id}
+          coupleLabel={coupleLabel}
+          personalized={personalized}
+          siteSlug={config.slug || config.id}
+          onUpgrade={handleUpgrade}
+        />
       ) : (
-        <GuestListManager weddingId={config.id} coupleLabel={coupleLabel} />
+        <PersonalizationEditor config={config} onUpgrade={handleUpgrade} onOpenGuests={() => setTab("guests")} />
       )}
     </div>
   );

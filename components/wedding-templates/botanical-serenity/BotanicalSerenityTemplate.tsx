@@ -8,6 +8,8 @@ import CoupleSection from "./components/CoupleSection";
 import GallerySection from "./components/GallerySection";
 import WishesSection from "./components/WishesSection";
 import TemplateFooter from "./components/TemplateFooter";
+import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 
 interface Props {
   config: WeddingConfig;
@@ -36,13 +38,15 @@ export default function BotanicalSerenityTemplate({ config }: Props) {
         bg={BG}
         textDeep={TEXT_DEEP}
       />
-      <OurStorySection
-        config={config}
-        green={green}
-        floral={floral}
-        bg={BG}
-        textDeep={TEXT_DEEP}
-      />
+      {isSectionVisible(config, "story") && (
+        <OurStorySection
+          config={config}
+          green={green}
+          floral={floral}
+          bg={BG}
+          textDeep={TEXT_DEEP}
+        />
+      )}
       <CoupleSection
         config={config}
         green={green}
@@ -50,13 +54,16 @@ export default function BotanicalSerenityTemplate({ config }: Props) {
         bg={BG}
         textDeep={TEXT_DEEP}
       />
-      <GallerySection
-        config={config}
-        green={green}
-        floral={floral}
-        bg={BG}
-        textDeep={TEXT_DEEP}
-      />
+      {isSectionVisible(config, "gallery") && (
+        <GallerySection
+          config={config}
+          green={green}
+          floral={floral}
+          bg={BG}
+          textDeep={TEXT_DEEP}
+        />
+      )}
+      <PrivateSections config={config} accent={green} tone="light" />
       <WishesSection
         config={config}
         green={green}

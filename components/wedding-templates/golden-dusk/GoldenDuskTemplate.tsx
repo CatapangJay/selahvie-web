@@ -3,6 +3,8 @@
 import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
+import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 
 import StickyNav            from "./components/StickyNav";
 import HeroSection          from "./components/HeroSection";
@@ -38,13 +40,15 @@ export default function GoldenDuskTemplate({ config, showBranding = true }: Prop
 
       <HeroSection config={config} accent={accent} />
 
-      <OurStorySection config={config} accent={accent} />
+      {isSectionVisible(config, "story") && <OurStorySection config={config} accent={accent} />}
 
       <CoupleSection config={config} accent={accent} />
 
       <EventDetailsSection config={config} accent={accent} />
 
-      <GallerySection config={config} accent={accent} />
+      {isSectionVisible(config, "gallery") && <GallerySection config={config} accent={accent} />}
+
+      <PrivateSections config={config} accent={accent} tone="light" />
 
       <FaqSection accent={accent} />
 

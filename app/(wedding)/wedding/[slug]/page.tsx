@@ -1,12 +1,16 @@
-"use client";;
-import { use } from "react";
+"use client";
+import { Suspense, use } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { useWeddingStore } from "@/store/weddingStore";
-import { resolveTemplate } from "@/components/wedding-templates";
+import { useAuthStore } from "@/store/authStore";
 import { getDemoConfigBySlug } from "@/data/demoConfigs";
-import TemplateMotionProvider from "@/components/wedding-templates/_shared/TemplateMotionProvider";
+import PersonalizedTemplate from "@/components/wedding-templates/_shared/PersonalizedTemplate";
+import FindInvitation from "@/components/wedding-templates/_shared/FindInvitation";
+import ViewAsSelect from "@/components/wedding-templates/_shared/ViewAsSelect";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import Link from "next/link";
+import { INVITE_PARAM, findInviteeByCode, isPersonalized } from "@/lib/invitations";
 import type { WeddingConfig } from "@/types/wedding";
 
 // ─── Legacy demo config (kept for the /wedding/demo entry link) ──────────────
@@ -50,16 +54,30 @@ interface Props {
 
 export default function PublicWeddingPage(props: Props) {
   const params = use(props.params);
-  const { configs } = useWeddingStore();
+  return (
+    <Suspense fallback={null}>
+      <WeddingSite slug={params.slug} />
+    </Suspense>
+  );
+}
+
+function WeddingSite({ slug }: { slug: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const configs = useWeddingStore((s) => s.configs);
+  const allGuests = useWeddingStore((s) => s.guests);
+  const allGroups = useWeddingStore((s) => s.groups);
+  const sessionEmail = useAuthStore((s) => s.sessionEmail);
 
   const config: WeddingConfig | undefined =
     // "/wedding/demo" keeps the original Rosé Elegy showcase.
-    params.slug === "demo" ? DEMO_CONFIG :
+    slug === "demo" ? DEMO_CONFIG :
     // Any bespoke template demo (obsidian-demo, enchanted-demo, …).
-    getDemoConfigBySlug(params.slug) ??
+    getDemoConfigBySlug(slug) ??
     // Try matching a user config by unique ID first, then by published slug.
-    Object.values(configs).find((c) => c.id === params.slug) ??
-    Object.values(configs).find((c) => c.slug === params.slug && c.status === "published");
+    Object.values(configs).find((c) => c.id === slug) ??
+    Object.values(configs).find((c) => c.slug === slug && c.status === "published");
 
   if (!config) {
     return (
@@ -76,13 +94,59 @@ export default function PublicWeddingPage(props: Props) {
     );
   }
 
-  // Resolve the correct template component based on the config's templateId
-  const TemplateComponent = resolveTemplate(config.templateId);
+  // Resolve the viewer from ?invite=CODE (Personalized sites only).
+  const personalized = isPersonalized(config);
+  const guests = allGuests.filter((g) => g.weddingId === config.id);
+  const groups = allGroups.filter((g) => g.weddingId === config.id);
+  const code = searchParams.get(INVITE_PARAM) ?? "";
+  const invitee = personalized && code ? findInviteeByCode(code, guests, groups) : null;
+  const isOwner = Boolean(sessionEmail && config.ownerEmail && sessionEmail.toLowerCase() === config.ownerEmail);
+  const canLookUp = personalized && !isOwner && !invitee && config.inviteLookupEnabled !== false && guests.length + groups.length > 0;
+
+  const setInvite = (next: string) => {
+    const q = new URLSearchParams(searchParams.toString());
+    if (next) q.set(INVITE_PARAM, next);
+    else q.delete(INVITE_PARAM);
+    const qs = q.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
 
   return (
-    <TemplateMotionProvider>
-      <TemplateComponent config={config} showBranding />
-    </TemplateMotionProvider>
+    <>
+      <PersonalizedTemplate config={config} invitee={invitee} showBranding />
+
+      {canLookUp && (
+        <FindInvitation key={code} guests={guests} groups={groups} onFound={setInvite} invalidCode={Boolean(code)} />
+      )}
+
+      {personalized && isOwner && (
+        <div
+          className="fixed bottom-6 left-6 flex max-w-[calc(100vw-7rem)] items-center gap-2 py-1.5 pl-4 pr-1.5 text-sm"
+          style={{
+            zIndex: "var(--z-sticky)",
+            background: "rgba(24, 16, 20, 0.8)",
+            backdropFilter: "blur(10px)",
+            WebkitBackdropFilter: "blur(10px)",
+            color: "#fdf8f7",
+            border: "1px solid rgba(255,255,255,0.16)",
+            borderRadius: 999,
+          }}
+        >
+          <label htmlFor="view-as" className="shrink-0 text-xs">
+            View as <span style={{ opacity: 0.7 }}>(only you see this)</span>
+          </label>
+          <ViewAsSelect
+            id="view-as"
+            guests={guests}
+            groups={groups}
+            value={invitee?.code ?? ""}
+            onChange={setInvite}
+            className="min-h-[36px] min-w-0 cursor-pointer truncate px-3 text-sm outline-none"
+            style={{ background: "#fdf8f7", color: "#2c1c22", borderRadius: 999, maxWidth: 220 }}
+          />
+        </div>
+      )}
+    </>
   );
 }
 

@@ -1,5 +1,5 @@
-"use client";;
-import { use } from "react";
+"use client";
+import { use, useState } from "react";
 
 import { templates } from "@/data/templates";
 import { notFound } from "next/navigation";
@@ -8,7 +8,10 @@ import Link from "next/link";
 import { useCartStore } from "@/store/cartStore";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
+import TierPicker from "@/components/templates/TierPicker";
 import { formatPrice } from "@/lib/utils";
+import { resolveTier, tierPrice } from "@/lib/tiers";
+import type { Tier } from "@/types/wedding";
 import { Check, ShoppingBag, ArrowLeft, Eye } from "lucide-react";
 
 interface Props {
@@ -20,11 +23,19 @@ export default function TemplateDetailPage(props: Props) {
   const template = templates.find((t) => t.id === params.id);
   if (!template) notFound();
 
-  const { addItem, isInCart, openCart } = useCartStore();
+  const { addItem, isInCart, openCart, setTier } = useCartStore();
+  const cartItem = useCartStore((s) => s.items.find((i) => i.kind === "template" && i.templateId === template.id));
   const inCart = isInCart(template.id);
+  const [pickedTier, setPickedTier] = useState<Tier>("personalized");
+  const tier = resolveTier(template, cartItem?.tier ?? pickedTier);
+
+  const handleTier = (next: Tier) => {
+    setPickedTier(next);
+    if (cartItem) setTier(cartItem.id, next);
+  };
 
   const handleCart = () => {
-    if (!inCart) addItem(template);
+    if (!inCart) addItem(template, tier);
     else openCart();
   };
 
@@ -131,9 +142,13 @@ export default function TemplateDetailPage(props: Props) {
                 color: "var(--color-primary)",
               }}
             >
-              {formatPrice(template.price)}
+              {formatPrice(tierPrice(template.price, tier))}
             </p>
             <p className="label-luxury mt-2" style={{ color: "var(--color-on-surface-muted)" }}>one-time purchase</p>
+          </div>
+
+          <div className="mt-8">
+            <TierPicker templatePrice={template.price} value={tier} onChange={handleTier} personalizedOnly={template.personalizedOnly} />
           </div>
 
           {/* CTA */}

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
 import Reveal from "@/components/ui/Reveal";
+import { weddingImages } from "@/lib/weddingImages";
 
 /**
  * Full-bleed editorial quote with a scroll-linked parallax background: the image
@@ -42,7 +43,7 @@ export default function ParallaxQuote() {
         aria-hidden
       >
         <Image
-          src="https://picsum.photos/seed/selahvie-ceremony/1920/1200"
+          src={weddingImages.ceremony}
           alt=""
           fill
           className="object-cover"

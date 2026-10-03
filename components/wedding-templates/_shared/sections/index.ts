@@ -1,4 +1,4 @@
-import type { WeddingConfig, OptionalSectionKey } from "@/types/wedding";
+import type { WeddingConfig, OptionalSectionKey, AudienceSectionKey } from "@/types/wedding";
 
 export { default as ScheduleSection } from "./ScheduleSection";
 export { default as WeddingPartySection } from "./WeddingPartySection";
@@ -8,7 +8,7 @@ export { default as FaqSection } from "./FaqSection";
 export { default as GuestbookSection } from "./GuestbookSection";
 
 /** True when a section should render (default shown; hidden only if explicitly false). */
-export function isSectionVisible(config: WeddingConfig, key: OptionalSectionKey): boolean {
+export function isSectionVisible(config: WeddingConfig, key: AudienceSectionKey): boolean {
   return config.sectionVisibility?.[key] !== false;
 }
 

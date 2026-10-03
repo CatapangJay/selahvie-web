@@ -4,6 +4,7 @@ import Reveal from "@/components/ui/Reveal";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import { Heart, Sparkles, ShieldCheck } from "lucide-react";
 import { templates } from "@/data/templates";
+import { weddingImages } from "@/lib/weddingImages";
 import { formatPrice } from "@/lib/utils";
 
 export const metadata = {
@@ -94,7 +95,7 @@ export default function AboutPage() {
             style={{ aspectRatio: "4/5", borderRadius: "var(--radius-xl)", border: "1px solid var(--color-outline)" }}
           >
             <Image
-              src="https://picsum.photos/seed/selahvie-about-story/900/1100"
+              src={weddingImages.aboutPortrait}
               alt="A couple reviewing their wedding website together"
               fill
               className="object-cover"

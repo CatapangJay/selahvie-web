@@ -1,13 +1,16 @@
 "use client";
 
 import { CartItem } from "@/types/cart";
-import { useCartStore } from "@/store/cartStore";
+import { cartItemPrice, useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
+import { PERSONALIZED_ADDON_CENTS, TIER_INFO } from "@/lib/tiers";
 import { X } from "lucide-react";
 import Image from "next/image";
 
 export default function CartItemCard({ item }: { item: CartItem }) {
-  const { removeItem } = useCartStore();
+  const { removeItem, setTier } = useCartStore();
+  const isUpgrade = item.kind === "upgrade";
+  const title = isUpgrade ? "Personalized Invitations" : item.template.name;
 
   return (
     <div
@@ -40,26 +43,40 @@ export default function CartItemCard({ item }: { item: CartItem }) {
             className="text-sm font-medium truncate"
             style={{ color: "var(--color-on-surface)" }}
           >
-            {item.template.name}
+            {title}
           </p>
-          <p className="label-luxury mt-1" style={{ color: "var(--color-on-surface-muted)" }}>
-            {item.template.tags.slice(0, 2).join(" · ")}
+          <p className="mt-1 text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+            {isUpgrade
+              ? `Add-on for ${item.weddingLabel ?? item.template.name}`
+              : `${TIER_INFO[item.tier].label} plan`}
           </p>
+          {!isUpgrade && !item.template.personalizedOnly && (
+            <button
+              type="button"
+              onClick={() => setTier(item.id, item.tier === "base" ? "personalized" : "base")}
+              className="mt-1 min-h-[28px] text-left text-xs underline underline-offset-2 transition-opacity hover:opacity-70"
+              style={{ color: item.tier === "base" ? "var(--color-primary)" : "var(--color-on-surface-muted)" }}
+            >
+              {item.tier === "base"
+                ? `Add Personalized Invitations (+${formatPrice(PERSONALIZED_ADDON_CENTS)})`
+                : "Switch to Base"}
+            </button>
+          )}
         </div>
         <p
           className="font-serif text-sm"
           style={{ fontFamily: "var(--font-serif)", fontSize: "1rem", fontWeight: 300, color: "var(--color-primary)" }}
         >
-          {formatPrice(item.template.price)}
+          {formatPrice(cartItemPrice(item))}
         </p>
       </div>
 
       {/* Remove */}
       <button
-        onClick={() => removeItem(item.templateId)}
+        onClick={() => removeItem(item.id)}
         className="-mr-1 -mt-1 flex h-11 w-11 shrink-0 items-start justify-end transition-opacity hover:opacity-60"
         style={{ color: "var(--color-on-surface-muted)" }}
-        aria-label={`Remove ${item.template.name} from cart`}
+        aria-label={`Remove ${title} from cart`}
       >
         <X size={16} strokeWidth={1.25} />
       </button>

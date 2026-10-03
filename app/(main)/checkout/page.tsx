@@ -1,8 +1,10 @@
 "use client";
 
-import { useCartStore } from "@/store/cartStore";
+import { cartItemPrice, useCartStore } from "@/store/cartStore";
 import { useWeddingStore } from "@/store/weddingStore";
+import { useAuthStore } from "@/store/authStore";
 import { formatPrice } from "@/lib/utils";
+import { PERSONALIZED_ADDON_CENTS, TIER_INFO } from "@/lib/tiers";
 import { InputField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import EmptyState from "@/components/ui/EmptyState";
@@ -21,15 +23,23 @@ const METHODS: { id: Method; label: string; hint: string; icon: typeof Smartphon
 ];
 
 export default function CheckoutPage() {
-  const { items, total, clearCart } = useCartStore();
-  const { createConfig } = useWeddingStore();
+  const { items, total, clearCart, setTier } = useCartStore();
+  const { createConfig, updateConfig } = useWeddingStore();
+  const account = useAuthStore((s) => s.account);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState<Method>("gcash");
   const [form, setForm] = useState({
-    name: "", email: "", mobile: "", card: "", expiry: "", cvc: "",
+    name: account?.name ?? "", email: account?.email ?? "", mobile: "", card: "", expiry: "", cvc: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // The session resolves asynchronously; prefill empty fields once it arrives.
+  const [prefilledFor, setPrefilledFor] = useState(account?.id ?? null);
+  if (account && prefilledFor !== account.id) {
+    setPrefilledFor(account.id);
+    setForm((f) => ({ ...f, name: f.name || account.name, email: f.email || account.email }));
+  }
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -57,7 +67,15 @@ export default function CheckoutPage() {
     // Purchases are tagged to the buyer's email so their account sees them later.
     const email = form.email.trim().toLowerCase();
     const ids: string[] = [];
-    items.forEach((item) => ids.push(createConfig(item.templateId, email)));
+    let upgrades = 0;
+    items.forEach((item) => {
+      if (item.kind === "upgrade" && item.weddingId) {
+        updateConfig(item.weddingId, { tier: "personalized" });
+        upgrades += 1;
+      } else {
+        ids.push(createConfig(item.templateId, email, item.tier));
+      }
+    });
 
     clearCart();
     const params = new URLSearchParams({
@@ -66,6 +84,7 @@ export default function CheckoutPage() {
       name: form.name.trim(),
       method,
     });
+    if (upgrades > 0) params.set("upgrades", String(upgrades));
     router.push(`/checkout/success?${params.toString()}`);
   };
 
@@ -271,18 +290,34 @@ export default function CheckoutPage() {
 
             <div className="space-y-4">
               {items.map((item) => (
-                <div key={item.templateId} className="flex gap-3">
+                <div key={item.id} className="flex gap-3">
                   <div className="relative shrink-0 overflow-hidden" style={{ width: 64, height: 52, borderRadius: "var(--radius-sm)" }}>
                     <Image src={item.template.previewImage} alt={item.template.name} fill className="object-cover" sizes="64px" />
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col justify-center">
-                    <p className="truncate text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>{item.template.name}</p>
-                    <p className="label-luxury mt-0.5" style={{ color: "var(--color-on-surface-muted)" }}>
-                      {item.template.tags.slice(0, 2).join(" · ")}
+                    <p className="truncate text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
+                      {item.kind === "upgrade" ? "Personalized Invitations" : item.template.name}
                     </p>
+                    <p className="mt-0.5 text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+                      {item.kind === "upgrade"
+                        ? `Add-on for ${item.weddingLabel ?? item.template.name}`
+                        : item.tier === "personalized"
+                        ? `${formatPrice(item.template.price)} + ${formatPrice(PERSONALIZED_ADDON_CENTS)} Personalized`
+                        : `${TIER_INFO.base.label} plan`}
+                    </p>
+                    {item.kind === "template" && item.tier === "base" && (
+                      <button
+                        type="button"
+                        onClick={() => setTier(item.id, "personalized")}
+                        className="mt-1 min-h-[28px] text-left text-xs underline underline-offset-2 transition-opacity hover:opacity-70"
+                        style={{ color: "var(--color-primary)" }}
+                      >
+                        Add Personalized Invitations (+{formatPrice(PERSONALIZED_ADDON_CENTS)})
+                      </button>
+                    )}
                   </div>
                   <p className="shrink-0 font-serif text-sm" style={{ fontFamily: "var(--font-serif)", fontWeight: 300, color: "var(--color-primary)", fontSize: "1rem" }}>
-                    {formatPrice(item.template.price)}
+                    {formatPrice(cartItemPrice(item))}
                   </p>
                 </div>
               ))}

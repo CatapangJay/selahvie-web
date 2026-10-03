@@ -5,9 +5,12 @@ export const APP_TAGLINE = "Your Dream Wedding, Online.";
 // authenticated surface, surfaced only once a user has an account/session.
 export const NAV_LINKS = [
   { label: "Templates", href: "/templates" },
-  { label: "Pricing", href: "/#pricing" },
   { label: "About Us", href: "/about" },
+  { label: "Contact", href: "/#contact" },
 ];
+
+// Public inbox for the landing-page contact form (opens the visitor's mail app).
+export const CONTACT_EMAIL = "hello@selahvie.com";
 
 export const TEMPLATE_TAGS = [
   "All",

@@ -3,6 +3,8 @@
 import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
+import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 
 import HeroSection       from "./components/HeroSection";
 import SaveTheDateBanner from "./components/SaveTheDateBanner";
@@ -51,7 +53,7 @@ export default function EnchantedGroveTemplate({ config, showBranding = true }: 
         accent={accent}
         weddingDateFormatted={weddingDateFormatted}
       />
-      <StorySection    config={config} gold={gold} accent={accent} />
+      {isSectionVisible(config, "story") && <StorySection config={config} gold={gold} accent={accent} />}
       <DetailsSection
         config={config}
         gold={gold}
@@ -59,8 +61,9 @@ export default function EnchantedGroveTemplate({ config, showBranding = true }: 
         weddingDateFormatted={weddingDateFormatted}
       />
       <ScheduleSection gold={gold} accent={accent} />
-      <GallerySection  config={config} gold={gold} accent={accent} />
-      <RsvpSection     config={config} gold={gold} accent={accent} />
+      {isSectionVisible(config, "gallery") && <GallerySection config={config} gold={gold} accent={accent} />}
+      <PrivateSections config={config} accent={gold} tone="dark" />
+      {isSectionVisible(config, "rsvp") && <RsvpSection config={config} gold={gold} accent={accent} />}
       <TemplateFooter
         config={config}
         gold={gold}

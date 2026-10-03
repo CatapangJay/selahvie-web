@@ -18,16 +18,52 @@ export function generateSlug(name1: string, name2: string): string {
   return `${clean(name1)}-and-${clean(name2)}`;
 }
 
-/** Escape one CSV cell: quote when it contains comma, quote, or newline. */
+/**
+ * Escape one CSV cell: quote when it contains comma, quote, or newline.
+ * Text starting with a formula trigger is prefixed with ' so spreadsheets
+ * don't execute guest-supplied content (CSV injection).
+ */
 function csvCell(value: string | number | boolean | undefined | null): string {
-  const s = value == null ? "" : String(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  let s = value == null ? "" : String(value);
+  if (typeof value === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
 /** Build CSV text from a header row and object rows (columns follow header order). */
 export function toCsv(headers: string[], rows: (string | number | boolean | undefined | null)[][]): string {
   const lines = [headers.map(csvCell).join(","), ...rows.map((r) => r.map(csvCell).join(","))];
   return lines.join("\r\n");
+}
+
+/** Parse CSV text (RFC 4180: quoted cells, escaped quotes, CRLF/LF). Blank lines are dropped. */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let quoted = false;
+  const src = text.replace(/^\uFEFF/, "");
+
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') { cell += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else cell += ch;
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      row.push(cell); cell = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && src[i + 1] === "\n") i++;
+      row.push(cell); cell = "";
+      rows.push(row); row = [];
+    } else {
+      cell += ch;
+    }
+  }
+  row.push(cell);
+  rows.push(row);
+  return rows.filter((r) => r.some((c) => c.trim() !== ""));
 }
 
 /** Trigger a client-side file download of text content. */

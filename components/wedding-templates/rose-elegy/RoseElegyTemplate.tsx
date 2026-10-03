@@ -4,6 +4,7 @@ import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import { resolveFontPreset } from "@/data/fontPresets";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
+import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
 import HeroSection from "./components/HeroSection";
 import SaveTheDateBanner from "./components/SaveTheDateBanner";
 import StorySection from "./components/StorySection";
@@ -63,7 +64,7 @@ export default function RoseElegyTemplate({ config, showBranding = true }: Props
         weddingDateFormatted={weddingDateFormatted}
       />
       <SaveTheDateBanner primary={primary} weddingDateFormatted={weddingDateFormatted} />
-      <StorySection config={config} accent={accent} />
+      {isSectionVisible(config, "story") && <StorySection config={config} accent={accent} />}
       <DetailsSection
         config={config}
         primary={primary}
@@ -73,11 +74,12 @@ export default function RoseElegyTemplate({ config, showBranding = true }: Props
       <ScheduleSection primary={primary} accent={accent} />
       {isSectionVisible(config, "schedule") && <ScheduleSectionShared config={config} primary={primary} accent={accent} />}
       {isSectionVisible(config, "weddingParty") && <WeddingPartySection config={config} primary={primary} accent={accent} />}
-      <GallerySection config={config} primary={primary} />
+      {isSectionVisible(config, "gallery") && <GallerySection config={config} primary={primary} />}
       {isSectionVisible(config, "travel") && <TravelSection config={config} primary={primary} accent={accent} />}
       {isSectionVisible(config, "registry") && <RegistrySection config={config} primary={primary} accent={accent} />}
       {isSectionVisible(config, "faq") && <FaqSection config={config} primary={primary} accent={accent} />}
-      <RsvpSection config={config} primary={primary} accent={accent} />
+      <PrivateSections config={config} accent={primary} tone="light" />
+      {isSectionVisible(config, "rsvp") && <RsvpSection config={config} primary={primary} accent={accent} />}
       {isSectionVisible(config, "guestbook") && (
         <GuestbookSection config={config} primary={primary} accent={accent} />
       )}

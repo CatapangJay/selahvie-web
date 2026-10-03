@@ -7,7 +7,8 @@
  */
 
 import type { ComponentType } from "react";
-import type { WeddingConfig } from "@/types/wedding";
+import type { WeddingConfig, AudienceSectionKey } from "@/types/wedding";
+import { OPTIONAL_SECTIONS } from "./_shared/sections";
 
 export interface TemplateComponentProps {
   config: WeddingConfig;
@@ -23,6 +24,7 @@ import EnchantedGroveTemplate from "./enchanted-grove";
 import ForestBloomTemplate    from "./forest-bloom";
 import GoldenDuskTemplate          from "./golden-dusk";
 import BotanicalSerenityTemplate   from "./botanical-serenity";
+import JewelTonesTemplate          from "./jewel-tones";
 
 /**
  * Map of template ID → renderer component.
@@ -36,6 +38,7 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
   t9: ForestBloomTemplate,
   t10: GoldenDuskTemplate,
   t11: BotanicalSerenityTemplate,
+  t12: JewelTonesTemplate,
   // t2: SageAndThistleTemplate,  ← add future templates here
 };
 
@@ -45,4 +48,31 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
  */
 export function resolveTemplate(templateId: string): ComponentType<TemplateComponentProps> {
   return templateRegistry[templateId] ?? RoseElegyTemplate;
+}
+
+const CORE_AUDIENCE_SECTIONS: { key: AudienceSectionKey; label: string }[] = [
+  { key: "story", label: "Our Story" },
+  { key: "gallery", label: "Gallery" },
+  { key: "rsvp", label: "RSVP" },
+];
+
+/**
+ * Sections each template can restrict to an audience (Personalized tier).
+ * Must mirror the `isSectionVisible` gates inside each template.
+ */
+const AUDIENCE_SECTIONS_BY_TEMPLATE: Record<string, AudienceSectionKey[]> = {
+  t1: ["story", "gallery", "rsvp", "schedule", "weddingParty", "travel", "registry", "faq", "guestbook"],
+  t6: ["story", "gallery", "rsvp"],
+  t7: ["story", "gallery", "rsvp"],
+  t8: ["story", "gallery", "rsvp"],
+  t9: ["gallery"],
+  t10: ["story", "gallery"],
+  t11: ["story", "gallery"],
+  t12: ["story", "gallery", "schedule", "rsvp"],
+};
+
+export function audienceSectionsFor(templateId: string): { key: AudienceSectionKey; label: string }[] {
+  const keys = AUDIENCE_SECTIONS_BY_TEMPLATE[templateId] ?? AUDIENCE_SECTIONS_BY_TEMPLATE.t1;
+  const labels = [...CORE_AUDIENCE_SECTIONS, ...OPTIONAL_SECTIONS];
+  return keys.map((key) => ({ key, label: labels.find((l) => l.key === key)?.label ?? key }));
 }

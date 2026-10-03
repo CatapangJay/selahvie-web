@@ -3,6 +3,8 @@
 import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
+import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 
 import HeroSection       from "./components/HeroSection";
 import SaveTheDateBanner from "./components/SaveTheDateBanner";
@@ -50,7 +52,7 @@ export default function WonderstuckTemplate({ config, showBranding = true }: Pro
         gold={gold}
         weddingDateFormatted={weddingDateFormatted}
       />
-      <StorySection config={config} accent={accent} gold={gold} />
+      {isSectionVisible(config, "story") && <StorySection config={config} accent={accent} gold={gold} />}
       <DetailsSection
         config={config}
         accent={accent}
@@ -58,8 +60,9 @@ export default function WonderstuckTemplate({ config, showBranding = true }: Pro
         weddingDateFormatted={weddingDateFormatted}
       />
       <ScheduleSection accent={accent} gold={gold} />
-      <GallerySection  config={config} accent={accent} gold={gold} />
-      <RsvpSection     config={config} accent={accent} gold={gold} />
+      {isSectionVisible(config, "gallery") && <GallerySection config={config} accent={accent} gold={gold} />}
+      <PrivateSections config={config} accent={gold} tone="dark" />
+      {isSectionVisible(config, "rsvp") && <RsvpSection config={config} accent={accent} gold={gold} />}
       <TemplateFooter
         config={config}
         accent={accent}

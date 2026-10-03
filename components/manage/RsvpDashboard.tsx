@@ -134,12 +134,16 @@ export default function RsvpDashboard({ weddingId }: Props) {
                     </span>
                     <p className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
                       {r.guestName}
-                      {r.plusOne && (
-                        <span className="font-light" style={{ color: "var(--color-on-surface-muted)" }}>
-                          {" "}
-                          +1{r.plusOneName ? ` · ${r.plusOneName}` : ""}
-                        </span>
-                      )}
+                      {r.plusOne && (() => {
+                        const names = r.additionalGuestNames?.length ? r.additionalGuestNames : r.plusOneName ? [r.plusOneName] : [];
+                        const extra = r.additionalGuests ?? 1;
+                        return (
+                          <span className="font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+                            {" "}
+                            +{extra}{names.length > 0 ? ` · ${names.join(", ")}` : ""}
+                          </span>
+                        );
+                      })()}
                     </p>
                   </div>
                   {r.message && (

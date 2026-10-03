@@ -73,7 +73,8 @@ selahvie-web/
 │   │   ├── checkout/page.tsx
 │   │   ├── checkout/success/page.tsx
 │   │   ├── dashboard/page.tsx
-│   │   └── dashboard/customize/[id]/page.tsx   # 5-step studio
+│   │   ├── dashboard/customize/[id]/page.tsx   # 5-step studio
+│   │   └── dashboard/manage/[id]/page.tsx      # Guests · RSVPs · Personalize tabs
 │   │
 │   └── (wedding)/                    # Chrome-free
 │       ├── layout.tsx
@@ -84,18 +85,25 @@ selahvie-web/
 │   ├── ui/                           # ButtonPrimary/Secondary/Tertiary, InputField
 │   ├── layout/                       # Navbar, Footer
 │   ├── cart/                         # CartDrawer, CartItemCard
-│   ├── templates/                    # TemplateCard, TemplateGrid
+│   ├── templates/                    # TemplateCard, TemplateGrid, TierPicker
+│   ├── manage/                       # GuestListManager, RsvpDashboard,
+│   │                                 #   PersonalizationEditor
 │   └── wedding-templates/            # Template renderers (registry, §7)
 │       ├── index.ts                  # templateRegistry + resolveTemplate
+│       │                             #   + audienceSectionsFor
 │       ├── _shared/AudioPlayer.tsx
+│       ├── _shared/                  # PersonalizedTemplate, InviteeContext,
+│       │                             #   PrivateSections, InviteeGreeting,
+│       │                             #   FindInvitation, ViewAsSelect
 │       └── <template>/               # rose-elegy, obsidian-vow, enchanted-grove,
 │                                     #   forest-bloom, golden-dusk, wonderstruck,
 │                                     #   botanical-serenity — each self-contained
 │
 ├── store/       cartStore.ts, weddingStore.ts
 ├── types/       template.ts, cart.ts, wedding.ts, order.ts
-├── data/        templates.ts, musicTracks.ts, demoConfigs.ts (redesign add)
-└── lib/         utils.ts, constants.ts
+├── data/        templates.ts, musicTracks.ts, demoConfigs.ts (redesign add),
+│                demoPersonalization.ts (sample groups/guests for previews)
+└── lib/         utils.ts, constants.ts, tiers.ts, invitations.ts
 ```
 
 Note vs. the previous doc: there is **no `app/api/`** yet (V1 is client-only), and no
@@ -110,7 +118,9 @@ published output is composed under `components/wedding-templates/`.
 price (₱ cents), previewImage, previewImages[], tags[], features[], colorPalettes[],
 isFeatured, createdAt`.
 
-`CartItem` (`types/cart.ts`) — `templateId, template, addedAt` (one per template).
+`CartItem` (`types/cart.ts`) — `id, kind` (`template` | `upgrade`), `templateId, template,
+tier, weddingId?, weddingLabel?` (upgrade items), `addedAt`. An `upgrade` item is the
+Personalized add-on for an already-owned wedding (id `upgrade:<weddingId>`).
 
 `WeddingConfig` (`types/wedding.ts`) — couple info, theme (`primaryColor`, `accentColor`,
 `themePresetId`), media (`heroImageUrl`, `galleryImageUrls[]`, `coupleStory`), RSVP
@@ -130,11 +140,25 @@ UI state only). The redesign's guest-management feature (§6) makes this real.
   `sectionVisibility{}`, and `fontPresetId` / theme controls.
 - **`favorites`** (template ids) for discovery.
 
+### Tiers & personalized invitations (V1, still local)
+- **`Tier`** = `"base" | "personalized"`; `WeddingConfig.tier` records the plan (absent =
+  base). `lib/tiers.ts` owns pricing: `PERSONALIZED_ADDON_CENTS = 50000` (₱500),
+  `tierPrice(templatePrice, tier)`, `configTier(config)`, and `TIER_INFO` (labels/features).
+- **`GuestGroup`** (`id, weddingId, name, inviteCode`) and `GuestListEntry` growth
+  (`groupIds[]`, per-guest `inviteCode`). Stored in `weddingStore` (**version 4**).
+- **`Audience`** (`groupIds[], guestIds[]`) — who can see something. An **empty audience
+  means everyone**.
+- `WeddingConfig` additions: `privateSections[]` (`PrivateSection`, kind `text` | `photo` |
+  `event`, each with an `audience`), `sectionAudiences` (restrict an existing
+  `AudienceSectionKey` — `story`, `gallery`, `rsvp` or an optional section — to an
+  audience), `inviteGreeting` (hero "Dear {name}," + message), `inviteLookupEnabled`
+  (guest-facing "Find your invitation" prompt, default on).
+
 ---
 
 ## 6. Feature Architecture (redesign scope)
 
-Four feature groups, all V1/local:
+Five feature groups, all V1/local:
 
 1. **Guest & RSVP management** — a dashboard area per wedding: guest list CRUD, RSVP
    response tracking, meal tallies, plus-one handling, CSV export, reminder stubs. Backed
@@ -147,6 +171,59 @@ Four feature groups, all V1/local:
    5-step to a persistent editor with live preview.
 4. **Discovery & delight** — template favorites, richer live previews (already scaffolded
    at `/preview/[id]`), first-run onboarding, save-the-date sender (mock), couple profile.
+5. **Plans & personalized invitations** — see §6.1.
+
+### 6.1 Plans & personalized invitations
+
+**Plans.** *Base* = template price. *Personalized* = template price + ₱500
+(`PERSONALIZED_ADDON_CENTS`). Personalized is preselected (`TierPicker` on the template
+detail and `/preview/[id]`); the tier can be switched in the cart. A Base owner upgrades
+from the dashboard: `addUpgrade()` puts an add-on-only `upgrade` item in the cart, and
+checkout calls `updateConfig(weddingId, { tier: "personalized" })`. Locked features stay
+visible to Base users with an upgrade prompt.
+
+**Guest list (all plans).** Groups (add/rename/delete with two-step confirm), group
+assignment per guest, CSV import (1 MB / 2,000 rows cap; header aliases) and export (cells
+are guarded against spreadsheet formula injection in `csvCell`), and status tracking.
+
+**Personalized only** (`/dashboard/manage/[id]` → *Personalize* tab,
+`PersonalizationEditor`):
+- Private sections (text / photo / extra event) targeted at groups and/or guests.
+- Show/hide existing sections per audience. `audienceSectionsFor(templateId)` lists what
+  each template supports: `story`/`gallery`/`rsvp` where the template has them; the
+  optional sections (schedule, party, travel, registry, FAQ, guestbook) only in Rosé Elegy.
+- Hero greeting with the guest's name.
+- **Extra guests per guest.** `GuestListEntry.partySize` is the invitation's total seats;
+  an identified guest may name `partySize - 1` additional guests on their RSVP (capped at
+  `MAX_ADDITIONAL_GUESTS` = 19), regardless of the site-wide plus-one setting.
+  `plusOneAllowance(config, invitee)` in `lib/invitations.ts` is the single source; everyone
+  else (Base, group links, unidentified visitors) gets the site-wide single plus-one.
+  `useRsvpSubmit` returns `maxPlusOnes`; when it is > 1 the RSVP forms of all five RSVP
+  templates render the shared `AdditionalGuestsField` (name rows, add/remove, blanks ignored).
+  `RSVPEntry` stores `additionalGuests` and `additionalGuestNames` (`plusOne`/`plusOneName`
+  are kept for older entries and the single plus-one), and the head count uses
+  `1 + (additionalGuests ?? (plusOne ? 1 : 0))`. Couples set it per guest in the guest
+  list's expanded row (`PartySizeField`) and review it in the Personalize tab ("Extra guests").
+
+**Resolving the viewer** (`/wedding/[slug]`). `?invite=<code>` → `findInviteeByCode`
+(guest code or group code) → `Invitee | null`. Without a code, the `FindInvitation` dialog
+accepts a code or a name (`matchGuestByName`, fuzzy; ambiguous names fall back to asking
+for the code). The owner gets a `ViewAsSelect` that only they see.
+
+**Rendering.** `PersonalizedTemplate` runs `personalizeConfig(config, invitee)` (applies
+`sectionAudiences` and filters private sections), wraps the output in `InviteeProvider` +
+`TemplateMotionProvider`, and renders the registry template keyed by the invitee id (via
+`createElement`, which satisfies the `react-hooks/static-components` lint rule). Every
+template mounts `<PrivateSections>`. `useRsvpSubmit` reads `useInvitee()` to pre-fill the
+name, cap party size, set `guestId` on the RSVP, and update that guest's status; it never
+auto-accepts.
+
+**Preview.** `/preview/[id]` has a Base/Personalized toggle and a View-as picker over
+sample data (`data/demoPersonalization.ts`).
+
+**Limitations (V1, no backend).** Hidden content is still shipped to the client, so this is
+**presentation-level personalization, not access control**; the guest list lives in each
+browser's `localStorage`. Real enforcement needs server-side filtering by invite code (§10).
 
 ---
 
@@ -167,12 +244,15 @@ config, rendering nothing when a section's data is absent.
 
 ## 8. State Management
 
-`cartStore` — `items[]`, `isOpen`; `addItem/removeItem/clearCart/openCart/closeCart`;
-derived `isInCart/total/itemCount`; persisted `selahvie-cart`.
+`cartStore` — `items[]`, `isOpen`; `addItem(template, tier)/addUpgrade/setTier/removeItem/
+clearCart/openCart/closeCart`; derived `isInCart/total/itemCount`; `cartItemPrice(item)`
+prices an item by tier/kind; persisted `selahvie-cart`.
 
-`weddingStore` — `configs: Record<id, WeddingConfig>`; `createConfig/updateConfig/
-publishConfig/getConfig`; persisted `selahvie-weddings`. Redesign extends this with RSVP +
-guest-list slices and their selectors (still `localStorage`).
+`weddingStore` — `configs: Record<id, WeddingConfig>`; `createConfig(templateId, email,
+tier)/updateConfig/publishConfig/getConfig`; persisted `selahvie-weddings` (version 4).
+Redesign extends this with RSVP + guest-list slices and their selectors, guest groups
+(`addGroup/renameGroup/…`), `importGuests(weddingId, rows)` and `updateGuest` (still
+`localStorage`).
 
 ---
 
@@ -193,13 +273,14 @@ source. Until then, published output is optimized for first paint and reduced mo
 
 | V1 (current) | V2 (planned) |
 |---|---|
-| localStorage (cart, configs, RSVPs, guest list) | Database (e.g. Supabase/Postgres) |
+| localStorage (cart, configs, RSVPs, guest list) | Database (PostgreSQL; schema in `db/migrations/`) |
 | Mock payment form | Live Stripe (`/api/checkout`) |
 | Static image URLs (picsum) | Object storage (R2/S3) for uploads |
-| No auth | Auth (magic link / OAuth) |
+| ~~No auth~~ **Done:** Supabase Auth (email + password, `/auth/callback` for email links, `proxy.ts` refreshes the session and guards `/dashboard`) | |
 | RSVP/guest data client-only | `/api/rsvp`, `/api/wedding/[slug]` route handlers |
 | `next.config.js` `images.unoptimized:true` | Next image optimization on real assets |
-| Single-tier pricing | Tiered plans |
+| Two tiers enforced client-side (Base / Personalized) | Tier entitlements checked server-side |
+| Private sections shipped to the client, filtered in the browser | Server returns only the content an invite code is entitled to |
 
 API routes (`/api/checkout`, `/api/rsvp`, `/api/wedding/[slug]`) are a **V2** addition; they
 do not exist in V1 and the redesign does not introduce them.

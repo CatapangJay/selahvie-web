@@ -174,8 +174,52 @@ rolling them into the other six templates remains follow-up work.
 
 ---
 
+## Phase 10 — Feature: Plans & personalized invitations 💌 ✅
+
+Spec: Base = template price; **Personalized = template price + ₱500**. Architecture:
+[architecture.MD §6.1](./architecture.MD).
+
+- ✅ **10.1 Tier model & pricing.** `Tier`, `lib/tiers.ts` (`PERSONALIZED_ADDON_CENTS`,
+  `tierPrice`, `configTier`, `TIER_INFO`); `WeddingConfig.tier`. **P0**
+- ✅ **10.2 Purchase flow.** `TierPicker` (Personalized preselected, "Recommended") on the
+  template detail and `/preview/[id]`; cart items carry `tier`/`kind`; `CartItemCard`
+  toggles between plans; checkout shows tier lines, a Base upsell, and creates the website
+  at the chosen tier; success page mentions the unlock. **P0**
+- ✅ **10.3 Upgrade path.** Base owners upgrade from the dashboard (`addUpgrade` → add-on-only
+  checkout → `updateConfig(tier: "personalized")`); `WebsiteCard` shows the plan. **P0**
+- ✅ **10.4 Guest groups & import/export (all plans).** `GuestGroup` + `groupIds` and
+  per-guest `inviteCode` in `weddingStore` v4; group panel (add/rename/delete); CSV import
+  (1 MB / 2,000 rows) and export with a Groups column; CSV formula-injection guard in
+  `csvCell`. **P0**
+- ✅ **10.5 Personalize tab (Personalized only).** `PersonalizationEditor`: greeting, lookup
+  toggle, private sections (text/photo/event) with an audience picker, per-section
+  show/hide audiences. Locked-but-visible on Base with an upgrade prompt. **P0**
+- ✅ **10.6 Invitee-aware published site.** `?invite=` per-guest/per-group links,
+  `FindInvitation` (fuzzy name or code), `PersonalizedTemplate` + `InviteeProvider`,
+  `PrivateSections` in all 7 templates, owner-only `ViewAsSelect`. **P0**
+- ✅ **10.7 RSVP integration.** `useRsvpSubmit` pre-fills the name, caps party size, links
+  the RSVP to the guest and updates their status (never auto-accepts); `+1` gated on
+  `allowPlusOne` in all RSVP templates. **P1**
+- ✅ **10.8 Preview.** `/preview/[id]` Base/Personalized toggle and sample-guest View-as
+  (`data/demoPersonalization.ts`; the default sample guest has 3 extra seats). **P1**
+- ✅ **10.10 Multiple plus-ones for chosen guests.** Per-guest party size is editable on the
+  guest list; on Personalized sites an identified guest can name `partySize - 1` additional
+  guests (`plusOneAllowance`, `AdditionalGuestsField`, `RSVPEntry.additionalGuests*`);
+  Personalize tab lists who has extra seats; dashboard shows `+N · names` and counts them
+  in total guests. **P1**
+- ⬜ **10.9 Follow-ups.** Re-evaluate the ₱500 add-on versus ₱39–₱99 template prices;
+  roll the optional sections (so they can be shown/hidden per audience) into the other six
+  templates; server-side enforcement (V2). **P2**
+
+**Known limits (V1):** no backend, so the guest list is per-browser `localStorage` and
+hidden content still ships to the client (presentation-level personalization, not access
+control). A restricted section with an empty audience is visible to everyone.
+
+---
+
 ## Deferred to V2 (not in this redesign)
 
 Real backend (Supabase/Postgres), auth, live Stripe + `/api/*` route handlers, object
-storage for uploads, tiered pricing. See [architecture.MD §10](./architecture.MD).
+storage for uploads, server-side tier entitlements and invite-code content filtering.
+See [architecture.MD §10](./architecture.MD).
 All redesign features above are built against **V1 localStorage/mock** data.

@@ -15,23 +15,28 @@ function SuccessContent() {
   const email = params.get("email") ?? "";
   const name = params.get("name") ?? "";
   const method = params.get("method") ?? "card";
+  const upgrades = Number(params.get("upgrades") ?? 0) || 0;
 
-  const createAccount = useAuthStore((s) => s.createAccount);
-  const login = useAuthStore((s) => s.login);
+  const signUp = useAuthStore((s) => s.signUp);
+  const sessionEmail = useAuthStore((s) => s.sessionEmail);
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const methodLabel = method === "gcash" ? "GCash" : method === "maya" ? "Maya" : "card";
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock: password isn't stored; we only require it to feel real + match.
     if (password.length < 6) { setError("Use at least 6 characters"); return; }
     if (password !== confirm) { setError("Passwords don't match"); return; }
-    createAccount(name, email);
-    login(email); // sign them straight in after creating the account
+    setPending(true);
+    const result = await signUp(name, email, password);
+    setPending(false);
+    if (result.error) { setError(result.error); return; }
+    if (result.needsConfirmation) { setConfirmationSent(true); return; }
     router.push("/dashboard");
   };
 
@@ -50,7 +55,10 @@ function SuccessContent() {
         You&apos;re all set{name ? `, ${name.split(" ")[0]}` : ""}.
       </h1>
       <p className="mt-5 text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
-        Your payment via {methodLabel} went through and {ids.length} wedding {ids.length === 1 ? "website is" : "websites are"} now yours.
+        Your payment via {methodLabel} went through.
+        {ids.length > 0 && ` ${ids.length} wedding ${ids.length === 1 ? "website is" : "websites are"} now yours.`}
+        {upgrades > 0 &&
+          ` Personalized Invitations ${upgrades === 1 ? "is" : "are"} now unlocked. Open your guest list to send personal invite links.`}
       </p>
 
       {/* Email confirmation notice */}
@@ -69,7 +77,27 @@ function SuccessContent() {
         </div>
       </div>
 
-      {/* Account creation */}
+      {/* Account creation (skipped when already signed in) */}
+      {sessionEmail ? (
+        <div className="mt-8">
+          <Link href="/dashboard">
+            <ButtonPrimary size="lg" fullWidth>
+              Open your dashboard
+            </ButtonPrimary>
+          </Link>
+        </div>
+      ) : confirmationSent ? (
+      <div
+        className="mt-6 p-6 sm:p-8"
+        style={{ background: "var(--color-surface-container-low)", borderRadius: "var(--radius-lg)", border: "1px solid var(--color-outline)" }}
+        role="status"
+      >
+        <h2 className="headline-sm mb-2" style={{ fontSize: "1.35rem" }}>Check your inbox</h2>
+        <p className="text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
+          We sent a confirmation link to {email}. Open it to activate your account and land on your dashboard.
+        </p>
+      </div>
+      ) : (
       <div
         className="mt-6 p-6 sm:p-8"
         style={{ background: "var(--color-surface-container-low)", borderRadius: "var(--radius-lg)", border: "1px solid var(--color-outline)" }}
@@ -103,8 +131,8 @@ function SuccessContent() {
               error={error && password.length >= 6 ? error : undefined}
             />
           </div>
-          <ButtonPrimary type="submit" size="lg" fullWidth>
-            Create account &amp; open dashboard
+          <ButtonPrimary type="submit" size="lg" fullWidth disabled={pending}>
+            {pending ? "Creating account…" : <>Create account &amp; open dashboard</>}
           </ButtonPrimary>
         </form>
 
@@ -115,6 +143,7 @@ function SuccessContent() {
           </Link>
         </p>
       </div>
+      )}
     </div>
   );
 }

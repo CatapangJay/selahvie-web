@@ -20,6 +20,8 @@ export interface WeddingTemplate {
   tags: TemplateTag[];
   features: string[];
   colorPalettes: ColorPalette[];
+  /** Premium design built around per-guest invitations: only sold on the Personalized tier. */
+  personalizedOnly?: boolean;
   isFeatured: boolean;
   createdAt: string;
 }

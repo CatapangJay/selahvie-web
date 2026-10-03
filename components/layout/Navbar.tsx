@@ -43,6 +43,15 @@ export default function Navbar() {
   const linkHover = transparent ? "#FDF8F7" : "var(--color-primary)";
   const iconColor = transparent ? "#FDF8F7" : "var(--color-on-surface)";
 
+  const navLinkProps = {
+    style: { color: linkColor, letterSpacing: "0.12em", transition: "color 200ms ease" },
+    onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = linkHover),
+    onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = linkColor),
+  };
+  // Two links sit left of the logo, the rest to its right (mirrors the reference).
+  const leftLinks = NAV_LINKS.slice(0, 2);
+  const rightLinks = NAV_LINKS.slice(2);
+
   return (
     <header
       className={isHome ? "fixed top-0 w-full" : "sticky top-0 w-full"}
@@ -57,50 +66,71 @@ export default function Navbar() {
         boxShadow: transparent ? "none" : "inset 0 1px 0 rgba(255,255,255,0.85)",
       }}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        {/* Logo */}
+      {/* Desktop: five evenly spaced cells — link · link · logo · link · actions.
+          Mobile: three cells — menu · logo · cart. */}
+      <nav
+        aria-label="Main"
+        className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 py-4 md:grid-cols-5 md:py-5"
+      >
+        {leftLinks.map((link, i) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className={`label-luxury hidden md:inline-flex ${i === 0 ? "justify-self-start" : "justify-self-center"}`}
+            {...navLinkProps}
+          >
+            {link.label}
+          </Link>
+        ))}
+
+        {/* Mobile: menu toggle occupies the left cell so the logo stays centered */}
+        <button
+          className="-ml-3 flex h-11 w-11 items-center justify-center justify-self-start md:hidden"
+          style={{ color: iconColor }}
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+          aria-expanded={menuOpen}
+        >
+          {menuOpen ? <X size={20} strokeWidth={1.25} /> : <Menu size={20} strokeWidth={1.25} />}
+        </button>
+
+        {/* Center: logo */}
         <Link
           href="/"
-          className="font-serif tracking-wide transition-opacity hover:opacity-75"
+          className="justify-self-center font-serif tracking-wide transition-opacity hover:opacity-75"
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: "1.375rem",
             fontWeight: 400,
             color: logoColor,
-            letterSpacing: "0.04em",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
             transition: "color 300ms ease",
           }}
         >
           {APP_NAME}
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden items-center gap-10 md:flex">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="label-luxury"
-              style={{ color: linkColor, letterSpacing: "0.12em", transition: "color 200ms ease" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = linkHover)}
-              onMouseLeave={(e) => (e.currentTarget.style.color = linkColor)}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+        {rightLinks.map((link) => (
+          <Link
+            key={link.href}
+            href={link.href}
+            className="label-luxury hidden justify-self-center md:inline-flex"
+            {...navLinkProps}
+          >
+            {link.label}
+          </Link>
+        ))}
 
-        {/* Actions */}
-        <div className="flex items-center gap-5">
+        {/* Right cell: account + cart, flush to the right edge */}
+        <div className="flex items-center gap-5 justify-self-end">
           {/* Auth control (desktop) */}
           {authed ? (
             <div className="hidden items-center gap-4 md:flex">
               <Link
                 href="/dashboard"
                 className="label-luxury inline-flex items-center gap-1.5"
-                style={{ color: linkColor, letterSpacing: "0.12em", transition: "color 200ms ease" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = linkHover)}
-                onMouseLeave={(e) => (e.currentTarget.style.color = linkColor)}
+                {...navLinkProps}
               >
                 <LayoutGrid size={13} />
                 Dashboard
@@ -120,9 +150,7 @@ export default function Navbar() {
               <Link
                 href="/login"
                 className="label-luxury hidden md:inline-flex"
-                style={{ color: linkColor, letterSpacing: "0.12em", transition: "color 200ms ease" }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = linkHover)}
-                onMouseLeave={(e) => (e.currentTarget.style.color = linkColor)}
+                {...navLinkProps}
               >
                 Log in
               </Link>
@@ -131,7 +159,7 @@ export default function Navbar() {
 
           <button
             onClick={openCart}
-            className="relative flex h-11 w-11 items-center justify-center transition-opacity hover:opacity-70"
+            className="relative -mr-3 flex h-11 w-11 items-center justify-center transition-opacity hover:opacity-70"
             style={{ color: iconColor, transition: "color 300ms ease" }}
             aria-label="Open cart"
           >
@@ -145,23 +173,13 @@ export default function Navbar() {
               </span>
             )}
           </button>
-
-          {/* Mobile menu toggle */}
-          <button
-            className="flex h-11 w-11 items-center justify-center md:hidden"
-            style={{ color: iconColor }}
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle menu"
-            aria-expanded={menuOpen}
-          >
-            {menuOpen ? <X size={20} strokeWidth={1.25} /> : <Menu size={20} strokeWidth={1.25} />}
-          </button>
         </div>
-      </div>
+      </nav>
 
       {/* Mobile Nav */}
       {menuOpen && (
         <nav
+          aria-label="Mobile"
           className="flex flex-col px-6 pb-6 gap-5 md:hidden"
           style={{ borderTop: "1px solid var(--color-outline)", background: "var(--color-surface-container-low)", paddingTop: "1.25rem" }}
         >

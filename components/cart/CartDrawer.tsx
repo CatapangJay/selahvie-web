@@ -61,7 +61,7 @@ export default function CartDrawer() {
                   className="font-serif mt-0.5"
                   style={{ fontFamily: "var(--font-serif)", fontSize: "1.375rem", fontWeight: 300, color: "var(--color-on-surface)" }}
                 >
-                  {items.length} {items.length === 1 ? "template" : "templates"}
+                  {items.length} {items.length === 1 ? "item" : "items"}
                 </p>
               </div>
               <button
@@ -100,7 +100,7 @@ export default function CartDrawer() {
                 </div>
               ) : (
                 items.map((item) => (
-                  <CartItemCard key={item.templateId} item={item} />
+                  <CartItemCard key={item.id} item={item} />
                 ))
               )}
             </div>

@@ -7,6 +7,7 @@ import type { WeddingConfig } from "@/types/wedding";
 import Divider from "./Divider";
 import FloatingParticles from "./FloatingParticles";
 import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
+import AdditionalGuestsField from "@/components/wedding-templates/_shared/AdditionalGuestsField";
 
 interface Props {
   config: WeddingConfig;
@@ -50,9 +51,10 @@ const inputBase = (accent: string): React.CSSProperties => ({
 });
 
 export default function RsvpSection({ config, gold, accent }: Props) {
-  const [rsvp, setRsvp]       = useState<RsvpState>({ name: "", attending: null, mealChoice: "", plusOne: false, wishes: "" });
+  const { submit, prefillName, maxPlusOnes } = useRsvpSubmit(config);
+  const [rsvp, setRsvp]       = useState<RsvpState>({ name: prefillName, attending: null, mealChoice: "", plusOne: false, wishes: "" });
+  const [extraNames, setExtraNames] = useState<string[]>([]);
   const [submitted, setSubmit] = useState(false);
-  const { submit } = useRsvpSubmit(config);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,7 +63,8 @@ export default function RsvpSection({ config, gold, accent }: Props) {
       guestName: rsvp.name,
       attending: rsvp.attending === "yes",
       mealChoice: rsvp.mealChoice || undefined,
-      plusOne: rsvp.plusOne,
+      plusOne: Boolean(maxPlusOnes === 1 && rsvp.plusOne),
+      additionalGuestNames: extraNames,
       message: rsvp.wishes || undefined,
     });
     setSubmit(true);
@@ -202,6 +205,20 @@ export default function RsvpSection({ config, gold, accent }: Props) {
                       </div>
                     </div>
 
+                    {maxPlusOnes > 1 && (
+                      <div className="mb-7">
+                        <AdditionalGuestsField
+                          max={maxPlusOnes}
+                          names={extraNames}
+                          onChange={setExtraNames}
+                          labelColor={`${accent}55`}
+                          textColor="#eef5ee"
+                          lineColor={`${accent}28`}
+                          accent={gold}
+                        />
+                      </div>
+                    )}
+                    {maxPlusOnes === 1 && (
                     <div className="mb-7 flex items-center gap-3">
                       <button
                         type="button"
@@ -216,9 +233,10 @@ export default function RsvpSection({ config, gold, accent }: Props) {
                         {rsvp.plusOne && <Check size={11} style={{ color: gold }} />}
                       </button>
                       <span className="text-sm" style={{ color: `${accent}60` }}>
-                        I'll be bringing a guest (+1)
+                        I&apos;ll be bringing a guest (+1)
                       </span>
                     </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>

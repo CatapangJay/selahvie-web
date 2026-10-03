@@ -8,6 +8,7 @@ import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { Pencil, Users, ExternalLink } from "lucide-react";
 import type { WeddingConfig } from "@/types/wedding";
 import type { WeddingTemplate } from "@/types/template";
+import { TIER_INFO, configTier } from "@/lib/tiers";
 
 interface Props {
   config: WeddingConfig;
@@ -76,6 +77,9 @@ export default function WebsiteCard({ config, template }: Props) {
             {new Date(config.weddingDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
           </p>
         )}
+        <p className="mt-2 text-xs font-light" style={{ color: "var(--color-on-surface-variant)" }}>
+          {TIER_INFO[configTier(config)].label} plan
+        </p>
 
         {/* RSVP glance */}
         {hasRsvps && (
