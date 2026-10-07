@@ -11,16 +11,22 @@ import { useHydrated } from "@/lib/useHydrated";
 
 export default function Navbar() {
   const { itemCount, openCart } = useCartStore();
-  const sessionEmail = useAuthStore((s) => s.sessionEmail);
+  const status = useAuthStore((s) => s.status);
   const logout = useAuthStore((s) => s.logout);
   const hydrated = useHydrated();
   const count = hydrated ? itemCount() : 0;
-  // Only reflect auth after hydration so server/first render match.
-  const authed = hydrated && Boolean(sessionEmail);
+  // The session resolves client-side, so server/first render always show neither state.
+  const authed = status === "authenticated";
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
   const pathname = usePathname();
+
+  const handleLogout = async () => {
+    setMenuOpen(false);
+    // On signed-in-only pages the route guard then sends them to /login.
+    await logout();
+  };
   // Only the landing page has the dark full-height hero the nav overlays.
   const isHome = pathname === "/";
 
@@ -136,7 +142,7 @@ export default function Navbar() {
                 Dashboard
               </Link>
               <button
-                onClick={logout}
+                onClick={handleLogout}
                 className="flex h-9 w-9 items-center justify-center transition-opacity hover:opacity-70"
                 style={{ color: iconColor }}
                 aria-label="Sign out"
@@ -146,7 +152,7 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            hydrated && (
+            status === "anonymous" && (
               <Link
                 href="/login"
                 className="label-luxury hidden md:inline-flex"
@@ -206,7 +212,7 @@ export default function Navbar() {
                   Dashboard
                 </Link>
                 <button
-                  onClick={() => { logout(); setMenuOpen(false); }}
+                  onClick={handleLogout}
                   className="label-luxury text-left"
                   style={{ color: "var(--color-on-surface-variant)" }}
                 >

@@ -1,6 +1,7 @@
 "use client";
 
 import { useWeddingStore } from "@/store/weddingStore";
+import { useOwnedConfig } from "@/lib/useOwnedConfig";
 import { templates } from "@/data/templates";
 import { notFound, useRouter } from "next/navigation";
 import { useState, useRef, useEffect, use } from "react";
@@ -12,6 +13,8 @@ import { generateSlug } from "@/lib/utils";
 import { musicTracks, CUSTOM_TRACK_ID, NO_MUSIC_ID } from "@/data/musicTracks";
 import SectionsEditor from "@/components/customize/SectionsEditor";
 import OnboardingChecklist from "@/components/customize/OnboardingChecklist";
+import PhotoField from "@/components/media/PhotoField";
+import PhotoGalleryField from "@/components/media/PhotoGalleryField";
 import Link from "next/link";
 
 const STEPS = [
@@ -29,9 +32,9 @@ interface Props {
 
 export default function CustomizePage(props: Props) {
   const params = use(props.params);
-  const { getConfig, updateConfig, publishConfig, configs } = useWeddingStore();
+  const { updateConfig, publishConfig, configs } = useWeddingStore();
   const router = useRouter();
-  const config = getConfig(params.id);
+  const config = useOwnedConfig(params.id);
 
   if (!config) notFound();
 
@@ -249,39 +252,21 @@ export default function CustomizePage(props: Props) {
         {step === 3 && (
           <div className="space-y-6">
             <h2 className="title-md">Your photos & story</h2>
-            <InputField
-              label="Hero Image URL"
-              id="heroImg"
-              type="url"
-              placeholder="https://example.com/your-photo.jpg"
+            <PhotoField
+              label="Hero photo"
+              scope={config.id}
               value={config.heroImageUrl}
-              onChange={(e) => update({ heroImageUrl: e.target.value })}
+              onChange={(url) => update({ heroImageUrl: url })}
+              hint="The big photo guests see first. A landscape photo works best."
             />
-            {config.heroImageUrl && (
-              <div className="relative overflow-hidden rounded-xl" style={{ aspectRatio: "16/9" }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={config.heroImageUrl} alt="Hero preview" className="w-full h-full object-cover" />
-              </div>
-            )}
 
-            <div>
-              <p className="label-luxury mb-2" style={{ color: "var(--color-on-surface-variant)" }}>Gallery Images (up to 8 URLs)</p>
-              <div className="space-y-3">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <InputField
-                    key={i}
-                    id={`gallery-${i}`}
-                    placeholder={`Gallery image ${i + 1} URL`}
-                    value={config.galleryImageUrls[i] ?? ""}
-                    onChange={(e) => {
-                      const updated = [...config.galleryImageUrls];
-                      updated[i] = e.target.value;
-                      update({ galleryImageUrls: updated });
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
+            <PhotoGalleryField
+              label="Gallery"
+              scope={config.id}
+              value={config.galleryImageUrls}
+              onChange={(urls) => update({ galleryImageUrls: urls })}
+              hint="Photos appear in this order. Some templates feature the first few in the story section."
+            />
 
             <TextareaField
               label="Your Love Story"

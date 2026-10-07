@@ -8,6 +8,8 @@ import { PERSONALIZED_ADDON_CENTS, TIER_INFO } from "@/lib/tiers";
 import { InputField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import EmptyState from "@/components/ui/EmptyState";
+import Skeleton from "@/components/ui/Skeleton";
+import AuthPanel, { type AuthMode } from "@/components/auth/AuthPanel";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
@@ -24,27 +26,29 @@ const METHODS: { id: Method; label: string; hint: string; icon: typeof Smartphon
 
 export default function CheckoutPage() {
   const { items, total, clearCart, setTier } = useCartStore();
-  const { createConfig, updateConfig } = useWeddingStore();
+  const { createConfig, updateConfig, getConfig } = useWeddingStore();
+  const status = useAuthStore((s) => s.status);
   const account = useAuthStore((s) => s.account);
+  const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [method, setMethod] = useState<Method>("gcash");
+  const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [form, setForm] = useState({
-    name: account?.name ?? "", email: account?.email ?? "", mobile: "", card: "", expiry: "", cvc: "",
+    name: account?.name ?? "", mobile: "", card: "", expiry: "", cvc: "",
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // The session resolves asynchronously; prefill empty fields once it arrives.
+  // The session resolves asynchronously; prefill the name once it arrives.
   const [prefilledFor, setPrefilledFor] = useState(account?.id ?? null);
   if (account && prefilledFor !== account.id) {
     setPrefilledFor(account.id);
-    setForm((f) => ({ ...f, name: f.name || account.name, email: f.email || account.email }));
+    setForm((f) => ({ ...f, name: f.name || account.name }));
   }
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim()) e.name = "Full name is required";
-    if (!form.email.includes("@")) e.email = "We need a valid email to send your confirmation";
     if (method === "card") {
       if (form.card.replace(/\s/g, "").length < 16) e.card = "Enter a valid 16-digit card number";
       if (!form.expiry.match(/^\d{2}\/\d{2}$/)) e.expiry = "Format: MM/YY";
@@ -58,14 +62,25 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!account) return;
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
+
+    // Add-ons can only be bought for websites this account owns (the cart
+    // outlives sessions, so it may hold another account's upgrade).
+    const foreignUpgrade = items.some(
+      (item) => item.kind === "upgrade" && item.weddingId && getConfig(item.weddingId)?.ownerEmail !== account.email
+    );
+    if (foreignUpgrade) {
+      setErrors({ cart: "Your cart has an add-on for a website that isn't on this account. Remove it to continue." });
+      return;
+    }
 
     setLoading(true);
     await new Promise((r) => setTimeout(r, 1600));
 
-    // Purchases are tagged to the buyer's email so their account sees them later.
-    const email = form.email.trim().toLowerCase();
+    // Purchases belong to the signed-in account.
+    const email = account.email;
     const ids: string[] = [];
     let upgrades = 0;
     items.forEach((item) => {
@@ -78,12 +93,7 @@ export default function CheckoutPage() {
     });
 
     clearCart();
-    const params = new URLSearchParams({
-      ids: ids.join(","),
-      email,
-      name: form.name.trim(),
-      method,
-    });
+    const params = new URLSearchParams({ ids: ids.join(","), method });
     if (upgrades > 0) params.set("upgrades", String(upgrades));
     router.push(`/checkout/success?${params.toString()}`);
   };
@@ -126,8 +136,26 @@ export default function CheckoutPage() {
         {/* Form */}
         <div className="lg:col-span-3">
           <p className="label-luxury mb-2" style={{ color: "var(--color-primary)" }}>Secure checkout</p>
-          <h1 className="headline-md mb-10" style={{ fontWeight: 300 }}>Complete your purchase</h1>
+          <h1 className="headline-md mb-10" style={{ fontWeight: 300 }}>
+            {account ? "Complete your purchase" : "First, your account"}
+          </h1>
 
+          {status === "loading" ? (
+            <div className="space-y-6" aria-busy="true">
+              <Skeleton className="h-4 w-40" rounded="md" />
+              <Skeleton className="h-10 w-full" rounded="md" />
+              <Skeleton className="h-10 w-full" rounded="md" />
+            </div>
+          ) : !account ? (
+            <div>
+              <p className="mb-8 text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
+                {authMode === "signup"
+                  ? "Create an account so your websites, guest lists and RSVPs are saved to you and available on any device. Your cart will be waiting."
+                  : "Log in to continue — your cart will be waiting."}
+              </p>
+              <AuthPanel mode={authMode} onModeChange={setAuthMode} nextPath="/checkout" />
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-10">
             {/* Contact */}
             <fieldset>
@@ -135,7 +163,15 @@ export default function CheckoutPage() {
                 Your details
               </legend>
               <p className="mb-6 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-                We&apos;ll email your confirmation and a link to set up your account here.
+                Your receipt goes to the email on your account.{" "}
+                <button
+                  type="button"
+                  onClick={() => { void logout(); }}
+                  className="underline underline-offset-2 transition-opacity hover:opacity-70"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  Not you? Log out
+                </button>
               </p>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <InputField
@@ -151,12 +187,9 @@ export default function CheckoutPage() {
                   label="Email address"
                   id="email"
                   type="email"
-                  inputMode="email"
-                  autoComplete="email"
-                  placeholder="hello@example.com"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  error={errors.email}
+                  value={account.email}
+                  readOnly
+                  disabled
                 />
               </div>
             </fieldset>
@@ -270,6 +303,9 @@ export default function CheckoutPage() {
             </fieldset>
 
             <div>
+              {errors.cart && (
+                <p className="mb-4 text-sm" style={{ color: "var(--color-error)" }} role="alert">{errors.cart}</p>
+              )}
               <ButtonPrimary type="submit" size="lg" fullWidth disabled={loading}>
                 {payLabel}
               </ButtonPrimary>
@@ -278,6 +314,7 @@ export default function CheckoutPage() {
               </p>
             </div>
           </form>
+          )}
         </div>
 
         {/* Order Summary */}

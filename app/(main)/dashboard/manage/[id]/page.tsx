@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, useRouter } from "next/navigation";
 import { ArrowLeft, Users, MailCheck, Sparkles, Lock } from "lucide-react";
 import { useWeddingStore } from "@/store/weddingStore";
+import { useOwnedConfig } from "@/lib/useOwnedConfig";
 import { useCartStore } from "@/store/cartStore";
 import { templates } from "@/data/templates";
 import GuestListManager from "@/components/manage/GuestListManager";
@@ -20,7 +21,7 @@ type Tab = "rsvps" | "guests" | "personalize";
 export default function ManageWeddingPage(props: Props) {
   const params = use(props.params);
   const router = useRouter();
-  const config = useWeddingStore((s) => s.getConfig)(params.id);
+  const config = useOwnedConfig(params.id);
   const summary = useWeddingStore((s) => s.getRsvpSummary)(params.id);
   const guestCount = useWeddingStore((s) => s.guests).filter((g) => g.weddingId === params.id).length;
   const addUpgrade = useCartStore((s) => s.addUpgrade);

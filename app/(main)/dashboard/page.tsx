@@ -16,11 +16,8 @@ export default function DashboardPage() {
   const hydrated = useHydrated();
   const account = useAuthStore((s) => s.account);
 
-  // Show only the signed-in account's purchases. Legacy configs created before
-  // ownership existed (no ownerEmail) fall back to visible so nothing is orphaned.
-  const configList = Object.values(configs).filter(
-    (c) => !c.ownerEmail || c.ownerEmail === account?.email
-  );
+  // Only this account's purchases.
+  const configList = Object.values(configs).filter((c) => account && c.ownerEmail === account.email);
   const ownedIds = new Set(configList.map((c) => c.id));
 
   // Aggregate glance across this account's websites.

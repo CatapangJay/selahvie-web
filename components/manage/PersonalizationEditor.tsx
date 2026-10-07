@@ -6,6 +6,7 @@ import { useWeddingStore } from "@/store/weddingStore";
 import { InputField, TextareaField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
+import PhotoField from "@/components/media/PhotoField";
 import { audienceSectionsFor } from "@/components/wedding-templates";
 import { DEFAULT_GREETING, emptyAudience, isAudienceEmpty } from "@/lib/invitations";
 import { PERSONALIZED_ADDON_CENTS, TIER_INFO } from "@/lib/tiers";
@@ -230,14 +231,12 @@ export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests 
                           onChange={(e) => patchSection(s.id, { title: e.target.value })}
                         />
                         {s.kind === "photo" && (
-                          <InputField
-                            label="Photo URL"
-                            id={`${panelId}-photo`}
-                            type="url"
-                            inputMode="url"
-                            placeholder="https://"
-                            value={s.photoUrl ?? ""}
-                            onChange={(e) => patchSection(s.id, { photoUrl: e.target.value.trim() || undefined })}
+                          <PhotoField
+                            label="Photo"
+                            scope={config.id}
+                            aspect="4/3"
+                            value={s.photoUrl}
+                            onChange={(url) => patchSection(s.id, { photoUrl: url || undefined })}
                           />
                         )}
                         {s.kind === "event" && (
