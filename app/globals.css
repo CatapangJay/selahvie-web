@@ -82,6 +82,7 @@
   --z-drawer: 60;
   --z-modal-backdrop: 70;
   --z-modal: 80;
+  --z-popover: 85;
   --z-toast: 90;
   --z-grain: 100;
 }
@@ -130,6 +131,34 @@ body::before {
 /* Remove the UA default focus ring only where our :focus-visible replaces it */
 :focus:not(:focus-visible) {
   outline: none;
+}
+
+/* ─── Popovers (select lists, date picker) ─── */
+/* Transform-only, so a frozen animation (backgrounded tab) still shows the panel. */
+@keyframes popover-in {
+  from { transform: translateY(-4px) scale(0.985); }
+}
+.popover-in {
+  animation: popover-in 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ─── Collapse (accordion bodies) ─── */
+/* Opening runs as an animation so it works from mount; closing is a transition from the open state. */
+/* Named accordion-body: Tailwind's `collapse` utility is visibility:collapse. */
+.accordion-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 280ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease-out;
+}
+.accordion-body[data-open="false"] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+@keyframes accordion-body-in {
+  from { grid-template-rows: 0fr; opacity: 0; }
+}
+.accordion-body-in {
+  animation: accordion-body-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* ─── Reduced motion ─── */

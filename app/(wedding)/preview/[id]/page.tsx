@@ -69,7 +69,14 @@ export default function TemplatePreviewPage(props: Props) {
   };
 
   const isMobile = device === "mobile";
-  const rendered = <PersonalizedTemplate config={previewConfig} invitee={invitee} showBranding={false} />;
+  const rendered = (
+    <PersonalizedTemplate
+      config={previewConfig}
+      invitee={invitee}
+      guests={personalized ? sample.guests : undefined}
+      showBranding={false}
+    />
+  );
 
   return (
     <div className="relative" style={{ paddingBottom: "7.5rem" }}>
@@ -165,8 +172,8 @@ export default function TemplatePreviewPage(props: Props) {
                 groups={sample.groups}
                 value={invitee?.code ?? ""}
                 onChange={setViewAs}
-                className="min-h-[36px] max-w-[11rem] cursor-pointer rounded-full px-3 text-xs outline-none"
-                style={{ background: "var(--color-surface-container)", border: "1px solid var(--color-outline)", color: "var(--color-on-surface)" }}
+                className="max-w-[11rem]"
+                style={{ background: "var(--color-surface-container)", fontSize: "0.75rem" }}
               />
             </div>
           )}

@@ -26,14 +26,13 @@ const METHODS: { id: Method; label: string; hint: string; icon: typeof Smartphon
 
 export default function CheckoutPage() {
   const { items, total, clearCart, setTier } = useCartStore();
-  const { createConfig, updateConfig, getConfig } = useWeddingStore();
-  const status = useAuthStore((s) => s.status);
+  const authStatus = useAuthStore((s) => s.status);
   const account = useAuthStore((s) => s.account);
-  const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [method, setMethod] = useState<Method>("gcash");
-  const [authMode, setAuthMode] = useState<AuthMode>("signup");
   const [form, setForm] = useState({
     name: account?.name ?? "", mobile: "", card: "", expiry: "", cvc: "",
   });
@@ -62,41 +61,59 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account) return;
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-
-    // Add-ons can only be bought for websites this account owns (the cart
-    // outlives sessions, so it may hold another account's upgrade).
-    const foreignUpgrade = items.some(
-      (item) => item.kind === "upgrade" && item.weddingId && getConfig(item.weddingId)?.ownerEmail !== account.email
-    );
-    if (foreignUpgrade) {
-      setErrors({ cart: "Your cart has an add-on for a website that isn't on this account. Remove it to continue." });
-      return;
-    }
+    if (!account) return;
 
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1600));
-
-    // Purchases belong to the signed-in account.
-    const email = account.email;
-    const ids: string[] = [];
-    let upgrades = 0;
-    items.forEach((item) => {
-      if (item.kind === "upgrade" && item.weddingId) {
-        updateConfig(item.weddingId, { tier: "personalized" });
-        upgrades += 1;
-      } else {
-        ids.push(createConfig(item.templateId, email, item.tier));
+    setSubmitError("");
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          method,
+          buyerName: form.name.trim(),
+          items: items.map((item) => ({
+            kind: item.kind,
+            templateId: item.templateId,
+            tier: item.tier,
+            weddingId: item.weddingId,
+          })),
+        }),
+      });
+      const result = (await res.json().catch(() => null)) as
+        | { error?: string; weddingIds?: string[]; upgrades?: number }
+        | null;
+      if (!res.ok || !result) {
+        setSubmitError(result?.error ?? "We couldn't process your order. Please try again.");
+        setLoading(false);
+        return;
       }
-    });
 
-    clearCart();
-    const params = new URLSearchParams({ ids: ids.join(","), method });
-    if (upgrades > 0) params.set("upgrades", String(upgrades));
-    router.push(`/checkout/success?${params.toString()}`);
+      clearCart();
+      await useWeddingStore.getState().reload();
+      const params = new URLSearchParams({
+        ids: (result.weddingIds ?? []).join(","),
+        email: account.email,
+        name: form.name.trim(),
+        method,
+      });
+      if (result.upgrades) params.set("upgrades", String(result.upgrades));
+      router.push(`/checkout/success?${params.toString()}`);
+    } catch {
+      setSubmitError("We couldn't reach checkout. Check your connection and try again.");
+      setLoading(false);
+    }
   };
+
+  if (authStatus === "loading") {
+    return (
+      <div className="mx-auto max-w-6xl px-6" style={{ paddingTop: "var(--spacing-section)", paddingBottom: "var(--spacing-section-xl)" }} aria-busy="true">
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
 
   if (items.length === 0) {
     return (
@@ -136,22 +153,14 @@ export default function CheckoutPage() {
         {/* Form */}
         <div className="lg:col-span-3">
           <p className="label-luxury mb-2" style={{ color: "var(--color-primary)" }}>Secure checkout</p>
-          <h1 className="headline-md mb-10" style={{ fontWeight: 300 }}>
-            {account ? "Complete your purchase" : "First, your account"}
-          </h1>
+          <h1 className="headline-md mb-10" style={{ fontWeight: 300 }}>Complete your purchase</h1>
 
-          {status === "loading" ? (
-            <div className="space-y-6" aria-busy="true">
-              <Skeleton className="h-4 w-40" rounded="md" />
-              <Skeleton className="h-10 w-full" rounded="md" />
-              <Skeleton className="h-10 w-full" rounded="md" />
-            </div>
-          ) : !account ? (
-            <div>
-              <p className="mb-8 text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
+          {!account ? (
+            <div className="max-w-md">
+              <p className="mb-6 text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
                 {authMode === "signup"
-                  ? "Create an account so your websites, guest lists and RSVPs are saved to you and available on any device. Your cart will be waiting."
-                  : "Log in to continue — your cart will be waiting."}
+                  ? "Create your account first. Your new website will be waiting in your dashboard."
+                  : "Log in to finish your purchase. Your new website will be waiting in your dashboard."}
               </p>
               <AuthPanel mode={authMode} onModeChange={setAuthMode} nextPath="/checkout" />
             </div>
@@ -163,15 +172,8 @@ export default function CheckoutPage() {
                 Your details
               </legend>
               <p className="mb-6 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-                Your receipt goes to the email on your account.{" "}
-                <button
-                  type="button"
-                  onClick={() => { void logout(); }}
-                  className="underline underline-offset-2 transition-opacity hover:opacity-70"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  Not you? Log out
-                </button>
+                We&apos;ll send your confirmation to{" "}
+                <span style={{ color: "var(--color-on-surface)" }}>{account.email}</span>.
               </p>
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                 <InputField
@@ -182,14 +184,6 @@ export default function CheckoutPage() {
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   error={errors.name}
-                />
-                <InputField
-                  label="Email address"
-                  id="email"
-                  type="email"
-                  value={account.email}
-                  readOnly
-                  disabled
                 />
               </div>
             </fieldset>
@@ -303,8 +297,10 @@ export default function CheckoutPage() {
             </fieldset>
 
             <div>
-              {errors.cart && (
-                <p className="mb-4 text-sm" style={{ color: "var(--color-error)" }} role="alert">{errors.cart}</p>
+              {submitError && (
+                <p role="alert" className="mb-4 text-sm" style={{ color: "var(--color-error)" }}>
+                  {submitError}
+                </p>
               )}
               <ButtonPrimary type="submit" size="lg" fullWidth disabled={loading}>
                 {payLabel}

@@ -127,10 +127,13 @@ export const MAX_ADDITIONAL_GUESTS = 19;
  * 1 if allowed, otherwise 0.
  */
 export function plusOneAllowance(config: WeddingConfig, invitee: Invitee | null): number {
-  if (isPersonalized(config) && invitee?.kind === "guest") {
-    return Math.max(0, Math.min(MAX_ADDITIONAL_GUESTS, (invitee.partySize ?? 1) - 1));
-  }
+  if (isPersonalized(config) && invitee?.kind === "guest") return guestAllowance(invitee.partySize);
   return config.allowPlusOne ? 1 : 0;
+}
+
+/** Extra guests a guest with this party size may name. */
+export function guestAllowance(partySize: number | undefined): number {
+  return Math.max(0, Math.min(MAX_ADDITIONAL_GUESTS, (partySize ?? 1) - 1));
 }
 
 /**
@@ -249,4 +252,73 @@ export function matchGuestByName(query: string, guests: GuestListEntry[]): NameM
   const [best, next] = scored;
   if (next && best.score - next.score < AMBIGUITY_MARGIN) return { status: "needs-code" };
   return { status: "match", guest: best.guest };
+}
+
+export type FindResult = { status: "found"; code: string } | { status: "needs-code" } | { status: "none" };
+
+/**
+ * "Find your invitation": in the `lookup` step the input is a name or a code
+ * (anything that normalizes to 8 characters is tried as a code first); in the
+ * `code` step only a code is accepted.
+ */
+export function findInvitation(
+  input: string,
+  step: "lookup" | "code",
+  guests: GuestListEntry[],
+  groups: GuestGroup[]
+): FindResult {
+  const tryCode = () => {
+    const invitee = findInviteeByCode(input, guests, groups);
+    return invitee ? ({ status: "found", code: invitee.code } as const) : null;
+  };
+  if (step === "code") return tryCode() ?? { status: "none" };
+  const byCode = normalizeCode(input).length === 8 ? tryCode() : null;
+  if (byCode) return byCode;
+  const match = matchGuestByName(input, guests);
+  return match.status === "match" ? { status: "found", code: match.guest.inviteCode } : match;
+}
+
+// ─── Open invitation (name typed in the RSVP form) ──────────────────────────
+
+/**
+ * A guest identified from the RSVP form on the open invitation. Carries only
+ * what the form needs (never the invite code or other guests), so it doesn't
+ * unlock private content the way an invite link does.
+ */
+export type OpenInviteMatch =
+  | { status: "match"; guestId: string; allowance: number }
+  | { status: "needs-code" }
+  | { status: "none" };
+
+/**
+ * Looks up the guest typed into the RSVP form. Async so it can be backed by the
+ * server (`public.match_open_invite` in db/migrations/0008) without changing callers.
+ */
+export interface GuestMatcher {
+  byName(name: string): Promise<OpenInviteMatch>;
+  byCode(code: string): Promise<OpenInviteMatch>;
+}
+
+export function isOpenInviteMatchingOn(config: Pick<WeddingConfig, "tier" | "openInviteMatching">): boolean {
+  return isPersonalized(config) && config.openInviteMatching !== false;
+}
+
+/** Matcher over a guest list already on the client. Only guest codes count: a group code names nobody. */
+export function localGuestMatcher(guests: GuestListEntry[]): GuestMatcher {
+  const found = (g: GuestListEntry): OpenInviteMatch => ({
+    status: "match",
+    guestId: g.id,
+    allowance: guestAllowance(g.partySize),
+  });
+  return {
+    byName: async (name) => {
+      const match = matchGuestByName(name, guests);
+      return match.status === "match" ? found(match.guest) : match;
+    },
+    byCode: async (input) => {
+      const code = normalizeCode(input);
+      const guest = code ? guests.find((g) => g.inviteCode === code) : undefined;
+      return guest ? found(guest) : { status: "none" };
+    },
+  };
 }

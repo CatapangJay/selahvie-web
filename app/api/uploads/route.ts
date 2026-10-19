@@ -15,6 +15,13 @@ async function currentUserId(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+/** The scope must be one of the user's websites (row-level security hides everyone else's). */
+async function ownsWedding(userId: string, weddingId: string): Promise<boolean> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("weddings").select("id").eq("id", weddingId).eq("owner_id", userId).maybeSingle();
+  return Boolean(data);
+}
+
 /**
  * Upload a photo. Multipart form: `file` (image) and `scope` (the wedding id).
  * Objects are stored under `<userId>/<scope>/<uuid>.<ext>` so a user can only
@@ -44,6 +51,7 @@ export async function POST(request: NextRequest) {
   }
   if (file.size === 0) return fail("That file is empty.", 400);
   if (file.size > MAX_UPLOAD_BYTES) return fail("That photo is too large. The limit is 5 MB.", 413);
+  if (!(await ownsWedding(userId, scope))) return fail("You can only add photos to your own websites.", 403);
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const image = sniffImage(bytes);

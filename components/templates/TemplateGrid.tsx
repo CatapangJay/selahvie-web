@@ -8,6 +8,7 @@ import { Heart, ArrowRight } from "lucide-react";
 import { useFavoritesStore } from "@/store/favoritesStore";
 import { useHydrated } from "@/lib/useHydrated";
 import { formatPrice } from "@/lib/utils";
+import Select from "@/components/ui/Select";
 import TemplatePreviewMock from "./TemplatePreviewMock";
 import Reveal from "@/components/ui/Reveal";
 
@@ -81,21 +82,13 @@ export default function TemplateGrid({ templates }: Props) {
           ))}
         </div>
 
-        <select
+        <Select
+          variant="chip"
+          aria-label="Sort templates"
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          className="label-luxury min-h-[36px] cursor-pointer px-4 py-2 outline-none"
-          style={{
-            background: "var(--color-surface-container)",
-            color: "var(--color-on-surface-variant)",
-            border: "1px solid var(--color-outline)",
-            borderRadius: "var(--radius-sm)",
-          }}
-        >
-          {SORT_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          onChange={setSort}
+          options={[...SORT_OPTIONS]}
+        />
       </div>
 
       {/* Grid */}

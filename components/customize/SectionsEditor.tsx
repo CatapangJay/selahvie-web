@@ -24,9 +24,9 @@ const rid = (p: string) => `${p}-${Date.now().toString(36)}-${(localSeq++).toStr
 
 function Subhead({ children }: { children: React.ReactNode }) {
   return (
-    <p className="label-luxury" style={{ color: "var(--color-on-surface-variant)" }}>
+    <h3 className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
       {children}
-    </p>
+    </h3>
   );
 }
 
@@ -43,17 +43,10 @@ export default function SectionsEditor({ config, update }: Props) {
 
   return (
     <div className="space-y-10">
-      <div>
-        <h2 className="title-md mb-1">Sections &amp; extras</h2>
-        <p className="text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-          Add optional sections to your website. Each one only appears if you give it content — and you can hide any of them below.
-        </p>
-      </div>
-
       {/* Font preset */}
       <div className="space-y-3">
         <Subhead>Typography</Subhead>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2">
           {fontPresets.map((f) => {
             const active = (config.fontPresetId ?? "default") === f.id;
             return (
@@ -61,16 +54,19 @@ export default function SectionsEditor({ config, update }: Props) {
                 key={f.id}
                 type="button"
                 onClick={() => update({ fontPresetId: f.id })}
-                className="rounded-xl p-4 text-left transition-all"
+                aria-pressed={active}
+                className="p-4 text-left transition-colors duration-150 hover:bg-[var(--color-surface-container-low)]"
                 style={{
-                  background: active ? "var(--color-surface-container)" : "var(--color-surface)",
-                  border: `2px solid ${active ? "var(--color-primary)" : "var(--color-outline)"}`,
+                  background: active ? "var(--color-primary-container)" : "var(--color-surface-container-lowest)",
+                  border: `1px solid ${active ? "var(--color-primary)" : "var(--color-outline)"}`,
+                  boxShadow: active ? "inset 0 0 0 1px var(--color-primary)" : undefined,
+                  borderRadius: "var(--radius-md)",
                 }}
               >
                 <span className="block text-sm font-medium" style={{ color: "var(--color-on-surface)", fontFamily: f.serif }}>
                   {f.name}
                 </span>
-                <span className="mt-1 block text-xs font-light" style={{ color: "var(--color-on-surface-muted)", fontFamily: f.sans }}>
+                <span className="mt-1 block text-xs" style={{ color: "var(--color-on-surface-variant)", fontFamily: f.sans }}>
                   The quick brown fox
                 </span>
               </button>
@@ -81,7 +77,7 @@ export default function SectionsEditor({ config, update }: Props) {
 
       {/* Visibility toggles */}
       <div className="space-y-3">
-        <Subhead>Show / hide sections</Subhead>
+        <Subhead>Show or hide sections</Subhead>
         <div className="flex flex-wrap gap-2">
           {OPTIONAL_SECTIONS.map(({ key, label }) => {
             const shown = visibility[key] !== false;
@@ -91,10 +87,10 @@ export default function SectionsEditor({ config, update }: Props) {
                 type="button"
                 onClick={() => toggleSection(key)}
                 aria-pressed={shown}
-                className="rounded-full px-4 py-2 text-sm transition-all"
+                className="min-h-[36px] rounded-full px-4 text-sm transition-colors duration-150"
                 style={{
-                  background: shown ? "var(--color-primary-container-strong)" : "var(--color-surface-container)",
-                  color: shown ? "var(--color-primary-dim)" : "var(--color-on-surface-muted)",
+                  background: shown ? "var(--color-primary-container)" : "var(--color-surface-container-lowest)",
+                  color: shown ? "var(--color-primary-dim)" : "var(--color-on-surface-variant)",
                   border: `1px solid ${shown ? "var(--color-primary)" : "var(--color-outline)"}`,
                 }}
               >
@@ -107,13 +103,13 @@ export default function SectionsEditor({ config, update }: Props) {
 
       {/* Schedule / order of events */}
       <RepeatingGroup
-        title="Order of Events"
+        title="Order of events"
         items={schedule}
         onAdd={() => update({ schedule: [...schedule, { id: rid("ev"), time: "", title: "", description: "" }] })}
         onRemove={(id) => update({ schedule: schedule.filter((e) => e.id !== id) })}
         addLabel="Add event"
         render={(ev: ScheduleEvent) => (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[8rem_1fr]">
+          <div className="grid grid-cols-1 gap-3 @lg:grid-cols-[8rem_1fr]">
             <InputField id={`t-${ev.id}`} label="Time" placeholder="4:00 PM" value={ev.time}
               onChange={(e) => update({ schedule: schedule.map((x) => x.id === ev.id ? { ...x, time: e.target.value } : x) })} />
             <InputField id={`ti-${ev.id}`} label="Title" placeholder="Ceremony" value={ev.title}
@@ -124,13 +120,13 @@ export default function SectionsEditor({ config, update }: Props) {
 
       {/* Wedding party */}
       <RepeatingGroup
-        title="Wedding Party"
+        title="Wedding party"
         items={party}
         onAdd={() => update({ weddingParty: [...party, { id: rid("wp"), name: "", role: "" }] })}
         onRemove={(id) => update({ weddingParty: party.filter((m) => m.id !== id) })}
         addLabel="Add member"
         render={(m: WeddingPartyMember) => (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2">
             <InputField id={`n-${m.id}`} label="Name" placeholder="Jane Doe" value={m.name}
               onChange={(e) => update({ weddingParty: party.map((x) => x.id === m.id ? { ...x, name: e.target.value } : x) })} />
             <InputField id={`r-${m.id}`} label="Role" placeholder="Maid of Honor" value={m.role}
@@ -141,27 +137,27 @@ export default function SectionsEditor({ config, update }: Props) {
 
       {/* Travel */}
       <div className="space-y-4">
-        <Subhead>Travel &amp; Stay</Subhead>
-        <TextareaField id="accommodations" label="Where to Stay" placeholder="Hotel blocks, nearby options…"
+        <Subhead>Travel and stay</Subhead>
+        <TextareaField id="accommodations" label="Where to stay" placeholder="Hotel blocks, nearby options…"
           value={travel.accommodations}
           onChange={(e) => update({ travel: { ...travel, accommodations: e.target.value } })} />
-        <TextareaField id="directions" label="Getting There" placeholder="Parking, transit, shuttle info…"
+        <TextareaField id="directions" label="Getting there" placeholder="Parking, transit, shuttle info…"
           value={travel.directions}
           onChange={(e) => update({ travel: { ...travel, directions: e.target.value } })} />
-        <TextareaField id="travel-notes" label="Good to Know" placeholder="Dress code, weather, anything else…"
+        <TextareaField id="travel-notes" label="Good to know" placeholder="Dress code, weather, anything else…"
           value={travel.notes}
           onChange={(e) => update({ travel: { ...travel, notes: e.target.value } })} />
       </div>
 
       {/* Registry */}
       <RepeatingGroup
-        title="Registry Links"
+        title="Registry links"
         items={registry}
         onAdd={() => update({ registryLinks: [...registry, { id: rid("rg"), label: "", url: "" }] })}
         onRemove={(id) => update({ registryLinks: registry.filter((l) => l.id !== id) })}
         addLabel="Add link"
         render={(l: RegistryLink) => (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2">
             <InputField id={`l-${l.id}`} label="Label" placeholder="Amazon Registry" value={l.label}
               onChange={(e) => update({ registryLinks: registry.map((x) => x.id === l.id ? { ...x, label: e.target.value } : x) })} />
             <InputField id={`u-${l.id}`} label="URL" type="url" placeholder="https://…" value={l.url}
@@ -209,16 +205,16 @@ function RepeatingGroup<T extends { id: string }>({
           {items.map((item) => (
             <div
               key={item.id}
-              className="relative rounded-xl p-4 pr-12"
-              style={{ background: "var(--color-surface)", border: "1px solid var(--color-outline)" }}
+              className="relative p-4 pr-12"
+              style={{ background: "var(--color-surface-container-lowest)", border: "1px solid var(--color-outline)", borderRadius: "var(--radius-md)" }}
             >
               {render(item)}
               <button
                 type="button"
                 onClick={() => onRemove(item.id)}
-                aria-label="Remove"
+                aria-label={`Remove from ${title.toLowerCase()}`}
                 className="absolute right-2 top-2 flex h-9 w-9 items-center justify-center transition-opacity hover:opacity-60"
-                style={{ color: "var(--color-on-surface-muted)" }}
+                style={{ color: "var(--color-on-surface-variant)" }}
               >
                 <Trash2 size={15} />
               </button>

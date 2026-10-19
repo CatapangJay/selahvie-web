@@ -207,6 +207,15 @@ Spec: Base = template price; **Personalized = template price + ₱500**. Archite
   guests (`plusOneAllowance`, `AdditionalGuestsField`, `RSVPEntry.additionalGuests*`);
   Personalize tab lists who has extra seats; dashboard shows `+N · names` and counts them
   in total guests. **P1**
+- ✅ **10.11 Open-invitation name matching.** On the generic link, the name typed in the
+  RSVP form is matched to the guest list (`useOpenInviteMatch`, `OpenInviteNotice`, all five
+  RSVP templates): a match unlocks that guest's extra seats, a shared name asks for the invite
+  code inline, an unknown name follows the site-wide plus-one. Owner toggle "Match names on
+  the open invitation" (`openInviteMatching`, default on). Migration 0008 adds the matching
+  RPCs and server-side allowance enforcement on `rsvps`. **P1**
+- ⬜ **10.12 Move weddings, guests, groups and RSVPs to Supabase.** Create weddings
+  server-side at checkout, read/write the guest list and RSVPs from the dashboard, insert
+  public RSVPs, and switch `GuestMatcher` to `match_open_invite*` (rate-limited route). **P0**
 - ⬜ **10.9 Follow-ups.** Re-evaluate the ₱500 add-on versus ₱39–₱99 template prices;
   roll the optional sections (so they can be shown/hidden per audience) into the other six
   templates; server-side enforcement (V2). **P2**

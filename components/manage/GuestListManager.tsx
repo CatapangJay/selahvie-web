@@ -6,6 +6,7 @@ import { InputField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import EmptyState from "@/components/ui/EmptyState";
+import Select from "@/components/ui/Select";
 import { toCsv, downloadFile, parseCsv, formatPrice } from "@/lib/utils";
 import { formatCode, inviteUrl } from "@/lib/invitations";
 import { PERSONALIZED_ADDON_CENTS } from "@/lib/tiers";
@@ -23,6 +24,7 @@ interface Props {
 }
 
 const STATUSES: GuestListEntry["status"][] = ["invited", "attending", "declined", "pending"];
+const statusLabel = (s: string) => s[0].toUpperCase() + s.slice(1);
 
 const statusStyle: Record<GuestListEntry["status"], { bg: string; color: string }> = {
   invited:   { bg: "var(--color-surface-container-highest)", color: "var(--color-on-surface-variant)" },
@@ -261,26 +263,13 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
         </div>
         {groups.length > 0 && (
           <div className="w-full sm:w-40">
-            <label htmlFor="guest-group" className="label-luxury mb-2 block" style={{ color: "var(--color-on-surface-muted)" }}>
-              Group
-            </label>
-            <select
+            <Select
               id="guest-group"
+              label="Group"
               value={newGuestGroup}
-              onChange={(e) => setNewGuestGroup(e.target.value)}
-              className="min-h-[44px] w-full cursor-pointer px-3 text-sm font-light outline-none"
-              style={{
-                background: "var(--color-surface-container-lowest)",
-                color: "var(--color-on-surface)",
-                border: "1px solid var(--color-outline)",
-                borderRadius: "var(--radius-sm)",
-              }}
-            >
-              <option value="">No group</option>
-              {groups.map((gr) => (
-                <option key={gr.id} value={gr.id}>{gr.name}</option>
-              ))}
-            </select>
+              onChange={setNewGuestGroup}
+              options={[{ value: "", label: "No group" }, ...groups.map((gr) => ({ value: gr.id, label: gr.name }))]}
+            />
           </div>
         )}
         <ButtonPrimary type="submit" size="md">
@@ -366,42 +355,25 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
                   }}
                 />
               </div>
-              <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value as typeof filter)}
+              <Select
+                variant="chip"
                 aria-label="Filter by status"
-                className="label-luxury min-h-[36px] cursor-pointer px-4 py-2 outline-none"
-                style={{
-                  background: "var(--color-surface-container)",
-                  color: "var(--color-on-surface-variant)",
-                  border: "1px solid var(--color-outline)",
-                  borderRadius: "var(--radius-sm)",
-                }}
-              >
-                <option value="all">All statuses</option>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>
-                ))}
-              </select>
+                value={filter}
+                onChange={(v) => setFilter(v as typeof filter)}
+                options={[{ value: "all", label: "All statuses" }, ...STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))]}
+              />
               {groups.length > 0 && (
-                <select
-                  value={groupFilter}
-                  onChange={(e) => setGroupFilter(e.target.value)}
+                <Select
+                  variant="chip"
                   aria-label="Filter by group"
-                  className="label-luxury min-h-[36px] cursor-pointer px-4 py-2 outline-none"
-                  style={{
-                    background: "var(--color-surface-container)",
-                    color: "var(--color-on-surface-variant)",
-                    border: "1px solid var(--color-outline)",
-                    borderRadius: "var(--radius-sm)",
-                  }}
-                >
-                  <option value="all">All groups</option>
-                  <option value="none">No group</option>
-                  {groups.map((gr) => (
-                    <option key={gr.id} value={gr.id}>{gr.name}</option>
-                  ))}
-                </select>
+                  value={groupFilter}
+                  onChange={setGroupFilter}
+                  options={[
+                    { value: "all", label: "All groups" },
+                    { value: "none", label: "No group" },
+                    ...groups.map((gr) => ({ value: gr.id, label: gr.name })),
+                  ]}
+                />
               )}
               <ButtonSecondary size="sm" onClick={handleExport}>
                 <Download size={13} />
@@ -459,22 +431,15 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
                     </button>
                   )}
 
-                  <select
-                    value={g.status}
-                    onChange={(e) => updateGuest(g.id, { status: e.target.value as GuestListEntry["status"] })}
+                  <Select
+                    variant="chip"
                     aria-label={`Status for ${g.name}`}
-                    className="min-h-[36px] cursor-pointer px-3 py-1.5 text-xs font-medium outline-none"
-                    style={{
-                      background: statusStyle[g.status].bg,
-                      color: statusStyle[g.status].color,
-                      border: "1px solid var(--color-outline)",
-                      borderRadius: "var(--radius-full)",
-                    }}
-                  >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>
-                    ))}
-                  </select>
+                    value={g.status}
+                    onChange={(v) => updateGuest(g.id, { status: v as GuestListEntry["status"] })}
+                    options={STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
+                    className="font-medium"
+                    style={{ background: statusStyle[g.status].bg, color: statusStyle[g.status].color, fontSize: "0.75rem" }}
+                  />
 
                   <button
                     type="button"

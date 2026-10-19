@@ -14,7 +14,7 @@ export function InputField({ label, error, className, id, ...props }: InputProps
       {label && (
         <label
           htmlFor={id}
-          className="label-luxury"
+          className="text-[0.8125rem] font-medium"
           style={{ color: "var(--color-on-surface-variant)" }}
         >
           {label}
@@ -25,12 +25,13 @@ export function InputField({ label, error, className, id, ...props }: InputProps
         className={cn(
           "w-full px-0 py-2.5",
           "bg-transparent border-0 border-b outline-none",
-          "text-sm font-light",
-          "transition-all duration-200",
+          "text-sm",
+          "transition-colors duration-200",
           "placeholder:text-[var(--color-on-surface-muted)]",
+          // `!` beats the global `* { border-color: transparent }` reset.
           error
-            ? "border-[var(--color-error)] focus:border-[var(--color-error)]"
-            : "border-[var(--color-outline)] focus:border-[var(--color-primary)]",
+            ? "border-[var(--color-error)]! focus:border-[var(--color-error)]!"
+            : "border-[var(--color-outline)]! hover:border-[var(--color-on-surface-muted)]! focus:border-[var(--color-primary)]!",
           className
         )}
         style={{ color: "var(--color-on-surface)" }}
@@ -54,7 +55,7 @@ export function TextareaField({ label, error, className, id, ...props }: Textare
       {label && (
         <label
           htmlFor={id}
-          className="label-luxury"
+          className="text-[0.8125rem] font-medium"
           style={{ color: "var(--color-on-surface-variant)" }}
         >
           {label}
@@ -64,13 +65,13 @@ export function TextareaField({ label, error, className, id, ...props }: Textare
         id={id}
         rows={4}
         className={cn(
-          "w-full bg-[var(--color-surface-container)] px-4 py-3 text-sm font-light",
-          "border outline-none resize-none",
+          "w-full bg-[var(--color-surface-container-lowest)] px-4 py-3 text-sm leading-relaxed",
+          "border outline-none resize-y",
           "text-[var(--color-on-surface)] placeholder:text-[var(--color-on-surface-muted)]",
-          "transition-all duration-200",
+          "transition-colors duration-200",
           error
-            ? "border-[var(--color-error)] focus:border-[var(--color-error)]"
-            : "border-[var(--color-outline)] focus:border-[var(--color-primary)]",
+            ? "border-[var(--color-error)]! focus:border-[var(--color-error)]!"
+            : "border-[var(--color-outline)]! hover:border-[var(--color-on-surface-muted)]! focus:border-[var(--color-primary)]!",
           className
         )}
         style={{ borderRadius: "var(--radius-sm)" }}

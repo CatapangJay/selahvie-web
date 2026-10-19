@@ -204,6 +204,30 @@ are guarded against spreadsheet formula injection in `csvCell`), and status trac
   are kept for older entries and the single plus-one), and the head count uses
   `1 + (additionalGuests ?? (plusOne ? 1 : 0))`. Couples set it per guest in the guest
   list's expanded row (`PartySizeField`) and review it in the Personalize tab ("Extra guests").
+- **Open-invitation name matching.** On the generic link (no `?invite=`), the RSVP name
+  field is looked up on blur, so a guest with extra seats gets them without their link.
+  `PersonalizedTemplate` receives the wedding's `guests` and, when
+  `isOpenInviteMatchingOn(config)` (Personalized and `openInviteMatching !== false`; owner
+  toggle "Match names on the open invitation" in the Personalize tab, on by default), puts a
+  `GuestMatcher` in `InviteeProvider`. `useOpenInviteMatch` (inside `useRsvpSubmit`) runs
+  `matcher.byName` → `match` (guest id + allowance, shown by `OpenInviteNotice` as "You're
+  welcome to bring up to N guests" and `maxPlusOnes` becomes N), `needs-code` (two plausible
+  guests: inline invite-code field, or "Continue without a code"), or `none` (silent; the
+  site-wide plus-one applies, so nothing reveals who is on the list). A match only sizes the
+  RSVP and links it to the guest; it never unlocks private sections or the greeting (that
+  still needs the invite link or `FindInvitation`). If a result lands as the guest presses
+  Send and would change the form, `submit()` resolves `false` and the notice scrolls into
+  view; templates show the confirmation only when it resolves `true`. `GuestMatcher` is
+  async so it can swap from `localGuestMatcher` to the 0008 RPCs without touching the
+  templates.
+- **Server side (`db/migrations/0008_open_invite_matching.sql`).** `weddings.open_invite_matching`;
+  `public.match_open_invite(wedding_id, name)` and `public.match_open_invite_code(wedding_id, code)`
+  (security definer, published Personalized sites with matching on; return only status,
+  guest id and allowance, never codes or other guests; same normalize/score/ambiguity rules
+  as `lib/invitations.ts`); a `before insert` trigger on `rsvps` that caps extra guests at
+  `party_size - 1` for a linked guest on Personalized, else the site-wide plus-one, and an
+  `after insert` trigger that marks the linked guest attending/declined. Not yet called by
+  the app (weddings, guests and RSVPs still live in `localStorage`).
 
 **Resolving the viewer** (`/wedding/[slug]`). `?invite=<code>` → `findInviteeByCode`
 (guest code or group code) → `Invitee | null`. Without a code, the `FindInvitation` dialog

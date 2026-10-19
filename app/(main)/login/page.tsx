@@ -7,7 +7,6 @@ import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import AuthPanel, { type AuthMode } from "@/components/auth/AuthPanel";
 import { useAuthStore, DEMO_ACCOUNT } from "@/store/authStore";
-import { useWeddingStore } from "@/store/weddingStore";
 import { safeRedirectPath } from "@/lib/supabase/config";
 import { Sparkles } from "lucide-react";
 
@@ -18,7 +17,6 @@ function LoginContent() {
 
   const status = useAuthStore((s) => s.status);
   const signInAsDemo = useAuthStore((s) => s.signInAsDemo);
-  const seedDemoConfigs = useWeddingStore((s) => s.seedDemoConfigs);
 
   const [mode, setMode] = useState<AuthMode>(params.get("mode") === "signup" ? "signup" : "login");
   // "Fill the form" remounts the panel with the demo credentials.
@@ -31,17 +29,12 @@ function LoginContent() {
     if (status === "authenticated") router.replace(redirect);
   }, [status, redirect, router]);
 
-  const handleSuccess = (email: string) => {
-    if (email === DEMO_ACCOUNT.email) seedDemoConfigs(email);
-  };
-
   const handleDemo = async () => {
     setDemoPending(true);
     setDemoError("");
     const result = await signInAsDemo();
     setDemoPending(false);
     if (result.error) { setDemoError(result.error); return; }
-    seedDemoConfigs(DEMO_ACCOUNT.email); // give the demo dashboard real content
     router.replace("/dashboard");
   };
 
@@ -82,7 +75,6 @@ function LoginContent() {
           nextPath={redirect}
           initialEmail={fill.email}
           initialPassword={fill.password}
-          onSuccess={handleSuccess}
         />
       </div>
 

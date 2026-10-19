@@ -1,5 +1,6 @@
 "use client";
 
+import Select, { type SelectOption } from "@/components/ui/Select";
 import type { GuestGroup, GuestListEntry } from "@/types/wedding";
 
 interface Props {
@@ -15,24 +16,23 @@ interface Props {
 
 /** Select for previewing the site as the public, a group, or a single guest. */
 export default function ViewAsSelect({ guests, groups, value, onChange, id, className, style }: Props) {
-  const sortedGuests = [...guests].sort((a, b) => a.name.localeCompare(b.name));
+  const options: SelectOption[] = [
+    { value: "", label: "Public visitor (no invite)" },
+    ...groups.map((g) => ({ value: g.inviteCode, label: g.name, group: "Groups" })),
+    ...[...guests]
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((g) => ({ value: g.inviteCode, label: g.name, group: "Guests" })),
+  ];
   return (
-    <select id={id} value={value} onChange={(e) => onChange(e.target.value)} className={className} style={style}>
-      <option value="">Public visitor (no invite)</option>
-      {groups.length > 0 && (
-        <optgroup label="Groups">
-          {groups.map((g) => (
-            <option key={g.id} value={g.inviteCode}>{g.name}</option>
-          ))}
-        </optgroup>
-      )}
-      {sortedGuests.length > 0 && (
-        <optgroup label="Guests">
-          {sortedGuests.map((g) => (
-            <option key={g.id} value={g.inviteCode}>{g.name}</option>
-          ))}
-        </optgroup>
-      )}
-    </select>
+    <Select
+      id={id}
+      aria-label="View as"
+      variant="chip"
+      value={value}
+      onChange={onChange}
+      options={options}
+      className={className}
+      style={style}
+    />
   );
 }

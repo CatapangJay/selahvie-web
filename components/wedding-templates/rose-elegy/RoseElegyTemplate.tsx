@@ -2,7 +2,6 @@
 
 import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
-import { resolveFontPreset } from "@/data/fontPresets";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
 import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
 import HeroSection from "./components/HeroSection";
@@ -32,7 +31,6 @@ export default function RoseElegyTemplate({ config, showBranding = true }: Props
   const primary  = config.primaryColor || "#7c5454";
   const accent   = config.accentColor  || "#c99999";
   const musicSrc = resolveMusicSrc(config.musicTrackId, config.musicCustomUrl);
-  const font     = resolveFontPreset(config.fontPresetId);
 
   const weddingDateFormatted = config.weddingDate
     ? new Date(config.weddingDate).toLocaleDateString("en-US", {
@@ -48,9 +46,6 @@ export default function RoseElegyTemplate({ config, showBranding = true }: Props
       style={{
         "--wedding-primary": primary,
         "--wedding-accent": accent,
-        // Font preset overrides the two family vars for this template subtree only.
-        "--font-serif": font.serif,
-        "--font-sans": font.sans,
         fontFamily: "var(--font-sans)",
       } as React.CSSProperties}
     >

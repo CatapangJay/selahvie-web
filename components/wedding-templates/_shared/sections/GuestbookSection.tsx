@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
-import { useWeddingStore } from "@/store/weddingStore";
+import { createClient } from "@/lib/supabase/client";
+import { fromGuestbookRow, type GuestbookRow } from "@/lib/db/mappers";
 import { isDemoConfig } from "@/components/wedding-templates/_shared/useRsvpSubmit";
-import type { WeddingConfig } from "@/types/wedding";
+import type { GuestbookEntry, WeddingConfig } from "@/types/wedding";
 
 interface Props {
   config: WeddingConfig;
@@ -15,37 +16,64 @@ interface Props {
 }
 
 /**
- * Public guestbook: guests leave well-wishes that persist to the store and
- * appear inline. On demo/preview renders it stays interactive but doesn't
- * persist. Always renders (it's an interactive prompt, not empty-gated).
+ * Public guestbook: guests leave well-wishes that are saved to Supabase and
+ * appear inline, newest first. On demo/preview renders it stays interactive but
+ * doesn't save. Always renders (it's an interactive prompt, not empty-gated).
  */
 export default function GuestbookSection({ config, primary, accent, enabled = true }: Props) {
-  const addEntry = useWeddingStore((s) => s.addGuestbookEntry);
-  const entries = useWeddingStore((s) => s.guestbook).filter((g) => g.weddingId === config.id);
   const demo = isDemoConfig(config);
-
+  const [entries, setEntries] = useState<GuestbookEntry[]>([]);
   const [name, setName] = useState("");
   const [message, setMessage] = useState("");
-  // Local echo so demo/preview still shows the just-submitted wish.
-  const [localEcho, setLocalEcho] = useState<{ id: string; name: string; message: string }[]>([]);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (demo || !enabled) return;
+    let cancelled = false;
+    createClient()
+      .from("guestbook_entries")
+      .select("*")
+      .eq("wedding_id", config.id)
+      .order("created_at", { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        if (!cancelled && data) setEntries((data as GuestbookRow[]).map(fromGuestbookRow));
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [config.id, demo, enabled]);
 
   if (!enabled) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !message.trim()) return;
-    if (!demo) {
-      addEntry({ weddingId: config.id, name: name.trim(), message: message.trim() });
+    const wish = { name: name.trim().slice(0, 200), message: message.trim().slice(0, 2000) };
+    if (!wish.name || !wish.message || sending) return;
+    setError("");
+
+    if (demo) {
+      setEntries((prev) => [{ id: `${Date.now()}`, weddingId: config.id, createdAt: new Date().toISOString(), ...wish }, ...prev]);
     } else {
-      setLocalEcho((prev) => [{ id: `${Date.now()}`, name: name.trim(), message: message.trim() }, ...prev]);
+      setSending(true);
+      const { data, error: insertError } = await createClient()
+        .from("guestbook_entries")
+        .insert({ wedding_id: config.id, ...wish })
+        .select()
+        .single();
+      setSending(false);
+      if (insertError || !data) {
+        setError("We couldn't add your note. Please try again.");
+        return;
+      }
+      setEntries((prev) => [fromGuestbookRow(data as GuestbookRow), ...prev]);
     }
     setName("");
     setMessage("");
   };
 
-  const shown = demo
-    ? localEcho
-    : [...entries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const shown = entries;
 
   return (
     <section className="py-24" id="guestbook" style={{ background: "var(--color-surface-container-low)" }}>
@@ -82,12 +110,19 @@ export default function GuestbookSection({ config, primary, accent, enabled = tr
           />
           <button
             type="submit"
-            className="btn-primary label-luxury inline-flex min-h-[44px] items-center justify-center gap-2 self-start px-6"
+            disabled={sending}
+            aria-busy={sending}
+            className="btn-primary label-luxury inline-flex min-h-[44px] items-center justify-center gap-2 self-start px-6 disabled:opacity-60"
             style={{ borderRadius: "var(--radius-sm)", color: "#fff" }}
           >
             <Heart size={13} />
-            Sign the guestbook
+            {sending ? "Signing…" : "Sign the guestbook"}
           </button>
+          {error && (
+            <p role="alert" className="text-sm" style={{ color: "var(--color-error)" }}>
+              {error}
+            </p>
+          )}
         </form>
 
         {shown.length > 0 && (

@@ -3,19 +3,18 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mail, X } from "lucide-react";
-import { findInviteeByCode, matchGuestByName, normalizeCode } from "@/lib/invitations";
-import type { GuestGroup, GuestListEntry } from "@/types/wedding";
+import type { FindResult } from "@/lib/invitations";
+
+type Step = "lookup" | "code";
 
 interface Props {
-  guests: GuestListEntry[];
-  groups: GuestGroup[];
+  /** Resolves a name or code to an invite code (on the server for live sites). */
+  find: (input: string, step: Step) => Promise<FindResult>;
   /** Called with the invite code once the guest is identified. */
   onFound: (code: string) => void;
   /** The page was opened with an invite code that doesn't match anyone. */
   invalidCode?: boolean;
 }
-
-type Step = "lookup" | "code";
 
 const spring = { type: "spring" as const, stiffness: 100, damping: 20 };
 
@@ -24,10 +23,11 @@ const spring = { type: "spring" as const, stiffness: 100, damping: 20 };
  * name (fuzzy) or invite code. Ambiguous or duplicate names always fall back
  * to asking for the code, so one guest can't open another's invitation.
  */
-export default function FindInvitation({ guests, groups, onFound, invalidCode = false }: Props) {
+export default function FindInvitation({ find, onFound, invalidCode = false }: Props) {
   const [open, setOpen] = useState(invalidCode);
   const [step, setStep] = useState<Step>("lookup");
   const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(invalidCode ? "That invitation link didn't work. Try your name or the code on your invitation." : "");
   const inputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -50,32 +50,28 @@ export default function FindInvitation({ guests, groups, onFound, invalidCode = 
     return () => window.removeEventListener("keydown", onKey);
   }, [open, step, close]);
 
-  const tryCode = (input: string): boolean => {
-    const invitee = findInviteeByCode(input, guests, groups);
-    if (!invitee) return false;
-    onFound(invitee.code);
-    close();
-    return true;
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const input = value.trim();
-    if (!input) return;
+    if (!input || busy) return;
 
-    if (step === "code") {
-      if (!tryCode(input)) setError("That code doesn't match an invitation. Check your invitation and try again.");
+    setBusy(true);
+    let result: FindResult;
+    try {
+      result = await find(input, step);
+    } catch {
+      setError("We couldn't look that up right now. Please try again.");
       return;
+    } finally {
+      setBusy(false);
     }
 
-    // Codes are 8 characters; anything that normalizes to that is tried as a code first.
-    if (normalizeCode(input).length === 8 && tryCode(input)) return;
-
-    const match = matchGuestByName(input, guests);
-    if (match.status === "match") {
-      onFound(match.guest.inviteCode);
+    if (result.status === "found") {
+      onFound(result.code);
       close();
-    } else if (match.status === "needs-code") {
+    } else if (step === "code") {
+      setError("That code doesn't match an invitation. Check your invitation and try again.");
+    } else if (result.status === "needs-code") {
       setStep("code");
       setValue("");
       setError("");
@@ -191,11 +187,12 @@ export default function FindInvitation({ guests, groups, onFound, invalidCode = 
                   )}
                   <button
                     type="submit"
-                    disabled={!value.trim()}
+                    disabled={!value.trim() || busy}
+                    aria-busy={busy}
                     className="mt-5 w-full min-h-[48px] text-sm font-medium transition-opacity disabled:opacity-40"
                     style={{ background: "#2c1c22", color: "#fdfbf8", borderRadius: 10 }}
                   >
-                    {step === "lookup" ? "Find my invitation" : "Open my invitation"}
+                    {busy ? "Looking…" : step === "lookup" ? "Find my invitation" : "Open my invitation"}
                   </button>
                   {step === "code" && (
                     <button

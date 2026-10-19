@@ -1,8 +1,8 @@
 /**
  * Font pairing presets for the customization studio (deeper customization).
  * Each preset maps to a serif (display) + sans (body) family already loaded,
- * or web-safe fallbacks. Applied on the published site via CSS variables
- * `--wedding-serif` / `--wedding-sans` on the template root.
+ * or web-safe fallbacks. PersonalizedTemplate applies a non-default preset as CSS variables
+ * (`--font-serif`, `--font-sans`, `--wedding-serif`) on the wrapper around every template.
  */
 export interface FontPreset {
   id: string;

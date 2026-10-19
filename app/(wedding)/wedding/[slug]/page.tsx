@@ -1,16 +1,16 @@
 "use client";
-import { Suspense, use } from "react";
+import { Suspense, use, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { useWeddingStore } from "@/store/weddingStore";
-import { useAuthStore } from "@/store/authStore";
 import { getDemoConfigBySlug } from "@/data/demoConfigs";
 import PersonalizedTemplate from "@/components/wedding-templates/_shared/PersonalizedTemplate";
 import FindInvitation from "@/components/wedding-templates/_shared/FindInvitation";
 import ViewAsSelect from "@/components/wedding-templates/_shared/ViewAsSelect";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import Link from "next/link";
-import { INVITE_PARAM, findInviteeByCode, isPersonalized } from "@/lib/invitations";
+import { INVITE_PARAM, findInviteeByCode, isPersonalized, type FindResult } from "@/lib/invitations";
+import { supabaseGuestMatcher } from "@/lib/db/matcher";
+import type { SiteResponse } from "@/lib/db/site";
 import type { WeddingConfig } from "@/types/wedding";
 
 // ─── Legacy demo config (kept for the /wedding/demo entry link) ──────────────
@@ -61,62 +61,139 @@ export default function PublicWeddingPage(props: Props) {
   );
 }
 
+type Loaded =
+  | { kind: "ok"; slug: string; code: string; data: SiteResponse }
+  | { kind: "missing" | "error"; slug: string; code: string };
+
 function WeddingSite({ slug }: { slug: string }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const configs = useWeddingStore((s) => s.configs);
-  const allGuests = useWeddingStore((s) => s.guests);
-  const allGroups = useWeddingStore((s) => s.groups);
-  const sessionEmail = useAuthStore((s) => s.sessionEmail);
+  const code = searchParams.get(INVITE_PARAM) ?? "";
+  // "/wedding/demo" keeps the original Rosé Elegy showcase; bespoke template
+  // demos (obsidian-demo, enchanted-demo, …) resolve by slug.
+  const demoConfig: WeddingConfig | undefined = slug === "demo" ? DEMO_CONFIG : getDemoConfigBySlug(slug);
+  const isDemo = Boolean(demoConfig);
+  const [loaded, setLoaded] = useState<Loaded | null>(null);
 
-  const config: WeddingConfig | undefined =
-    // "/wedding/demo" keeps the original Rosé Elegy showcase.
-    slug === "demo" ? DEMO_CONFIG :
-    // Any bespoke template demo (obsidian-demo, enchanted-demo, …).
-    getDemoConfigBySlug(slug) ??
-    // Try matching a user config by unique ID first, then by published slug.
-    Object.values(configs).find((c) => c.id === slug) ??
-    Object.values(configs).find((c) => c.slug === slug && c.status === "published");
+  const current = loaded?.slug === slug ? loaded : null;
+  // The owner resolves "View as" locally, so switching guests doesn't refetch.
+  const isOwner = current?.kind === "ok" && current.data.isOwner;
+  const fetchCode = isOwner ? "" : code;
 
-  if (!config) {
+  useEffect(() => {
+    if (isDemo) return;
+    let cancelled = false;
+    const query = fetchCode ? `?${INVITE_PARAM}=${encodeURIComponent(fetchCode)}` : "";
+    fetch(`/api/sites/${encodeURIComponent(slug)}${query}`, { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) {
+          if (!cancelled) setLoaded({ kind: res.status === 404 ? "missing" : "error", slug, code: fetchCode });
+          return;
+        }
+        const data = (await res.json()) as SiteResponse;
+        if (!cancelled) setLoaded({ kind: "ok", slug, code: fetchCode, data });
+      })
+      .catch(() => {
+        if (!cancelled) setLoaded({ kind: "error", slug, code: fetchCode });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, fetchCode, isDemo]);
+
+  const setInvite = useCallback(
+    (next: string) => {
+      const q = new URLSearchParams(searchParams.toString());
+      if (next) q.set(INVITE_PARAM, next);
+      else q.delete(INVITE_PARAM);
+      const qs = q.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams]
+  );
+
+  if (demoConfig) return <PersonalizedTemplate config={demoConfig} invitee={null} showBranding />;
+
+  if (!current) {
     return (
-      <div className="mx-auto max-w-lg px-6 py-24 text-center">
-        <p className="text-4xl mb-4">🔍</p>
-        <h1 className="headline-sm mb-4">Wedding site not found</h1>
-        <p className="text-sm mb-8" style={{ color: "var(--color-on-surface-variant)" }}>
-          This wedding website hasn&apos;t been published yet, or the link may be incorrect.
-        </p>
-        <Link href="/templates">
-          <ButtonSecondary>Create Your Own</ButtonSecondary>
-        </Link>
+      <div className="flex min-h-screen items-center justify-center" aria-busy="true">
+        <p className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>Loading…</p>
       </div>
     );
   }
 
-  // Resolve the viewer from ?invite=CODE (Personalized sites only).
-  const personalized = isPersonalized(config);
-  const guests = allGuests.filter((g) => g.weddingId === config.id);
-  const groups = allGroups.filter((g) => g.weddingId === config.id);
-  const code = searchParams.get(INVITE_PARAM) ?? "";
-  const invitee = personalized && code ? findInviteeByCode(code, guests, groups) : null;
-  const isOwner = Boolean(sessionEmail && config.ownerEmail && sessionEmail.toLowerCase() === config.ownerEmail);
-  const canLookUp = personalized && !isOwner && !invitee && config.inviteLookupEnabled !== false && guests.length + groups.length > 0;
+  if (current.kind !== "ok") {
+    const missing = current.kind === "missing";
+    return (
+      <div className="mx-auto max-w-lg px-6 py-24 text-center">
+        <p className="text-4xl mb-4">{missing ? "🔍" : "☁️"}</p>
+        <h1 className="headline-sm mb-4">{missing ? "Wedding site not found" : "We couldn’t load this website"}</h1>
+        <p className="text-sm mb-8" style={{ color: "var(--color-on-surface-variant)" }}>
+          {missing
+            ? "This wedding website hasn’t been published yet, or the link may be incorrect."
+            : "Check your connection and try again."}
+        </p>
+        {missing ? (
+          <Link href="/templates">
+            <ButtonSecondary>Create Your Own</ButtonSecondary>
+          </Link>
+        ) : (
+          <ButtonSecondary onClick={() => window.location.reload()}>Try again</ButtonSecondary>
+        )}
+      </div>
+    );
+  }
 
-  const setInvite = (next: string) => {
-    const q = new URLSearchParams(searchParams.toString());
-    if (next) q.set(INVITE_PARAM, next);
-    else q.delete(INVITE_PARAM);
-    const qs = q.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  };
+  return <LiveSite data={current.data} code={code} codeChecked={current.code === code} setInvite={setInvite} />;
+}
+
+interface LiveSiteProps {
+  data: SiteResponse;
+  code: string;
+  /** The server has resolved `code` (so a missing invitee means the code is wrong). */
+  codeChecked: boolean;
+  setInvite: (code: string) => void;
+}
+
+function LiveSite({ data, code, codeChecked, setInvite }: LiveSiteProps) {
+  const { config, isOwner, hasInvitees } = data;
+  const personalized = isPersonalized(config);
+  const guests = useMemo(() => data.guests ?? [], [data.guests]);
+  const groups = useMemo(() => data.groups ?? [], [data.groups]);
+  // The owner has the guest list; visitors get the invitee the server resolved.
+  const invitee = isOwner ? (personalized && code ? findInviteeByCode(code, guests, groups) : null) : data.invitee;
+  const visitorMatcher = useMemo(
+    () => (!isOwner && hasInvitees ? supabaseGuestMatcher(config.id) : null),
+    [isOwner, hasInvitees, config.id]
+  );
+  const canLookUp = personalized && !isOwner && !invitee && config.inviteLookupEnabled !== false && hasInvitees;
+
+  const find = useCallback(
+    async (query: string, step: "lookup" | "code"): Promise<FindResult> => {
+      const res = await fetch(`/api/sites/${config.id}/find`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query, step }),
+      });
+      if (!res.ok) throw new Error(`Lookup failed (${res.status})`);
+      return (await res.json()) as FindResult;
+    },
+    [config.id]
+  );
 
   return (
     <>
-      <PersonalizedTemplate config={config} invitee={invitee} showBranding />
+      <PersonalizedTemplate
+        config={config}
+        invitee={invitee}
+        guests={isOwner ? guests : undefined}
+        matcher={isOwner ? undefined : visitorMatcher}
+        showBranding
+      />
 
       {canLookUp && (
-        <FindInvitation key={code} guests={guests} groups={groups} onFound={setInvite} invalidCode={Boolean(code)} />
+        <FindInvitation key={code} find={find} onFound={setInvite} invalidCode={Boolean(code) && codeChecked} />
       )}
 
       {personalized && isOwner && (
@@ -141,8 +218,8 @@ function WeddingSite({ slug }: { slug: string }) {
             groups={groups}
             value={invitee?.code ?? ""}
             onChange={setInvite}
-            className="min-h-[36px] min-w-0 cursor-pointer truncate px-3 text-sm outline-none"
-            style={{ background: "#fdf8f7", color: "#2c1c22", borderRadius: 999, maxWidth: 220 }}
+            className="min-w-0"
+            style={{ background: "#fdf8f7", color: "#2c1c22", maxWidth: 220 }}
           />
         </div>
       )}

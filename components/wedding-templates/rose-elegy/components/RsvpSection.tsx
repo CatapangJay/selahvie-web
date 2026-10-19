@@ -7,6 +7,7 @@ import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import SectionLabel from "./SectionLabel";
 import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
 import AdditionalGuestsField from "@/components/wedding-templates/_shared/AdditionalGuestsField";
+import OpenInviteNotice from "@/components/wedding-templates/_shared/OpenInviteNotice";
 import type { WeddingConfig, RSVPEntry } from "@/types/wedding";
 
 interface Props {
@@ -16,14 +17,14 @@ interface Props {
 }
 
 export default function RsvpSection({ config, primary, accent }: Props) {
-  const { submit, prefillName, maxPlusOnes } = useRsvpSubmit(config);
+  const { submit, prefillName, maxPlusOnes, matching } = useRsvpSubmit(config);
   const [rsvp, setRsvp] = useState<Partial<RSVPEntry>>({ attending: true, guestName: prefillName });
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    submit({
+    const sent = await submit({
       guestName: rsvp.guestName ?? "",
       email: rsvp.email,
       attending: rsvp.attending ?? true,
@@ -33,7 +34,7 @@ export default function RsvpSection({ config, primary, accent }: Props) {
       additionalGuestNames: extraNames,
       message: rsvp.message,
     });
-    setSubmitted(true);
+    if (sent) setSubmitted(true);
   };
 
   return (
@@ -97,23 +98,34 @@ export default function RsvpSection({ config, primary, accent }: Props) {
             }}
           >
             {/* Name + Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <InputField
-                label="Your Full Name"
-                id="guestName"
-                required
-                placeholder="e.g. Sarah Johnson"
-                value={rsvp.guestName ?? ""}
-                onChange={(e) => setRsvp({ ...rsvp, guestName: e.target.value })}
-              />
-              <InputField
-                label="Email Address"
-                id="guestEmail"
-                type="email"
-                required
-                placeholder="sarah@example.com"
-                value={rsvp.email ?? ""}
-                onChange={(e) => setRsvp({ ...rsvp, email: e.target.value })}
+            <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <InputField
+                  label="Your Full Name"
+                  id="guestName"
+                  required
+                  placeholder="e.g. Sarah Johnson"
+                  value={rsvp.guestName ?? ""}
+                  onChange={(e) => setRsvp({ ...rsvp, guestName: e.target.value })}
+                  onBlur={(e) => matching.checkName(e.target.value)}
+                />
+                <InputField
+                  label="Email Address"
+                  id="guestEmail"
+                  type="email"
+                  required
+                  placeholder="sarah@example.com"
+                  value={rsvp.email ?? ""}
+                  onChange={(e) => setRsvp({ ...rsvp, email: e.target.value })}
+                />
+              </div>
+              <OpenInviteNotice
+                matching={matching}
+                labelColor="var(--color-on-surface-variant)"
+                textColor="var(--color-on-surface)"
+                lineColor="var(--color-outline)"
+                accent={primary}
+                errorColor="var(--color-error)"
               />
             </div>
 

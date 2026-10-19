@@ -9,6 +9,13 @@ export const NAV_LINKS = [
   { label: "Contact", href: "/#contact" },
 ];
 
+/** Demo credentials shown on the login page. The user lives in Supabase Auth. */
+export const DEMO_ACCOUNT = {
+  name: "Alex & Sam",
+  email: "demo@selahvie.com",
+  password: "demo1234",
+} as const;
+
 // Public inbox for the landing-page contact form (opens the visitor's mail app).
 export const CONTACT_EMAIL = "hello@selahvie.com";
 

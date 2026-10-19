@@ -6,6 +6,7 @@ import { Mail, ArrowRight } from "lucide-react";
 import Reveal from "@/components/ui/Reveal";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import { InputField, TextareaField } from "@/components/ui/InputField";
+import DateField from "@/components/ui/DateField";
 import { CONTACT_EMAIL } from "@/lib/constants";
 
 // The global `* { border-color: transparent }` reset outranks layered utilities,
@@ -19,6 +20,7 @@ const FIELD_BORDER = "border-[var(--color-outline)]! focus:border-[var(--color-p
  */
 export default function ContactSection() {
   const [sent, setSent] = useState(false);
+  const [date, setDate] = useState("");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -98,7 +100,7 @@ export default function ContactSection() {
             <InputField id="contact-name" name="name" label="Your names" autoComplete="name" required placeholder="Anna & Miguel" className={FIELD_BORDER} />
             <InputField id="contact-email" name="email" type="email" label="Email" autoComplete="email" required placeholder="you@example.com" className={FIELD_BORDER} />
             <div className="sm:col-span-2">
-              <InputField id="contact-date" name="date" type="date" label="Wedding date (optional)" className={FIELD_BORDER} />
+              <DateField id="contact-date" name="date" label="Wedding date (optional)" value={date} onChange={setDate} />
             </div>
             <div className="sm:col-span-2">
               <TextareaField id="contact-message" name="message" label="Message" required placeholder="Tell us a little about your wedding and what you need." className={FIELD_BORDER} />

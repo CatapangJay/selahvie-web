@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { DEMO_ACCOUNT } from "@/lib/constants";
 
 /**
  * Client view of the Supabase Auth session. Supabase owns the session (stored in
@@ -16,12 +17,7 @@ export interface Account {
   createdAt: string;
 }
 
-/** Demo credentials shown on the login page. The user lives in Supabase Auth. */
-export const DEMO_ACCOUNT = {
-  name: "Alex & Sam",
-  email: "demo@selahvie.com",
-  password: "demo1234",
-} as const;
+export { DEMO_ACCOUNT };
 
 export type AuthStatus = "loading" | "authenticated" | "anonymous";
 

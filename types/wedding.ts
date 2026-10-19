@@ -61,6 +61,8 @@ export interface WeddingConfig {
   inviteGreeting?: InviteGreeting;
   /** Show the "Find your invitation" name/code prompt on the public site. Default true. */
   inviteLookupEnabled?: boolean;
+  /** Match the name typed in the RSVP form to the guest list (open invitation). Default true. */
+  openInviteMatching?: boolean;
 }
 
 export type Tier = "base" | "personalized";

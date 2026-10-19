@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useWeddingStore } from "@/store/weddingStore";
 import { InputField, TextareaField } from "@/components/ui/InputField";
+import DateField from "@/components/ui/DateField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import PhotoField from "@/components/media/PhotoField";
@@ -158,8 +159,23 @@ export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests 
           <SectionHeading
             id="seats-heading"
             title="Extra guests"
-            body="Give chosen guests room to bring friends or family. They name their additional guests when they RSVP from their own link. Everyone else follows your plus-one setting."
+            body="Give chosen guests room to bring friends or family. They name their additional guests when they RSVP, from their own link or by typing their name on your site. Everyone else follows your plus-one setting."
           />
+          <label className="mb-5 flex min-h-[44px] cursor-pointer items-start gap-3 text-sm" style={{ color: "var(--color-on-surface)" }}>
+            <input
+              type="checkbox"
+              checked={config.openInviteMatching !== false}
+              onChange={(e) => updateConfig(config.id, { openInviteMatching: e.target.checked })}
+              style={{ accentColor: "var(--color-primary)" }}
+              className="mt-0.5 h-4 w-4"
+            />
+            <span>
+              Match names on the open invitation
+              <span className="block text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+                Guests who RSVP without their link get their seats once their name matches your list. If two guests share a name, they&apos;ll be asked for their code. Names not on your list follow your plus-one setting.
+              </span>
+            </span>
+          </label>
           {privileged.length === 0 ? (
             <p className="text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
               No one has extra seats yet. Raise a guest&apos;s party size on the guest list to allow more.
@@ -241,12 +257,11 @@ export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests 
                         )}
                         {s.kind === "event" && (
                           <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                            <InputField
+                            <DateField
                               label="Date"
                               id={`${panelId}-date`}
-                              type="date"
                               value={s.eventDate ?? ""}
-                              onChange={(e) => patchSection(s.id, { eventDate: e.target.value || undefined })}
+                              onChange={(v) => patchSection(s.id, { eventDate: v || undefined })}
                             />
                             <InputField
                               label="Time"

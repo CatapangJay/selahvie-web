@@ -7,6 +7,7 @@ import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import SectionLabel from "./SectionLabel";
 import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
 import AdditionalGuestsField from "@/components/wedding-templates/_shared/AdditionalGuestsField";
+import OpenInviteNotice from "@/components/wedding-templates/_shared/OpenInviteNotice";
 import type { WeddingConfig, RSVPEntry } from "@/types/wedding";
 
 interface Props {
@@ -15,14 +16,14 @@ interface Props {
 }
 
 export default function RsvpSection({ config, accent }: Props) {
-  const { submit, prefillName, maxPlusOnes } = useRsvpSubmit(config);
+  const { submit, prefillName, maxPlusOnes, matching } = useRsvpSubmit(config);
   const [rsvp, setRsvp] = useState<Partial<RSVPEntry>>({ attending: true, guestName: prefillName });
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    submit({
+    const sent = await submit({
       guestName: rsvp.guestName ?? "",
       email: rsvp.email,
       attending: rsvp.attending ?? true,
@@ -32,7 +33,7 @@ export default function RsvpSection({ config, accent }: Props) {
       additionalGuestNames: extraNames,
       message: rsvp.message,
     });
-    setSubmitted(true);
+    if (sent) setSubmitted(true);
   };
 
   return (
@@ -121,16 +122,28 @@ export default function RsvpSection({ config, accent }: Props) {
               ))}
 
               {/* Name + Email */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <RSVPInputOverride label="Your Full Name" id="guestName" required
-                  placeholder="e.g. Sarah Johnson" accent={accent}
-                  value={rsvp.guestName ?? ""}
-                  onChange={(v) => setRsvp({ ...rsvp, guestName: v })}
-                />
-                <RSVPInputOverride label="Email Address" id="guestEmail" type="email" required
-                  placeholder="sarah@example.com" accent={accent}
-                  value={rsvp.email ?? ""}
-                  onChange={(v) => setRsvp({ ...rsvp, email: v })}
+              <div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <RSVPInputOverride label="Your Full Name" id="guestName" required
+                    placeholder="e.g. Sarah Johnson" accent={accent}
+                    value={rsvp.guestName ?? ""}
+                    onChange={(v) => setRsvp({ ...rsvp, guestName: v })}
+                    onBlur={matching.checkName}
+                  />
+                  <RSVPInputOverride label="Email Address" id="guestEmail" type="email" required
+                    placeholder="sarah@example.com" accent={accent}
+                    value={rsvp.email ?? ""}
+                    onChange={(v) => setRsvp({ ...rsvp, email: v })}
+                  />
+                </div>
+                <OpenInviteNotice
+                  matching={matching}
+                  labelColor={`${accent}70`}
+                  textColor="rgba(245,240,232,0.85)"
+                  lineColor={`${accent}25`}
+                  accent={accent}
+                  errorColor="#f2b8b5"
+                  labelStyle={{ letterSpacing: "0.15em" }}
                 />
               </div>
 
@@ -258,10 +271,10 @@ export default function RsvpSection({ config, accent }: Props) {
 
 /* Dark-themed input override (avoids importing the light InputField directly) */
 function RSVPInputOverride({
-  label, id, placeholder, accent, value, onChange, type = "text", required = false,
+  label, id, placeholder, accent, value, onChange, onBlur, type = "text", required = false,
 }: {
   label: string; id: string; placeholder: string; accent: string;
-  value: string; onChange: (v: string) => void; type?: string; required?: boolean;
+  value: string; onChange: (v: string) => void; onBlur?: (v: string) => void; type?: string; required?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -275,6 +288,7 @@ function RSVPInputOverride({
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur ? (e) => onBlur(e.target.value) : undefined}
         className="border-0 border-b px-0 py-2 outline-none bg-transparent text-sm font-light transition-colors"
         style={{
           borderBottomColor: `${accent}25`,

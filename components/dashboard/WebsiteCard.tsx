@@ -34,7 +34,7 @@ export default function WebsiteCard({ config, template }: Props) {
 
   return (
     <div
-      className="group flex flex-col overflow-hidden"
+      className="group flex flex-col overflow-hidden transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(47,30,38,0.07)]"
       style={{
         background: "var(--color-surface-container)",
         borderRadius: "var(--radius-md)",
@@ -52,11 +52,11 @@ export default function WebsiteCard({ config, template }: Props) {
           style={config.heroImageUrl ? undefined : { opacity: 0.6 }}
         />
         <span
-          className="absolute right-3 top-3 label-luxury px-2.5 py-1"
+          className="absolute right-3 top-3 px-2.5 py-1 text-xs font-medium"
           style={{
             background: badge.bg,
             color: badge.color,
-            borderRadius: "var(--radius-sm)",
+            borderRadius: "var(--radius-full)",
             border: `1px solid ${badge.border}`,
           }}
         >
@@ -72,19 +72,20 @@ export default function WebsiteCard({ config, template }: Props) {
         >
           {coupleLabel}
         </p>
-        {config.weddingDate && (
-          <p className="label-luxury mt-1" style={{ color: "var(--color-on-surface-muted)" }}>
-            {new Date(config.weddingDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-          </p>
-        )}
-        <p className="mt-2 text-xs font-light" style={{ color: "var(--color-on-surface-variant)" }}>
+        <p className="mt-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+          {config.weddingDate && (
+            <>
+              {new Date(config.weddingDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              {" · "}
+            </>
+          )}
           {TIER_INFO[configTier(config)].label} plan
         </p>
 
         {/* RSVP glance */}
         {hasRsvps && (
-          <p className="mt-3 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-            <span style={{ color: "var(--color-primary)", fontWeight: 500 }}>{summary.attending}</span> attending
+          <p className="mt-3 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+            <span style={{ color: "var(--color-primary-dim)", fontWeight: 500 }}>{summary.attending}</span> attending
             {" · "}
             <span style={{ fontWeight: 500 }}>{summary.guestCount}</span> guests
             {summary.declined > 0 && <> · {summary.declined} declined</>}

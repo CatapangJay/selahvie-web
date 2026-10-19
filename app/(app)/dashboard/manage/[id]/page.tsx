@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, use } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { notFound, useRouter } from "next/navigation";
+import { notFound, useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, Users, MailCheck, Sparkles, Lock } from "lucide-react";
 import { useWeddingStore } from "@/store/weddingStore";
-import { useOwnedConfig } from "@/lib/useOwnedConfig";
 import { useCartStore } from "@/store/cartStore";
+import { useOwnedConfig } from "@/lib/useOwnedConfig";
 import { templates } from "@/data/templates";
+import Skeleton from "@/components/ui/Skeleton";
 import GuestListManager from "@/components/manage/GuestListManager";
 import RsvpDashboard from "@/components/manage/RsvpDashboard";
 import PersonalizationEditor from "@/components/manage/PersonalizationEditor";
@@ -17,17 +18,37 @@ interface Props {
 }
 
 type Tab = "rsvps" | "guests" | "personalize";
+const TABS: readonly Tab[] = ["rsvps", "guests", "personalize"];
 
 export default function ManageWeddingPage(props: Props) {
   const params = use(props.params);
   const router = useRouter();
+  const status = useWeddingStore((s) => s.status);
   const config = useOwnedConfig(params.id);
-  const summary = useWeddingStore((s) => s.getRsvpSummary)(params.id);
+  const rsvpCount = useWeddingStore((s) => s.rsvps).filter((r) => r.weddingId === params.id).length;
   const guestCount = useWeddingStore((s) => s.guests).filter((g) => g.weddingId === params.id).length;
   const addUpgrade = useCartStore((s) => s.addUpgrade);
 
-  const [tab, setTab] = useState<Tab>("rsvps");
+  // ?tab=guests lets other screens (e.g. the customize studio) deep-link here.
+  const requestedTab = useSearchParams().get("tab");
+  const [tab, setTab] = useState<Tab>(
+    TABS.includes(requestedTab as Tab) ? (requestedTab as Tab) : "rsvps"
+  );
 
+  // Pick up RSVPs (and the guest statuses they update) that arrived since loading.
+  useEffect(() => {
+    if (useWeddingStore.getState().status === "ready") void useWeddingStore.getState().reload();
+  }, []);
+
+  if (status === "error") return null;
+  if (status !== "ready") {
+    return (
+      <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 sm:pt-14">
+        <Skeleton className="mb-10 h-24 w-full max-w-md" rounded="md" />
+        <Skeleton className="h-96 w-full" rounded="md" />
+      </div>
+    );
+  }
   if (!config) notFound();
 
   const template = templates.find((t) => t.id === config.templateId);
@@ -43,16 +64,13 @@ export default function ManageWeddingPage(props: Props) {
   };
 
   const tabs: { id: Tab; label: string; icon: typeof Users; badge: number; locked?: boolean }[] = [
-    { id: "rsvps", label: "RSVPs", icon: MailCheck, badge: summary.total },
+    { id: "rsvps", label: "RSVPs", icon: MailCheck, badge: rsvpCount },
     { id: "guests", label: "Guest list", icon: Users, badge: guestCount },
     { id: "personalize", label: "Personalize", icon: Sparkles, badge: 0, locked: !personalized },
   ];
 
   return (
-    <div
-      className="mx-auto max-w-5xl px-6"
-      style={{ paddingTop: "var(--spacing-section)", paddingBottom: "var(--spacing-section-xl)" }}
-    >
+    <div className="mx-auto max-w-5xl px-6 pb-24 pt-10 sm:pt-14">
       <Link
         href="/dashboard"
         className="mb-10 inline-flex items-center gap-2 label-luxury transition-opacity hover:opacity-70"
@@ -70,7 +88,15 @@ export default function ManageWeddingPage(props: Props) {
       </h1>
       {config.status === "draft" && (
         <p className="mt-3 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-          This website is still a draft. Publish it from your dashboard so guests can find it and RSVP.
+          This website is still a draft.{" "}
+          <Link
+            href={`/dashboard/customize/${config.id}?step=publish`}
+            className="font-medium underline underline-offset-4"
+            style={{ color: "var(--color-primary-dim)" }}
+          >
+            Review and publish it
+          </Link>{" "}
+          so guests can find it and RSVP.
         </p>
       )}
 

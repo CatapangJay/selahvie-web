@@ -8,6 +8,7 @@ import Divider from "./Divider";
 import FloatingParticles from "./FloatingParticles";
 import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
 import AdditionalGuestsField from "@/components/wedding-templates/_shared/AdditionalGuestsField";
+import OpenInviteNotice from "@/components/wedding-templates/_shared/OpenInviteNotice";
 
 interface Props {
   config: WeddingConfig;
@@ -51,15 +52,15 @@ const inputBase = (accent: string): React.CSSProperties => ({
 });
 
 export default function RsvpSection({ config, gold, accent }: Props) {
-  const { submit, prefillName, maxPlusOnes } = useRsvpSubmit(config);
+  const { submit, prefillName, maxPlusOnes, matching } = useRsvpSubmit(config);
   const [rsvp, setRsvp]       = useState<RsvpState>({ name: prefillName, attending: null, mealChoice: "", plusOne: false, wishes: "" });
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [submitted, setSubmit] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rsvp.name || !rsvp.attending) return;
-    submit({
+    const sent = await submit({
       guestName: rsvp.name,
       attending: rsvp.attending === "yes",
       mealChoice: rsvp.mealChoice || undefined,
@@ -67,7 +68,7 @@ export default function RsvpSection({ config, gold, accent }: Props) {
       additionalGuestNames: extraNames,
       message: rsvp.wishes || undefined,
     });
-    setSubmit(true);
+    if (sent) setSubmit(true);
   };
 
   return (
@@ -137,7 +138,18 @@ export default function RsvpSection({ config, gold, accent }: Props) {
                   placeholder="Full name"
                   style={inputBase(accent)}
                   onFocus={(e) => (e.currentTarget.style.borderBottomColor = gold)}
-                  onBlur={(e)  => (e.currentTarget.style.borderBottomColor = `${accent}28`)}
+                  onBlur={(e)  => {
+                    e.currentTarget.style.borderBottomColor = `${accent}28`;
+                    matching.checkName(e.currentTarget.value);
+                  }}
+                />
+                <OpenInviteNotice
+                  matching={matching}
+                  labelColor={`${accent}55`}
+                  textColor="#eef5ee"
+                  lineColor={`${accent}28`}
+                  accent={gold}
+                  errorColor="#f2b8b5"
                 />
               </div>
 

@@ -3,7 +3,7 @@ import type { WeddingConfig } from "@/types/wedding";
 
 /** Display script (names, flourishes) and book serif (everything else). */
 export const SCRIPT = "'Pinyon Script', 'Snell Roundhand', 'Brush Script MT', cursive";
-export const SERIF = "'Cormorant Garamond', var(--font-serif), Georgia, serif";
+export const SERIF = "var(--wedding-serif, 'Cormorant Garamond'), var(--font-serif), Georgia, serif";
 
 export interface Palette {
   raspberry: string;

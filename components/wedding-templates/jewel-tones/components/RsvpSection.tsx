@@ -4,6 +4,7 @@ import { useId, useState, type CSSProperties, type FormEvent } from "react";
 import type { WeddingConfig } from "@/types/wedding";
 import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSubmit";
 import AdditionalGuestsField from "@/components/wedding-templates/_shared/AdditionalGuestsField";
+import OpenInviteNotice from "@/components/wedding-templates/_shared/OpenInviteNotice";
 import type { DateParts, Palette } from "../theme";
 import { SCRIPT, SECTION_PAD, SERIF, feltStyle, initialOf, paperStyle } from "../theme";
 import SectionHeading from "./SectionHeading";
@@ -18,7 +19,7 @@ interface Props {
 const FOCUS = "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#2b1018]";
 
 export default function RsvpSection({ config, palette: p, rsvpDeadline }: Props) {
-  const { submit, prefillName, maxPlusOnes } = useRsvpSubmit(config);
+  const { submit, prefillName, maxPlusOnes, matching } = useRsvpSubmit(config);
   const uid = useId();
   const [name, setName] = useState(prefillName);
   const [email, setEmail] = useState("");
@@ -29,9 +30,9 @@ export default function RsvpSection({ config, palette: p, rsvpDeadline }: Props)
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    submit({
+    const sent = await submit({
       guestName: name,
       email,
       attending,
@@ -41,7 +42,7 @@ export default function RsvpSection({ config, palette: p, rsvpDeadline }: Props)
       additionalGuestNames: extraNames,
       message,
     });
-    setSubmitted(true);
+    if (sent) setSubmitted(true);
   };
 
   const label: CSSProperties = {
@@ -123,6 +124,7 @@ export default function RsvpSection({ config, palette: p, rsvpDeadline }: Props)
                   autoComplete="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
+                  onBlur={(e) => matching.checkName(e.target.value)}
                   className={FOCUS}
                   style={field}
                 />
@@ -141,6 +143,19 @@ export default function RsvpSection({ config, palette: p, rsvpDeadline }: Props)
                 />
               </div>
             </div>
+
+            <OpenInviteNotice
+              matching={matching}
+              labelColor={p.goldInk}
+              textColor={p.ink}
+              lineColor={p.goldDeep}
+              accent={p.raspberryDeep}
+              offset="1.5rem"
+              bodyStyle={{ fontFamily: SERIF, fontSize: "1.15rem", lineHeight: 1.5 }}
+              labelStyle={label}
+              fieldStyle={{ fontFamily: SERIF, fontSize: "1.25rem", padding: "0.55rem 0", width: "10rem" }}
+              actionStyle={{ fontFamily: SERIF, fontWeight: 600, fontSize: "1.05rem" }}
+            />
 
             <fieldset style={{ marginTop: "2rem", border: 0, padding: 0 }}>
               <legend style={{ ...label, marginBottom: "0.75rem" }}>Will you attend?</legend>
