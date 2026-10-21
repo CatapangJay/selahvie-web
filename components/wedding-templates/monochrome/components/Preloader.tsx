@@ -47,6 +47,8 @@ export default function Preloader({ palette: p, partner1, partner2, date, guestN
       style={{
         position: "fixed",
         inset: 0,
+        // The marketplace preview bar sits at the bottom; stop above it so the open button stays tappable.
+        bottom: "var(--preview-chrome-bottom, 0px)",
         zIndex: 60,
         display: "grid",
         placeItems: "center",

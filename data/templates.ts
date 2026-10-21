@@ -443,4 +443,37 @@ export const templates: WeddingTemplate[] = [
     isFeatured: true,
     createdAt: "2026-10-21",
   },
+  {
+    id: "t15",
+    name: "Narra & Kapis",
+    slug: "narra-kapis",
+    description: "A Filipino heritage-house invitation — a capiz window that slides open, narra wood, banig weave and names written on in brown ink.",
+    longDescription:
+      "Narra & Kapis is a visit to an old bahay na bato on a slow afternoon. Each guest first finds a closed capiz shell window set in a narra wall, with a note tucked into the sash and their name written on it by hand. One tap slides both shell panels into the frame, the way the old windows open, onto a sepia portrait hung in a carved wooden frame with a calado transom, while the couple's names are written across it in brown ink. Inside, the rooms alternate between planed narra, banig weave and pearly capiz: the story signed off by hand, a shell-plaque venue card, the programme pinned down a narra rail, an entourage set like an old missal, photographs seen through capiz sashes that slide aside, gift plaques, aparador-drawer FAQs, and a dusk over Mount Banahaw to close.",
+    price: 9900,
+    previewImage: "https://picsum.photos/seed/narra-kapis/800/1000",
+    previewImages: [
+      "https://picsum.photos/seed/narra-kapis/1200/800",
+      "https://picsum.photos/seed/narra-kapis-2/1200/800",
+    ],
+    tags: ["Romantic", "Rustic"],
+    features: [
+      "Sliding capiz window intro with a note written out to each guest",
+      "Handwritten names that ink themselves in with a travelling brass nib",
+      "Narra wood, banig weave and capiz shell textures throughout",
+      "Calado fretwork section transoms",
+      "Gallery seen through capiz sashes that slide open on scroll",
+      "Programme pinned down a narra rail with capiz markers",
+      "Filipino-language touches (Tuloy po kayo, Para kay, Sasagot ako)",
+      "Mount Banahaw at dusk in the footer",
+      "Live countdown timer",
+      "Mobile-optimized",
+    ],
+    colorPalettes: [
+      { id: "nk1", name: "Narra & Brass",   primary: "#6B3E1F", accent: "#B48A3C", background: "#EADBC2" },
+      { id: "nk2", name: "Molave & Tanso",  primary: "#7A4A2A", accent: "#A9743A", background: "#EEE0C8" },
+    ],
+    isFeatured: true,
+    createdAt: "2026-10-21",
+  },
 ];

@@ -167,7 +167,7 @@ export default function EnvelopeIntro({ palette: p, partner1, partner2, date, gu
       animate={phase}
       exit={{ opacity: 0, scale: 1.06, transition: { duration: 0.9, ease: EASE_OUT } }}
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden px-4"
-      style={{ ...feltStyle(p.raspberry, p.raspberryDeep), zIndex: "var(--z-toast)" }}
+      style={{ ...feltStyle(p.raspberry, p.raspberryDeep), zIndex: "var(--z-toast)", bottom: "var(--preview-chrome-bottom, 0px)" }}
     >
       <motion.p
         variants={fadeOutV}

@@ -60,6 +60,8 @@ export default function GiftTagIntro({ palette: p, partner1, partner2, date, gre
       style={{
         position: "fixed",
         inset: 0,
+        // The marketplace preview bar sits at the bottom; stop above it so the open button stays tappable.
+        bottom: "var(--preview-chrome-bottom, 0px)",
         zIndex: 60,
         display: "flex",
         flexDirection: "column",
