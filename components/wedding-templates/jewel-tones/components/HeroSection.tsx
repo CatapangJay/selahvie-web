@@ -5,7 +5,7 @@ import Image from "next/image";
 import { motion, useReducedMotion, useScroll, useTransform, type Variants } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
 import type { DateParts, Palette } from "../theme";
-import { SCRIPT, SERIF, feltStyle, initialOf } from "../theme";
+import { SCRIPT, SERIF, feltStyle, initialOf, paperStyle } from "../theme";
 import GiltFrame from "./GiltFrame";
 import CalaLily from "./CalaLily";
 
@@ -16,6 +16,8 @@ interface Props {
   /** The envelope has been opened; hero entrance plays from here. */
   opened: boolean;
   showRsvp: boolean;
+  /** Personal note for the viewing guest, set as a place card above the invitation. */
+  greeting?: { name: string; message: string } | null;
 }
 
 const container: Variants = {
@@ -28,7 +30,7 @@ const item: Variants = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 80, damping: 18 } },
 };
 
-export default function HeroSection({ config, palette: p, date, opened, showRsvp }: Props) {
+export default function HeroSection({ config, palette: p, date, opened, showRsvp, greeting }: Props) {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
@@ -46,7 +48,10 @@ export default function HeroSection({ config, palette: p, date, opened, showRsvp
         minHeight: "100dvh",
         display: "flex",
         alignItems: "center",
-        padding: "clamp(7.5rem, 20vh, 11rem) clamp(1.25rem, 5vw, 2.5rem) clamp(4rem, 10vh, 6rem)",
+        paddingInline: "clamp(1.25rem, 5vw, 2.5rem)",
+        // Phones lead with the portrait, so they need far less headroom than the two-column layout.
+        paddingTop: "clamp(3rem, 14vw - 2rem, 11rem)",
+        paddingBottom: "clamp(4rem, 10vh, 6rem)",
       }}
     >
       {/* Warm light behind the portrait */}
@@ -95,6 +100,11 @@ export default function HeroSection({ config, palette: p, date, opened, showRsvp
         style={{ maxWidth: "70rem", gap: "clamp(2.5rem, 6vw, 5rem)", zIndex: 1 }}
       >
         <div className="text-center">
+          {greeting && (
+            <motion.div variants={item} style={{ marginBottom: "clamp(1.75rem, 4vw, 2.5rem)" }}>
+              <PlaceCard greeting={greeting} palette={p} />
+            </motion.div>
+          )}
           <motion.p
             variants={item}
             style={{
@@ -184,6 +194,28 @@ export default function HeroSection({ config, palette: p, date, opened, showRsvp
         </div>
 
         <motion.div variants={item} className="order-first mx-auto w-full md:order-none" style={{ maxWidth: "min(72vw, 24rem)" }}>
+          {/* Mobile masthead: the portrait leads, so the top of the card carries the date. */}
+          {date.dotted && (
+            <div aria-hidden className="mb-6 flex items-center justify-center gap-3 md:hidden">
+              <span style={{ height: 1, flex: 1, maxWidth: "3.5rem", background: `linear-gradient(90deg, transparent, ${p.gold})` }} />
+              <span style={{ width: 6, height: 6, transform: "rotate(45deg)", background: p.gold }} />
+              <span
+                style={{
+                  fontFamily: SERIF,
+                  fontWeight: 600,
+                  fontSize: "0.95rem",
+                  letterSpacing: "0.32em",
+                  paddingLeft: "0.32em",
+                  color: p.goldLight,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {date.dotted}
+              </span>
+              <span style={{ width: 6, height: 6, transform: "rotate(45deg)", background: p.gold }} />
+              <span style={{ height: 1, flex: 1, maxWidth: "3.5rem", background: `linear-gradient(270deg, transparent, ${p.gold})` }} />
+            </div>
+          )}
           <GiltFrame palette={p} shape="arch" ratio="4 / 5.2">
             {config.heroImageUrl ? (
               <motion.div style={{ position: "absolute", inset: 0, y: reduce ? 0 : imageY, scale: 1.18 }}>
@@ -208,5 +240,48 @@ export default function HeroSection({ config, palette: p, date, opened, showRsvp
         </motion.div>
       </motion.div>
     </section>
+  );
+}
+
+/** Escort-card greeting: cream stock, gilt inner rule, the guest's name in script. */
+function PlaceCard({ greeting, palette: p }: { greeting: { name: string; message: string }; palette: Palette }) {
+  return (
+    <div
+      role="note"
+      aria-label={`Invitation for ${greeting.name}`}
+      className="relative mx-auto text-center"
+      style={{
+        ...paperStyle(p.cream, p.creamDeep),
+        maxWidth: "min(100%, 23rem)",
+        padding: "0.45rem",
+        transform: "rotate(-1.5deg)",
+        boxShadow: "0 18px 32px -14px rgba(0,0,0,.55), 0 3px 8px rgba(0,0,0,.2)",
+        color: p.ink,
+      }}
+    >
+      <div style={{ border: `1px solid ${p.gold}`, padding: "clamp(0.9rem, 2.5vw, 1.15rem) clamp(1.25rem, 4vw, 2rem) clamp(1rem, 2.5vw, 1.25rem)" }}>
+        <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: "1.05rem", lineHeight: 1.2, color: p.goldInk }}>Dear</p>
+        <p
+          style={{
+            fontFamily: SCRIPT,
+            fontSize: "clamp(1.75rem, 4.6vw, 2.15rem)",
+            lineHeight: 1.15,
+            color: p.raspberryDeep,
+            overflowWrap: "anywhere",
+            textWrap: "balance",
+          }}
+        >
+          {greeting.name},
+        </p>
+        <div aria-hidden className="mx-auto my-2 flex items-center justify-center gap-2">
+          <span style={{ height: 1, width: "2rem", background: `linear-gradient(90deg, transparent, ${p.gold})` }} />
+          <span style={{ width: 5, height: 5, transform: "rotate(45deg)", background: p.gold }} />
+          <span style={{ height: 1, width: "2rem", background: `linear-gradient(270deg, transparent, ${p.gold})` }} />
+        </div>
+        <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: "clamp(1.05rem, 2.4vw, 1.2rem)", lineHeight: 1.45, textWrap: "pretty" }}>
+          {greeting.message}
+        </p>
+      </div>
+    </div>
   );
 }

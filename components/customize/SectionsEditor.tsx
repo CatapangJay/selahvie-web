@@ -8,7 +8,6 @@ import type {
   WeddingConfig,
   RegistryLink,
   FaqItem,
-  WeddingPartyMember,
   ScheduleEvent,
   OptionalSectionKey,
 } from "@/types/wedding";
@@ -33,7 +32,6 @@ function Subhead({ children }: { children: React.ReactNode }) {
 export default function SectionsEditor({ config, update }: Props) {
   const registry = config.registryLinks ?? [];
   const faq = config.faq ?? [];
-  const party = config.weddingParty ?? [];
   const schedule = config.schedule ?? [];
   const travel = config.travel ?? { accommodations: "", directions: "", notes: "" };
   const visibility = config.sectionVisibility ?? {};
@@ -118,23 +116,6 @@ export default function SectionsEditor({ config, update }: Props) {
         )}
       />
 
-      {/* Wedding party */}
-      <RepeatingGroup
-        title="Wedding party"
-        items={party}
-        onAdd={() => update({ weddingParty: [...party, { id: rid("wp"), name: "", role: "" }] })}
-        onRemove={(id) => update({ weddingParty: party.filter((m) => m.id !== id) })}
-        addLabel="Add member"
-        render={(m: WeddingPartyMember) => (
-          <div className="grid grid-cols-1 gap-3 @lg:grid-cols-2">
-            <InputField id={`n-${m.id}`} label="Name" placeholder="Jane Doe" value={m.name}
-              onChange={(e) => update({ weddingParty: party.map((x) => x.id === m.id ? { ...x, name: e.target.value } : x) })} />
-            <InputField id={`r-${m.id}`} label="Role" placeholder="Maid of Honor" value={m.role}
-              onChange={(e) => update({ weddingParty: party.map((x) => x.id === m.id ? { ...x, role: e.target.value } : x) })} />
-          </div>
-        )}
-      />
-
       {/* Travel */}
       <div className="space-y-4">
         <Subhead>Travel and stay</Subhead>
@@ -186,7 +167,7 @@ export default function SectionsEditor({ config, update }: Props) {
   );
 }
 
-/** Generic add/remove list group used for schedule, party, registry, and faq. */
+/** Generic add/remove list group used for schedule, registry, and faq. */
 function RepeatingGroup<T extends { id: string }>({
   title, items, onAdd, onRemove, addLabel, render,
 }: {

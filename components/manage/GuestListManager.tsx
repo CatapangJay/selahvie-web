@@ -10,7 +10,8 @@ import Select from "@/components/ui/Select";
 import { toCsv, downloadFile, parseCsv, formatPrice } from "@/lib/utils";
 import { formatCode, inviteUrl } from "@/lib/invitations";
 import { PERSONALIZED_ADDON_CENTS } from "@/lib/tiers";
-import type { GuestGroup, GuestListEntry } from "@/types/wedding";
+import { SIDE_COLOR, asSide, parseSide, sideLabel, sideOptions } from "@/lib/guestSides";
+import type { GuestGroup, GuestListEntry, WeddingConfig } from "@/types/wedding";
 import { Trash2, Download, Plus, Search, Upload, Link2, Lock, ChevronDown, Check, Pencil, X } from "lucide-react";
 
 interface Props {
@@ -36,7 +37,7 @@ const statusStyle: Record<GuestListEntry["status"], { bg: string; color: string 
 const MAX_IMPORT_BYTES = 1024 * 1024;
 const MAX_IMPORT_ROWS = 2000;
 
-type Column = "name" | "email" | "party" | "groups" | "note" | "status";
+type Column = "name" | "email" | "party" | "groups" | "note" | "status" | "side";
 
 /** Accepted header spellings, compared lowercase with non-letters removed. */
 const HEADER_ALIASES: Record<Column, string[]> = {
@@ -46,9 +47,18 @@ const HEADER_ALIASES: Record<Column, string[]> = {
   groups: ["group", "groups", "tag", "tags"],
   note: ["note", "notes"],
   status: ["status", "rsvp"],
+  side: ["side", "guestof", "guestside"],
 };
 
-function rowsFromCsv(text: string): { rows: ImportGuestRow[]; error?: string; truncated: boolean } {
+/** Chip colours for a guest's side. */
+const sideChip = (side: GuestListEntry["side"]) =>
+  side === "partner1"
+    ? { background: "var(--color-primary-container-strong)", color: "var(--color-primary-dim)" }
+    : side === "partner2"
+      ? { background: `color-mix(in srgb, ${SIDE_COLOR.partner2} 18%, var(--color-surface-container-lowest))`, color: "var(--color-on-surface)" }
+      : { background: "var(--color-surface-container-high)", color: "var(--color-on-surface-muted)" };
+
+function rowsFromCsv(text: string, config: WeddingConfig | undefined): { rows: ImportGuestRow[]; error?: string; truncated: boolean } {
   const table = parseCsv(text);
   if (table.length < 2) return { rows: [], error: "That file has no guest rows under the header.", truncated: false };
 
@@ -61,6 +71,7 @@ function rowsFromCsv(text: string): { rows: ImportGuestRow[]; error?: string; tr
     groups: col("groups"),
     note: col("note"),
     status: col("status"),
+    side: col("side"),
   };
   if (idx.name < 0) {
     return {
@@ -81,6 +92,7 @@ function rowsFromCsv(text: string): { rows: ImportGuestRow[]; error?: string; tr
         email: get(idx.email).slice(0, 200) || undefined,
         partySize: parseInt(get(idx.party), 10) || 1,
         status: STATUSES.includes(status) ? status : undefined,
+        side: parseSide(get(idx.side), config),
         note: get(idx.note).slice(0, 500) || undefined,
         groupNames: get(idx.groups)
           .split(/[;|]/)
@@ -100,15 +112,18 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
   const removeGuest = useWeddingStore((s) => s.removeGuest);
   const importGuests = useWeddingStore((s) => s.importGuests);
   const addGroup = useWeddingStore((s) => s.addGroup);
+  const config = useWeddingStore((s) => s.configs[weddingId]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [partySize, setPartySize] = useState("1");
+  const [newGuestSide, setNewGuestSide] = useState("");
   const [newGuestGroup, setNewGuestGroup] = useState("");
   const [newGroupName, setNewGroupName] = useState("");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<"all" | GuestListEntry["status"]>("all");
   const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [sideFilter, setSideFilter] = useState<string>("all");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
@@ -123,9 +138,10 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
       .filter((g) =>
         groupFilter === "all" ? true : groupFilter === "none" ? g.groupIds.length === 0 : g.groupIds.includes(groupFilter)
       )
+      .filter((g) => (sideFilter === "all" ? true : (g.side ?? "none") === sideFilter))
       .filter((g) => (q ? g.name.toLowerCase().includes(q) || (g.email ?? "").toLowerCase().includes(q) : true))
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [guests, query, filter, groupFilter]);
+  }, [guests, query, filter, groupFilter, sideFilter]);
 
   const totalHeads = guests.reduce((sum, g) => sum + (g.partySize || 1), 0);
 
@@ -138,6 +154,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
       email: email.trim() || undefined,
       partySize: Math.min(20, Math.max(1, parseInt(partySize, 10) || 1)),
       status: "invited",
+      side: asSide(newGuestSide),
       groupIds: newGuestGroup ? [newGuestGroup] : [],
     });
     setName("");
@@ -184,7 +201,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
       setNotice("That file is over 1 MB. Split it into smaller files and import each one.");
       return;
     }
-    const { rows, error, truncated } = rowsFromCsv(await file.text());
+    const { rows, error, truncated } = rowsFromCsv(await file.text(), config);
     if (error) {
       setNotice(error);
       return;
@@ -197,7 +214,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
   };
 
   const handleExport = () => {
-    const header = ["Name", "Email", "Party size", "Status", "Groups", "Note"];
+    const header = ["Name", "Email", "Party size", "Status", "Side", "Groups", "Note"];
     if (personalized) header.push("Invite code", "Invite link");
     const origin = window.location.origin;
     const rows = guests.map((g) => {
@@ -206,6 +223,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
         g.email ?? "",
         g.partySize,
         g.status,
+        sideLabel(config, g.side, ""),
         g.groupIds.map(groupName).filter(Boolean).join("; "),
         g.note ?? "",
       ];
@@ -261,6 +279,15 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
             onChange={(e) => setPartySize(e.target.value)}
           />
         </div>
+        <div className="w-full sm:w-44">
+          <Select
+            id="guest-side"
+            label="Side"
+            value={newGuestSide}
+            onChange={setNewGuestSide}
+            options={sideOptions(config, "Not set")}
+          />
+        </div>
         {groups.length > 0 && (
           <div className="w-full sm:w-40">
             <Select
@@ -282,7 +309,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)", maxWidth: "60ch" }}>
           Have a spreadsheet? Import a CSV with a <strong style={{ fontWeight: 500 }}>Name</strong> column, plus optional Email,
-          Party size, Group (separate several with ;), Status and Note.
+          Party size, Side (a partner&rsquo;s first name), Group (separate several with ;), Status and Note.
         </p>
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="sr-only" tabIndex={-1} onChange={handleImport} aria-hidden />
         <ButtonSecondary size="sm" onClick={() => fileRef.current?.click()}>
@@ -362,6 +389,17 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
                 onChange={(v) => setFilter(v as typeof filter)}
                 options={[{ value: "all", label: "All statuses" }, ...STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))]}
               />
+              <Select
+                variant="chip"
+                aria-label="Filter by side"
+                value={sideFilter}
+                onChange={setSideFilter}
+                options={[
+                  { value: "all", label: "Both sides" },
+                  ...sideOptions(config).filter((o) => o.value),
+                  { value: "none", label: "Side not set" },
+                ]}
+              />
               {groups.length > 0 && (
                 <Select
                   variant="chip"
@@ -430,6 +468,15 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
                       {copiedId === g.id ? "Copied" : "Copy link"}
                     </button>
                   )}
+
+                  <Select
+                    variant="chip"
+                    aria-label={`Side for ${g.name}`}
+                    value={g.side ?? ""}
+                    onChange={(v) => updateGuest(g.id, { side: asSide(v) })}
+                    options={sideOptions(config, "No side")}
+                    style={{ ...sideChip(g.side), fontSize: "0.75rem" }}
+                  />
 
                   <Select
                     variant="chip"

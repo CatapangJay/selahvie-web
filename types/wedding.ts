@@ -63,9 +63,36 @@ export interface WeddingConfig {
   inviteLookupEnabled?: boolean;
   /** Match the name typed in the RSVP form to the guest list (open invitation). Default true. */
   openInviteMatching?: boolean;
+  /** Reception seating chart. Owner only; never sent to visitors. */
+  seatingPlan?: SeatingPlan;
 }
 
 export type Tier = "base" | "personalized";
+
+/** Which partner's side a guest (or entourage member) is on. */
+export type GuestSide = "partner1" | "partner2";
+
+export interface SeatingTable {
+  id: string;
+  name: string;
+  shape: "round" | "rect";
+  seats: number;
+  /** Long tables only: which sides have chairs. 1 = one long side (head table), 4 = ends too. Default 2. */
+  seatSides?: 1 | 2 | 4;
+  /** Four-sided long tables: chairs at each end (the long sides get the rest, split evenly). */
+  endSeats?: number;
+  /** Centre of the table, as a percentage of the floor plan's width and height. */
+  x: number;
+  y: number;
+}
+
+export interface SeatingPlan {
+  tables: SeatingTable[];
+  /** Guest list entry id → table id. A guest's whole party sits together. */
+  assignments: Record<string, string>;
+  /** Guest list entry id → side. Legacy: sides now live on the guest (`GuestListEntry.side`). */
+  sides: Record<string, GuestSide>;
+}
 
 /** Sections that can be restricted to a group/guest audience. */
 export type AudienceSectionKey = OptionalSectionKey | "story" | "gallery" | "rsvp";
@@ -128,7 +155,9 @@ export interface FaqItem {
 export interface WeddingPartyMember {
   id: string;
   name: string;
-  role: string; // "Maid of Honor", "Best Man", ...
+  role: string; // a preset from lib/entourage.ts ("Best Man", "Principal Sponsor", …) or custom text
+  /** Whose side they stand with. Absent = not set (or both). */
+  side?: GuestSide;
   photoUrl?: string;
 }
 
@@ -179,6 +208,8 @@ export interface GuestListEntry {
    */
   partySize: number;
   status: "invited" | "attending" | "declined" | "pending";
+  /** Whose side the guest is on. Absent = not set. */
+  side?: GuestSide;
   note?: string;
   groupIds: string[];
   /** Hard-to-guess code used for the personal invite link and code entry. */

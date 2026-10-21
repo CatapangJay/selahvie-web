@@ -1,7 +1,7 @@
 "use client";
 
 import { createElement, useMemo, type CSSProperties } from "react";
-import { resolveTemplate } from "@/components/wedding-templates";
+import { rendersOwnGreeting, resolveTemplate } from "@/components/wedding-templates";
 import { resolveFontPreset } from "@/data/fontPresets";
 import TemplateMotionProvider from "./TemplateMotionProvider";
 import { InviteeProvider } from "./InviteeContext";
@@ -33,7 +33,7 @@ interface Props {
  */
 export default function PersonalizedTemplate({ config, invitee, guests, matcher: remoteMatcher, showBranding = true }: Props) {
   const view = useMemo(() => personalizeConfig(config, invitee), [config, invitee]);
-  const greeting = greetingFor(config, invitee);
+  const greeting = rendersOwnGreeting(config.templateId) ? null : greetingFor(config, invitee);
   const matcher = useMemo(() => {
     if (!isOpenInviteMatchingOn(config)) return null;
     if (remoteMatcher !== undefined) return remoteMatcher;

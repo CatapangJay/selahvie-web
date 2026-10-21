@@ -8,12 +8,14 @@ import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
 import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
 import { useInvitee } from "@/components/wedding-templates/_shared/InviteeContext";
 import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
+import { greetingFor } from "@/lib/invitations";
 import { dateParts, makePalette, paperStyle } from "./theme";
 import EnvelopeIntro from "./components/EnvelopeIntro";
 import HeroSection from "./components/HeroSection";
 import DetailsSection from "./components/DetailsSection";
 import StorySection from "./components/StorySection";
 import ScheduleSection from "./components/ScheduleSection";
+import EntourageSection from "./components/EntourageSection";
 import GallerySection from "./components/GallerySection";
 import RsvpSection from "./components/RsvpSection";
 import TemplateFooter from "./components/TemplateFooter";
@@ -48,6 +50,7 @@ export default function JewelTonesTemplate({ config, showBranding = true }: Prop
   const rsvpDeadline = dateParts(config.rsvpDeadline);
   const musicSrc = resolveMusicSrc(config.musicTrackId, config.musicCustomUrl);
   const showRsvp = isSectionVisible(config, "rsvp");
+  const greeting = greetingFor(config, invitee);
 
   return (
     <div style={{ background: palette.tealDeep, color: palette.ink }}>
@@ -69,10 +72,11 @@ export default function JewelTonesTemplate({ config, showBranding = true }: Prop
       {opened && <AudioPlayer src={musicSrc} accentColor={palette.gold} />}
 
       <main>
-        <HeroSection config={config} palette={palette} date={date} opened={opened} showRsvp={showRsvp} />
+        <HeroSection config={config} palette={palette} date={date} opened={opened} showRsvp={showRsvp} greeting={greeting} />
         <DetailsSection config={config} palette={palette} date={date} rsvpDeadline={rsvpDeadline} showRsvp={showRsvp} />
         {isSectionVisible(config, "story") && <StorySection config={config} palette={palette} />}
         {isSectionVisible(config, "schedule") && <ScheduleSection config={config} palette={palette} />}
+        {isSectionVisible(config, "weddingParty") && <EntourageSection config={config} palette={palette} />}
         {isSectionVisible(config, "gallery") && <GallerySection config={config} palette={palette} />}
         <div style={paperStyle(palette.cream, palette.creamDeep)}>
           <PrivateSections config={config} accent={palette.raspberry} tone="light" />

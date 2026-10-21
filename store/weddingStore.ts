@@ -5,6 +5,7 @@ import type { GuestGroup, GuestListEntry, RSVPEntry, WeddingConfig } from "@/typ
 import { createClient } from "@/lib/supabase/client";
 import { DEMO_ACCOUNT } from "@/lib/constants";
 import { generateInviteCode, normalizeName, stripFromAudiences } from "@/lib/invitations";
+import { stripGuest } from "@/lib/seating";
 import { fetchAllRows } from "@/lib/db/paging";
 import {
   fromGroupRow,
@@ -42,6 +43,7 @@ export interface ImportGuestRow {
   email?: string;
   partySize: number;
   status?: GuestListEntry["status"];
+  side?: GuestListEntry["side"];
   note?: string;
   groupNames: string[];
 }
@@ -413,7 +415,13 @@ export const useWeddingStore = create<WeddingState>()((set, get) => {
         rsvps: state.rsvps.map((r) => (r.guestId === id ? { ...r, guestId: undefined } : r)),
       }));
       const config = get().configs[guest.weddingId];
-      if (config) get().updateConfig(config.id, stripFromAudiences(config, { guestId: id }));
+      if (config) {
+        const seatingPlan = stripGuest(config.seatingPlan, id);
+        get().updateConfig(config.id, {
+          ...stripFromAudiences(config, { guestId: id }),
+          ...(seatingPlan ? { seatingPlan } : {}),
+        });
+      }
       enqueue(() => must(createClient().from("guests").delete().eq("id", id)));
     },
 
@@ -464,6 +472,7 @@ export const useWeddingStore = create<WeddingState>()((set, get) => {
           email,
           partySize: Math.max(1, Math.min(20, row.partySize || 1)),
           status: row.status ?? "invited",
+          side: row.side,
           note: row.note?.trim() || undefined,
           groupIds: [...new Set(row.groupNames.filter((n) => n.trim()).map(groupIdFor))],
           inviteCode,

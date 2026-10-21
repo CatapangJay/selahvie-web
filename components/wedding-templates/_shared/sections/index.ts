@@ -15,7 +15,7 @@ export function isSectionVisible(config: WeddingConfig, key: AudienceSectionKey)
 /** Human labels + order for the studio's section manager. */
 export const OPTIONAL_SECTIONS: { key: OptionalSectionKey; label: string }[] = [
   { key: "schedule", label: "Order of Events" },
-  { key: "weddingParty", label: "Wedding Party" },
+  { key: "weddingParty", label: "Entourage" },
   { key: "travel", label: "Travel & Stay" },
   { key: "registry", label: "Registry" },
   { key: "faq", label: "FAQ" },

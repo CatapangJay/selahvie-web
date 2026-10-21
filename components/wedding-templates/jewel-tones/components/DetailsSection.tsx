@@ -5,6 +5,7 @@ import Reveal from "@/components/ui/Reveal";
 import type { DateParts, Palette } from "../theme";
 import { SCRIPT, SECTION_PAD, SERIF, feltStyle, paperStyle } from "../theme";
 import SectionHeading from "./SectionHeading";
+import Countdown from "./Countdown";
 
 interface Props {
   config: WeddingConfig;
@@ -59,7 +60,7 @@ export default function DetailsSection({ config, palette: p, date, rsvpDeadline,
   return (
     <section id="details" aria-labelledby="jt-details-title" style={{ ...feltStyle(p.teal, p.tealDeep), padding: SECTION_PAD }}>
       <div className="mx-auto" style={{ maxWidth: "64rem" }}>
-        <SectionHeading id="jt-details-title" eyebrow="The Celebration" title="Save Our Date" palette={p} tone="dark" />
+        <SectionHeading id="jt-details-title" eyebrow="The Celebration" title="Mark the Date" palette={p} tone="dark" />
 
         <div className="grid gap-6 md:grid-cols-3" style={{ gap: "clamp(1.25rem, 3vw, 2rem)" }}>
           <Reveal index={0} className="h-full">
@@ -103,6 +104,12 @@ export default function DetailsSection({ config, palette: p, date, rsvpDeadline,
             </Card>
           </Reveal>
         </div>
+
+        {date.date && (
+          <Reveal index={0} style={{ marginTop: "clamp(3.5rem, 8vw, 5rem)" }}>
+            <Countdown target={date.date} palette={p} />
+          </Reveal>
+        )}
       </div>
     </section>
   );

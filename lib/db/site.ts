@@ -30,6 +30,7 @@ export function redactForViewer(config: WeddingConfig, invitee: Invitee | null):
   return {
     ...config,
     ownerEmail: undefined,
+    seatingPlan: undefined,
     privateSections: visiblePrivateSections(config, invitee),
     schedule: restricted("schedule") ? [] : config.schedule,
     weddingParty: restricted("weddingParty") ? [] : config.weddingParty,

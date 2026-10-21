@@ -25,6 +25,8 @@ import ForestBloomTemplate    from "./forest-bloom";
 import GoldenDuskTemplate          from "./golden-dusk";
 import BotanicalSerenityTemplate   from "./botanical-serenity";
 import JewelTonesTemplate          from "./jewel-tones";
+import MonochromeTemplate          from "./monochrome";
+import ApricotHourTemplate         from "./apricot-hour";
 
 /**
  * Map of template ID → renderer component.
@@ -39,6 +41,8 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
   t10: GoldenDuskTemplate,
   t11: BotanicalSerenityTemplate,
   t12: JewelTonesTemplate,
+  t13: MonochromeTemplate,
+  t14: ApricotHourTemplate,
   // t2: SageAndThistleTemplate,  ← add future templates here
 };
 
@@ -48,6 +52,19 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
  */
 export function resolveTemplate(templateId: string): ComponentType<TemplateComponentProps> {
   return templateRegistry[templateId] ?? RoseElegyTemplate;
+}
+
+/**
+ * Templates that render the invitee greeting in their own style instead of the shared overlay.
+ *
+ * Every new template should be added here: build the guest greeting (`greetingFor(config, useInvitee())`)
+ * into the template's own design (intro card, hero caption, place card…) rather than relying on the
+ * generic floating pill from `_shared/InviteeGreeting`, which is only a fallback for older templates.
+ */
+const OWN_GREETING_TEMPLATES = new Set(["t12", "t13", "t14"]);
+
+export function rendersOwnGreeting(templateId: string): boolean {
+  return OWN_GREETING_TEMPLATES.has(templateId);
 }
 
 const CORE_AUDIENCE_SECTIONS: { key: AudienceSectionKey; label: string }[] = [
@@ -68,7 +85,9 @@ const AUDIENCE_SECTIONS_BY_TEMPLATE: Record<string, AudienceSectionKey[]> = {
   t9: ["gallery"],
   t10: ["story", "gallery"],
   t11: ["story", "gallery"],
-  t12: ["story", "gallery", "schedule", "rsvp"],
+  t12: ["story", "gallery", "schedule", "weddingParty", "rsvp"],
+  t13: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
+  t14: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
 };
 
 export function audienceSectionsFor(templateId: string): { key: AudienceSectionKey; label: string }[] {

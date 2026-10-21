@@ -9,9 +9,11 @@ import type {
   GuestbookEntry,
   GuestGroup,
   GuestListEntry,
+  GuestSide,
   InviteGreeting,
   PrivateSection,
   RSVPEntry,
+  SeatingPlan,
   Tier,
   TravelInfo,
   WeddingConfig,
@@ -60,6 +62,8 @@ export interface WeddingRow {
   invite_greeting: InviteGreeting | null;
   invite_lookup_enabled: boolean;
   open_invite_matching: boolean;
+  /** Added in 0010; optional so inserts work before that migration runs. */
+  seating_plan?: Partial<SeatingPlan>;
   published_at: string | null;
   created_at: string;
   updated_at: string;
@@ -75,6 +79,8 @@ export interface GuestRow {
   email: string | null;
   party_size: number;
   status: GuestListEntry["status"];
+  /** Added in migration 0011. Absent on databases that haven't run it. */
+  side?: GuestSide | null;
   note: string | null;
   invite_code: string;
   created_at: string;
@@ -167,6 +173,11 @@ export function fromWeddingRow(row: WeddingRow, ownerEmail?: string): WeddingCon
     inviteGreeting: row.invite_greeting ?? undefined,
     inviteLookupEnabled: row.invite_lookup_enabled,
     openInviteMatching: row.open_invite_matching,
+    seatingPlan: {
+      tables: row.seating_plan?.tables ?? [],
+      assignments: row.seating_plan?.assignments ?? {},
+      sides: row.seating_plan?.sides ?? {},
+    },
   };
 }
 
@@ -207,6 +218,7 @@ export function weddingColumns(c: WeddingConfig): WeddingColumns {
     invite_greeting: c.inviteGreeting ?? null,
     invite_lookup_enabled: c.inviteLookupEnabled !== false,
     open_invite_matching: c.openInviteMatching !== false,
+    ...(c.seatingPlan ? { seating_plan: c.seatingPlan } : {}),
   };
 }
 
@@ -244,6 +256,7 @@ const COLUMN_FOR: Partial<Record<keyof WeddingConfig, keyof WeddingColumns>> = {
   inviteGreeting: "invite_greeting",
   inviteLookupEnabled: "invite_lookup_enabled",
   openInviteMatching: "open_invite_matching",
+  seatingPlan: "seating_plan",
 };
 
 /**
@@ -266,6 +279,7 @@ export function weddingPatch(config: WeddingConfig, changed: Iterable<keyof Wedd
 // ─── Guests, groups, membership ──────────────────────────────────────────────
 
 const clampPartySize = (n: number) => Math.max(1, Math.min(50, Math.round(Number(n) || 1)));
+const sideOrNull = (v: unknown): GuestSide | null => (v === "partner1" || v === "partner2" ? v : null);
 
 export function fromGuestRow(row: GuestRow, groupIds: string[]): GuestListEntry {
   return {
@@ -275,6 +289,7 @@ export function fromGuestRow(row: GuestRow, groupIds: string[]): GuestListEntry 
     email: row.email ?? undefined,
     partySize: row.party_size,
     status: row.status,
+    side: sideOrNull(row.side) ?? undefined,
     note: row.note ?? undefined,
     groupIds,
     inviteCode: row.invite_code,
@@ -290,19 +305,24 @@ export function guestRow(g: GuestListEntry): GuestRow {
     email: textOrNull(g.email),
     party_size: clampPartySize(g.partySize),
     status: g.status,
+    // Only sent when set, so inserts keep working before migration 0011 runs.
+    ...(sideOrNull(g.side) ? { side: g.side } : {}),
     note: textOrNull(g.note),
     invite_code: g.inviteCode,
     created_at: g.createdAt,
   };
 }
 
+type GuestEditable = Pick<GuestRow, "name" | "email" | "party_size" | "status" | "side" | "note">;
+
 /** Editable guest columns present in `data`. */
-export function guestColumns(data: Partial<GuestListEntry>): Partial<Pick<GuestRow, "name" | "email" | "party_size" | "status" | "note">> {
-  const out: Partial<Pick<GuestRow, "name" | "email" | "party_size" | "status" | "note">> = {};
+export function guestColumns(data: Partial<GuestListEntry>): Partial<GuestEditable> {
+  const out: Partial<GuestEditable> = {};
   if ("name" in data && data.name !== undefined) out.name = data.name.trim();
   if ("email" in data) out.email = textOrNull(data.email);
   if ("partySize" in data && data.partySize !== undefined) out.party_size = clampPartySize(data.partySize);
   if ("status" in data && data.status !== undefined) out.status = data.status;
+  if ("side" in data) out.side = sideOrNull(data.side);
   if ("note" in data) out.note = textOrNull(data.note);
   return out;
 }

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, ArrowRight, Check, ChevronDown, ExternalLink, Eye, Info, Lock, Monitor,
-  PanelLeftClose, PanelLeftOpen, Pause, Play, Plus, Smartphone, X,
+  PanelLeftClose, PanelLeftOpen, Pause, Play, Plus, Smartphone, Users, X,
 } from "lucide-react";
 import { useWeddingStore } from "@/store/weddingStore";
 import { useCartStore } from "@/store/cartStore";
@@ -20,6 +20,8 @@ import { cn, generateSlug } from "@/lib/utils";
 import { TIER_INFO, configTier } from "@/lib/tiers";
 import { musicTracks, CUSTOM_TRACK_ID, NO_MUSIC_ID } from "@/data/musicTracks";
 import SectionsEditor from "@/components/customize/SectionsEditor";
+import EntourageEditor from "@/components/customize/EntourageEditor";
+import { audienceSectionsFor } from "@/components/wedding-templates";
 import LivePreview, { type PreviewDevice } from "@/components/customize/LivePreview";
 import GuestListManager from "@/components/manage/GuestListManager";
 import PersonalizationEditor from "@/components/manage/PersonalizationEditor";
@@ -29,7 +31,7 @@ import PhotoGalleryField from "@/components/media/PhotoGalleryField";
 import Skeleton from "@/components/ui/Skeleton";
 import type { WeddingConfig } from "@/types/wedding";
 
-type StepId = "couple" | "look" | "story" | "rsvp" | "sections" | "guests" | "personalize" | "publish";
+type StepId = "couple" | "look" | "story" | "rsvp" | "entourage" | "sections" | "guests" | "personalize" | "publish";
 
 interface Step {
   id: StepId;
@@ -43,6 +45,7 @@ const STEPS: Step[] = [
   { id: "look", group: "Your website", label: "Colors" },
   { id: "story", group: "Your website", label: "Photos, story & music" },
   { id: "rsvp", group: "Your website", label: "RSVP settings" },
+  { id: "entourage", group: "Your website", label: "Entourage", optional: true },
   { id: "sections", group: "Your website", label: "Extra sections", optional: true },
   { id: "guests", group: "Your guests", label: "Guest list", optional: true },
   { id: "personalize", group: "Your guests", label: "Personal touches", optional: true },
@@ -67,8 +70,9 @@ function stepsDone(config: WeddingConfig, guestCount: number): Record<StepId, bo
     look: Boolean(config.themePresetId || config.primaryColor),
     story: Boolean(config.heroImageUrl && config.coupleStory),
     rsvp: Boolean(config.rsvpDeadline),
+    entourage: Boolean(config.weddingParty?.some((m) => m.name.trim())),
     sections: Boolean(
-      config.schedule?.length || config.faq?.length || config.registryLinks?.length || config.weddingParty?.length
+      config.schedule?.length || config.faq?.length || config.registryLinks?.length
     ),
     guests: guestCount > 0,
     personalize: configTier(config) === "personalized" && Boolean(config.privateSections?.length),
@@ -240,10 +244,10 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
   const gallery = config.galleryImageUrls?.length ?? 0;
   const filledSections = [
     config.schedule?.length && "Schedule",
-    config.weddingParty?.length && "Wedding party",
     config.registryLinks?.length && "Registry",
     config.faq?.length && "FAQ",
   ].filter(Boolean);
+  const entourageCount = config.weddingParty?.filter((m) => m.name.trim()).length ?? 0;
   /** One line shown under a collapsed step, so the couple can scan what's set. */
   const summaries: Record<StepId, string> = {
     couple: [
@@ -258,6 +262,7 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
       config.coupleStory && "Your story",
     ].filter(Boolean).join(" · "),
     rsvp: config.rsvpDeadline ? `Reply by ${formatDate(config.rsvpDeadline, "medium")}` : "",
+    entourage: entourageCount ? `${entourageCount} ${entourageCount === 1 ? "person" : "people"}` : "",
     sections: filledSections.join(", "),
     guests: guests.length
       ? `${plural(guests.length, "guest")}${groups.length ? ` in ${plural(groups.length, "group")}` : ""}`
@@ -306,6 +311,8 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
     look: "Start from one of this template's palettes, or set your own colors.",
     story: "The first things guests see and hear when they open your website.",
     rsvp: "Set a reply-by date and choose what to ask guests when they respond.",
+    entourage:
+      "Parents, sponsors, the best man, maid of honor and everyone else walking down the aisle. Only people with a name appear on your website.",
     sections: "Fonts, schedule, registry, travel and more. A section only shows on your website once it has content.",
     guests: (
       <>
@@ -436,12 +443,23 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
           })}
         </div>
 
+        <Link
+          href={`/dashboard/manage/${config.id}`}
+          aria-label="Guests and RSVPs"
+          title="Guests and RSVPs"
+          className="btn-outline inline-flex min-h-[40px] min-w-[40px] shrink-0 items-center justify-center gap-2 px-2.5 text-sm md:px-4"
+          style={{ borderRadius: "var(--radius-sm)", letterSpacing: "normal" }}
+        >
+          <Users size={15} aria-hidden />
+          <span className="hidden md:inline" aria-hidden>Guests &amp; RSVPs</span>
+        </Link>
+
         {published ? (
           <Link
             href={siteHref}
             target="_blank"
-            className="btn-outline label-luxury hidden min-h-[40px] shrink-0 items-center gap-2 px-4 sm:inline-flex"
-            style={{ borderRadius: "var(--radius-sm)" }}
+            className="btn-outline hidden min-h-[40px] shrink-0 items-center gap-2 px-4 text-sm sm:inline-flex"
+            style={{ borderRadius: "var(--radius-sm)", letterSpacing: "normal" }}
           >
             <Eye size={14} aria-hidden />
             View live site
@@ -815,6 +833,14 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                   </div>
                 )}
 
+                {s.id === "entourage" && (
+                  <EntourageEditor
+                    config={config}
+                    update={update}
+                    shownOnSite={audienceSectionsFor(config.templateId).some((x) => x.key === "weddingParty")}
+                  />
+                )}
+
                 {s.id === "sections" && <SectionsEditor config={config} update={update} />}
 
                 {s.id === "guests" && (
@@ -1136,6 +1162,14 @@ function ReviewStep({ config, templatePalette, guestCount, groupCount, done, pub
         config.allowPlusOne ? "Plus-ones allowed" : "No plus-ones",
         config.mealOptions.length ? plural(config.mealOptions.length, "meal option") : "No meal choice",
       ].join(" · "),
+    },
+    {
+      label: "Entourage",
+      step: "entourage",
+      value: (() => {
+        const n = config.weddingParty?.filter((m) => m.name.trim()).length ?? 0;
+        return n ? `${n} ${n === 1 ? "person" : "people"}` : "None listed";
+      })(),
     },
     {
       label: "Guest list",

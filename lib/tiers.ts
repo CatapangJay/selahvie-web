@@ -14,6 +14,7 @@ export const TIER_INFO: Record<Tier, { label: string; summary: string; features:
       "Show extra events, like a rehearsal dinner, to select guests",
       "Let chosen guests bring more than one plus-one",
       "RSVPs arrive prefilled and update your guest list",
+      "Seating chart with a drag-and-drop floor plan",
     ],
   },
   base: {
