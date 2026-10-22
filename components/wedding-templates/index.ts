@@ -28,6 +28,7 @@ import JewelTonesTemplate          from "./jewel-tones";
 import MonochromeTemplate          from "./monochrome";
 import ApricotHourTemplate         from "./apricot-hour";
 import NarraKapisTemplate          from "./narra-kapis";
+import ShutterStripTemplate        from "./shutter-strip";
 
 /**
  * Map of template ID → renderer component.
@@ -45,6 +46,7 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
   t13: MonochromeTemplate,
   t14: ApricotHourTemplate,
   t15: NarraKapisTemplate,
+  t16: ShutterStripTemplate,
   // t2: SageAndThistleTemplate,  ← add future templates here
 };
 
@@ -63,7 +65,7 @@ export function resolveTemplate(templateId: string): ComponentType<TemplateCompo
  * into the template's own design (intro card, hero caption, place card…) rather than relying on the
  * generic floating pill from `_shared/InviteeGreeting`, which is only a fallback for older templates.
  */
-const OWN_GREETING_TEMPLATES = new Set(["t12", "t13", "t14", "t15"]);
+const OWN_GREETING_TEMPLATES = new Set(["t12", "t13", "t14", "t15", "t16"]);
 
 export function rendersOwnGreeting(templateId: string): boolean {
   return OWN_GREETING_TEMPLATES.has(templateId);
@@ -91,6 +93,7 @@ const AUDIENCE_SECTIONS_BY_TEMPLATE: Record<string, AudienceSectionKey[]> = {
   t13: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
   t14: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
   t15: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
+  t16: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
 };
 
 export function audienceSectionsFor(templateId: string): { key: AudienceSectionKey; label: string }[] {

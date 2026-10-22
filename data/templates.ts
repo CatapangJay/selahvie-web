@@ -476,4 +476,36 @@ export const templates: WeddingTemplate[] = [
     isFeatured: true,
     createdAt: "2026-10-21",
   },
+  {
+    id: "t16",
+    name: "Shutter & Strip",
+    slug: "shutter-strip",
+    description: "A photo-booth invitation — strike a pose, watch four flashes, and a strip of the couple feeds out and develops.",
+    longDescription:
+      "Shutter & Strip turns opening an invitation into a turn in the photo booth. Each guest finds a marquee booth with chasing bulbs and a card reserved in their name pinned to the red curtain. One tap pulls the curtain back for a 3-2-1 countdown and four camera flashes, then a strip of the couple feeds out of the print slot and develops frame by frame. Inside, the site alternates oat photo paper and the darkroom, each section a numbered frame on the roll: a portrait cut from a length of negative with the camera's orange date burned in, an admission-ticket venue card, the programme as a contact sheet, gallery prints hung on a drying line, a colour-chip dress code, an order-form RSVP and gifts printed on lab receipts.",
+    price: 9900,
+    previewImage: "https://picsum.photos/seed/shutter-strip/800/1000",
+    previewImages: [
+      "https://picsum.photos/seed/shutter-strip/1200/800",
+      "https://picsum.photos/seed/shutter-strip-2/1200/800",
+    ],
+    tags: ["Modern", "Romantic"],
+    features: [
+      "Photo-booth intro with countdown, flashes and a developing 4-frame strip",
+      "A \"Reserved for\" card on the curtain and an admission stub for each guest",
+      "Hero portrait in a negative strip with a camera date imprint",
+      "Frame-counter countdown timer",
+      "Ticket-style venue card and contact-sheet programme",
+      "Gallery cut into photo strips that develop on scroll",
+      "Dress code shown as colour chips from your palette",
+      "Order-form RSVP and receipt-slip gift list",
+      "Mobile-optimized",
+    ],
+    colorPalettes: [
+      { id: "ss1", name: "Ink & Film Red",      primary: "#1E2B45", accent: "#B4442E", background: "#F1EADF" },
+      { id: "ss2", name: "Espresso & Marigold", primary: "#3A2A20", accent: "#C98A2B", background: "#F3EBDD" },
+    ],
+    isFeatured: true,
+    createdAt: "2026-10-22",
+  },
 ];
