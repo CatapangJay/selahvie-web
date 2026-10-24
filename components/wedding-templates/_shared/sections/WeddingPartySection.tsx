@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { groupEntourage, type RoleGroup } from "@/lib/entourage";
+import { columnLayout, displayName, groupEntourage, type RoleGroup } from "@/lib/entourage";
 import { partnerNames } from "@/lib/guestSides";
 import type { WeddingConfig, WeddingPartyMember } from "@/types/wedding";
 
@@ -20,6 +20,7 @@ export default function WeddingPartySection({ config, primary, accent }: Props) 
   const categories = groupEntourage(config.weddingParty ?? []);
   if (categories.length === 0) return null;
   const { p1, p2 } = partnerNames(config);
+  const nameStyle = config.entourageLayout?.parentNames;
 
   // Parents and grandparents read best per partner ("Ana's parents").
   const rolesFor = (id: string, roles: RoleGroup[]): RoleGroup[] => {
@@ -48,6 +49,7 @@ export default function WeddingPartySection({ config, primary, accent }: Props) 
           {categories.map((cat) => {
             const roles = rolesFor(cat.id, cat.roles);
             const multi = roles.length > 1;
+            const cols = columnLayout(config.entourageLayout, cat.id, roles);
             return (
               <div key={cat.id} className="text-center">
                 {multi && (
@@ -55,7 +57,7 @@ export default function WeddingPartySection({ config, primary, accent }: Props) 
                     {cat.label}
                   </h3>
                 )}
-                <div className={multi ? "grid gap-x-10 gap-y-8 sm:grid-cols-2" : undefined}>
+                <div className={multi ? `grid gap-x-10 gap-y-8 ${cols?.roles ?? "sm:grid-cols-2"}` : undefined}>
                   {roles.map((r) => (
                     <div key={r.heading || r.role}>
                       {r.heading && (
@@ -70,7 +72,7 @@ export default function WeddingPartySection({ config, primary, accent }: Props) 
                           {r.heading}
                         </p>
                       )}
-                      <ul className="space-y-2">
+                      <ul className={cols?.names ? `grid gap-x-8 gap-y-2 ${cols.names}` : "space-y-2"}>
                         {r.members.map((m) => (
                           <li key={m.id} className="flex flex-col items-center gap-2">
                             {m.photoUrl && (
@@ -78,7 +80,7 @@ export default function WeddingPartySection({ config, primary, accent }: Props) 
                                 <Image src={m.photoUrl} alt="" fill className="object-cover" sizes="64px" />
                               </span>
                             )}
-                            <span className="text-base" style={{ color: "var(--color-on-surface)" }}>{m.name}</span>
+                            <span className="text-base" style={{ color: "var(--color-on-surface)" }}>{displayName(m, nameStyle)}</span>
                           </li>
                         ))}
                       </ul>

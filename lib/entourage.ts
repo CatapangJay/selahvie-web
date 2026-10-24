@@ -1,4 +1,4 @@
-import type { WeddingPartyMember } from "@/types/wedding";
+import type { EntourageColumns, EntourageLayout, ParentNameStyle, WeddingPartyMember } from "@/types/wedding";
 
 /** One preset role. `plural` is used for headings on the website. */
 export interface EntourageRole {
@@ -85,6 +85,60 @@ export function isPresetRole(role: string): boolean {
   return categoryOf(role) !== OTHER_CATEGORY.id;
 }
 
+/** Roles listed as a pair of names (both parents on one row). */
+export function isPairedRole(role: string): boolean {
+  return categoryOf(role) === "parents";
+}
+
+// A second name left over from before the role changed doesn't count.
+const secondName = (m: WeddingPartyMember) => (isPairedRole(m.role) ? (m.name2?.trim() ?? "") : "");
+
+export const isNamed = (m: WeddingPartyMember) => Boolean(m.name.trim() || secondName(m));
+
+// A title already typed before the first name, so "titled" doesn't double it.
+const LEADING_TITLE = /^(mr\.?\s*(&|and)\s*mrs|mr|mrs|ms)\.?\s+/i;
+
+/** A member's name as shown on the site; pairs follow the wedding's parent-name style. */
+export function displayName(m: WeddingPartyMember, style: ParentNameStyle = "titled"): string {
+  const first = m.name.trim();
+  const second = secondName(m);
+  if (!first || !second) return first || second;
+  return style === "full" ? `${first} & ${second}` : `Mr. & Mrs. ${first.replace(LEADING_TITLE, "")}`;
+}
+
+// Three columns drop to two on phones, where names would wrap word by word.
+// An odd last item in two columns spans the row so it sits centred.
+const COLUMN_CLASS: Record<EntourageColumns, string> = {
+  1: "grid-cols-1",
+  2: "grid-cols-2 [&>:last-child:nth-child(odd)]:col-span-2",
+  3: "grid-cols-2 sm:grid-cols-3 max-sm:[&>:last-child:nth-child(odd)]:col-span-2",
+};
+
+export interface ColumnLayout {
+  /** Columns in use, capped at what there is to split. */
+  columns: EntourageColumns;
+  /** Grid-column classes for the category's roles. */
+  roles: string;
+  /** Grid-column classes for a lone role's names; undefined = one name per line. */
+  names?: string;
+}
+
+/**
+ * The couple's chosen columns for a category, or undefined to keep the
+ * template's own layout. Several roles sit side by side; a lone role spreads
+ * its names across the columns.
+ */
+export function columnLayout(layout: EntourageLayout | undefined, categoryId: string, roles: RoleGroup[]): ColumnLayout | undefined {
+  const chosen = layout?.columns?.[categoryId];
+  if (!chosen) return undefined;
+  if (roles.length > 1) {
+    const n = Math.min(chosen, roles.length) as EntourageColumns;
+    return { columns: n, roles: COLUMN_CLASS[n] };
+  }
+  const n = Math.min(chosen, Math.max(1, roles[0]?.members.length ?? 1)) as EntourageColumns;
+  return { columns: n, roles: COLUMN_CLASS[1], names: n > 1 ? COLUMN_CLASS[n] : undefined };
+}
+
 const ROLE_ORDER = ENTOURAGE.flatMap((c) => c.roles.map((r) => norm(r.role)));
 
 /** Heading for a group of members who share a role. */
@@ -111,7 +165,7 @@ export interface CategoryGroup {
  * follow the presets in the order they were first added.
  */
 export function groupEntourage(members: WeddingPartyMember[]): CategoryGroup[] {
-  const named = members.filter((m) => m.name.trim());
+  const named = members.filter(isNamed);
   const cats = [...ENTOURAGE.map((c) => ({ id: c.id, label: c.label })), OTHER_CATEGORY];
   return cats
     .map((cat) => {

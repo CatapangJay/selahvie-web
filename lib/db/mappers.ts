@@ -26,6 +26,7 @@ interface WeddingSectionsJson {
   travel?: TravelInfo;
   faq?: WeddingConfig["faq"];
   weddingParty?: WeddingConfig["weddingParty"];
+  entourageLayout?: WeddingConfig["entourageLayout"];
   schedule?: WeddingConfig["schedule"];
 }
 
@@ -165,6 +166,7 @@ export function fromWeddingRow(row: WeddingRow, ownerEmail?: string): WeddingCon
     travel: sections.travel ?? EMPTY_TRAVEL,
     faq: sections.faq ?? [],
     weddingParty: sections.weddingParty ?? [],
+    entourageLayout: sections.entourageLayout ?? {},
     schedule: sections.schedule ?? [],
     fontPresetId: row.font_preset_id ?? undefined,
     sectionVisibility: row.section_visibility ?? {},
@@ -210,6 +212,7 @@ export function weddingColumns(c: WeddingConfig): WeddingColumns {
       travel: c.travel ?? EMPTY_TRAVEL,
       faq: c.faq ?? [],
       weddingParty: c.weddingParty ?? [],
+      entourageLayout: c.entourageLayout ?? {},
       schedule: c.schedule ?? [],
     },
     section_visibility: c.sectionVisibility ?? {},
@@ -249,6 +252,7 @@ const COLUMN_FOR: Partial<Record<keyof WeddingConfig, keyof WeddingColumns>> = {
   travel: "sections",
   faq: "sections",
   weddingParty: "sections",
+  entourageLayout: "sections",
   schedule: "sections",
   sectionVisibility: "section_visibility",
   sectionAudiences: "section_audiences",

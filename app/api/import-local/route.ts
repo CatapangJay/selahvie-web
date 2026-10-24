@@ -81,6 +81,7 @@ function coerceConfig(raw: Raw, id: string, templateId: string): WeddingConfig {
     ...pick("travel", isObj(raw.travel) ? (raw.travel as unknown as WeddingConfig["travel"]) : undefined),
     ...pick("faq", list(raw.faq)),
     ...pick("weddingParty", list(raw.weddingParty)),
+    ...pick("entourageLayout", isObj(raw.entourageLayout) ? (raw.entourageLayout as WeddingConfig["entourageLayout"]) : undefined),
     ...pick("schedule", list(raw.schedule)),
     ...pick("sectionVisibility", isObj(raw.sectionVisibility) ? (raw.sectionVisibility as WeddingConfig["sectionVisibility"]) : undefined),
     ...pick("inviteGreeting", isObj(raw.inviteGreeting) ? (raw.inviteGreeting as unknown as WeddingConfig["inviteGreeting"]) : undefined),

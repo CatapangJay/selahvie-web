@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { WeddingConfig, WeddingPartyMember } from "@/types/wedding";
 import Reveal from "@/components/ui/Reveal";
-import { groupEntourage, type RoleGroup } from "@/lib/entourage";
+import { columnLayout, displayName, groupEntourage, type RoleGroup } from "@/lib/entourage";
 import { partnerNames } from "@/lib/guestSides";
 import type { Palette } from "../theme";
 import { SCRIPT, SECTION_PAD, SERIF, paperStyle } from "../theme";
@@ -63,6 +63,7 @@ export default function EntourageSection({ config, palette: p }: Props) {
           {categories.map((cat, ci) => {
             const roles = rolesFor(cat.id, cat.roles);
             const paired = roles.length > 1;
+            const cols = columnLayout(config.entourageLayout, cat.id, roles);
             // A single role needs no category heading when the role says it all.
             const showCategory = paired || cat.id === "other";
             return (
@@ -92,14 +93,14 @@ export default function EntourageSection({ config, palette: p }: Props) {
                 )}
 
                 <div
-                  className={paired ? "grid sm:grid-cols-2" : ""}
+                  className={cols ? `grid ${cols.roles}` : paired ? "grid sm:grid-cols-2" : ""}
                   style={{ columnGap: "clamp(2rem, 6vw, 4rem)", rowGap: "clamp(1.75rem, 4vw, 2.25rem)" }}
                 >
                   {roles.map((r, ri) => (
                     <div
                       key={r.heading || r.role || ri}
                       // An odd last role sits centred under the pairs.
-                      className={paired && ri === roles.length - 1 && roles.length % 2 === 1 ? "sm:col-span-2" : undefined}
+                      className={!cols && paired && ri === roles.length - 1 && roles.length % 2 === 1 ? "sm:col-span-2" : undefined}
                     >
                       {r.heading && (
                         <p
@@ -114,9 +115,9 @@ export default function EntourageSection({ config, palette: p }: Props) {
                           {r.heading}
                         </p>
                       )}
-                      <ul className="flex flex-col items-center" style={{ gap: "0.55rem" }}>
+                      <ul className={cols?.names ? `grid justify-items-center ${cols.names}` : "flex flex-col items-center"} style={{ gap: "0.55rem 1.5rem" }}>
                         {r.members.map((m) => (
-                          <Member key={m.id} member={m} palette={p} />
+                          <Member key={m.id} member={m} name={displayName(m, config.entourageLayout?.parentNames)} palette={p} />
                         ))}
                       </ul>
                     </div>
@@ -136,7 +137,7 @@ export default function EntourageSection({ config, palette: p }: Props) {
   );
 }
 
-function Member({ member: m, palette: p }: { member: WeddingPartyMember; palette: Palette }) {
+function Member({ member: m, name, palette: p }: { member: WeddingPartyMember; name: string; palette: Palette }) {
   return (
     <li className="flex flex-col items-center" style={{ gap: "0.6rem" }}>
       {m.photoUrl && (
@@ -144,7 +145,7 @@ function Member({ member: m, palette: p }: { member: WeddingPartyMember; palette
           <Image src={m.photoUrl} alt="" fill sizes="88px" className="object-cover" />
         </GiltFrame>
       )}
-      <span style={{ fontFamily: SERIF, fontSize: "clamp(1.2rem, 2.4vw, 1.35rem)", lineHeight: 1.3, color: p.ink }}>{m.name}</span>
+      <span style={{ fontFamily: SERIF, fontSize: "clamp(1.2rem, 2.4vw, 1.35rem)", lineHeight: 1.3, color: p.ink }}>{name}</span>
     </li>
   );
 }

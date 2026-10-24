@@ -40,6 +40,7 @@ export interface WeddingConfig {
   travel?: TravelInfo;
   faq?: FaqItem[];
   weddingParty?: WeddingPartyMember[];
+  entourageLayout?: EntourageLayout;
   schedule?: ScheduleEvent[];
 
   // ─── Deeper customization ───
@@ -159,6 +160,23 @@ export interface WeddingPartyMember {
   /** Whose side they stand with. Absent = not set (or both). */
   side?: GuestSide;
   photoUrl?: string;
+  /** Parent and grandparent rows: the other person of the pair. `name` is listed first. */
+  name2?: string;
+}
+
+export type EntourageColumns = 1 | 2 | 3;
+
+/**
+ * How parent and grandparent pairs read: "titled" = "Mr. & Mrs. Rafael Dizon",
+ * "full" = "Rafael Dizon & Maria Santos Dizon".
+ */
+export type ParentNameStyle = "titled" | "full";
+
+export interface EntourageLayout {
+  /** Category id (lib/entourage.ts) → columns. Absent = the template's own layout. */
+  columns?: Partial<Record<string, EntourageColumns>>;
+  /** Absent = "titled". */
+  parentNames?: ParentNameStyle;
 }
 
 export interface ScheduleEvent {

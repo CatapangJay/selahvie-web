@@ -21,6 +21,7 @@ import { TIER_INFO, configTier } from "@/lib/tiers";
 import { musicTracks, CUSTOM_TRACK_ID, NO_MUSIC_ID } from "@/data/musicTracks";
 import SectionsEditor from "@/components/customize/SectionsEditor";
 import EntourageEditor from "@/components/customize/EntourageEditor";
+import { isNamed } from "@/lib/entourage";
 import { audienceSectionsFor } from "@/components/wedding-templates";
 import LivePreview, { type PreviewDevice } from "@/components/customize/LivePreview";
 import GuestListManager from "@/components/manage/GuestListManager";
@@ -70,7 +71,7 @@ function stepsDone(config: WeddingConfig, guestCount: number): Record<StepId, bo
     look: Boolean(config.themePresetId || config.primaryColor),
     story: Boolean(config.heroImageUrl && config.coupleStory),
     rsvp: Boolean(config.rsvpDeadline),
-    entourage: Boolean(config.weddingParty?.some((m) => m.name.trim())),
+    entourage: Boolean(config.weddingParty?.some(isNamed)),
     sections: Boolean(
       config.schedule?.length || config.faq?.length || config.registryLinks?.length
     ),
@@ -247,7 +248,7 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
     config.registryLinks?.length && "Registry",
     config.faq?.length && "FAQ",
   ].filter(Boolean);
-  const entourageCount = config.weddingParty?.filter((m) => m.name.trim()).length ?? 0;
+  const entourageCount = config.weddingParty?.filter(isNamed).length ?? 0;
   /** One line shown under a collapsed step, so the couple can scan what's set. */
   const summaries: Record<StepId, string> = {
     couple: [
@@ -1167,7 +1168,7 @@ function ReviewStep({ config, templatePalette, guestCount, groupCount, done, pub
       label: "Entourage",
       step: "entourage",
       value: (() => {
-        const n = config.weddingParty?.filter((m) => m.name.trim()).length ?? 0;
+        const n = config.weddingParty?.filter(isNamed).length ?? 0;
         return n ? `${n} ${n === 1 ? "person" : "people"}` : "None listed";
       })(),
     },

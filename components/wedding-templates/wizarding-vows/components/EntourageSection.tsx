@@ -1,5 +1,5 @@
 import type { WeddingConfig, WeddingPartyMember } from "@/types/wedding";
-import { groupEntourage } from "@/lib/entourage";
+import { columnLayout, displayName, groupEntourage } from "@/lib/entourage";
 import type { Palette } from "../theme";
 import { BOOK, capsLabel, parchmentStyle } from "../theme";
 import { SectionHeading } from "./Motion";
@@ -14,7 +14,8 @@ const bySide = (a: WeddingPartyMember, b: WeddingPartyMember) => SIDE_ORDER[a.si
 
 /** The roll of the order: each group under a tracked heading set between hairlines, names in garamond. */
 export default function EntourageSection({ config, palette: p }: Props) {
-  const categories = groupEntourage(config.weddingParty ?? []);
+  const layout = config.entourageLayout;
+  const categories = groupEntourage(config.weddingParty ?? []).map((cat) => ({ ...cat, cols: columnLayout(layout, cat.id, cat.roles) }));
   if (categories.length === 0) return null;
 
   return (
@@ -23,7 +24,7 @@ export default function EntourageSection({ config, palette: p }: Props) {
         <SectionHeading id="wv-entourage-title" kicker="Those who stand with us" title="Our Order" color={p.ink} accent={p.wax} />
         {categories.map((cat, ci) => (
           <div key={cat.id} style={{ padding: "1.6rem 0 0.4rem", borderTop: ci === 0 ? "none" : `1px solid color-mix(in srgb, ${p.inkSoft} 30%, transparent)` }}>
-            <div className="grid gap-x-8 sm:grid-cols-2">
+            <div className={`grid gap-x-8 ${cat.cols?.roles ?? "sm:grid-cols-2"}`}>
               {cat.roles.map((group) => {
                 return (
                   <div key={group.role} style={{ marginBottom: "1.6rem" }}>
@@ -32,10 +33,10 @@ export default function EntourageSection({ config, palette: p }: Props) {
                       {group.heading}
                       <span aria-hidden style={{ width: "1.6rem", height: 1, background: `color-mix(in srgb, ${p.wax} 55%, transparent)` }} />
                     </p>
-                    <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                    <ul className={cat.cols?.names && `grid gap-x-6 ${cat.cols.names}`} style={{ listStyle: "none", padding: 0, margin: 0 }}>
                       {[...group.members].sort(bySide).map((m) => (
                         <li key={m.id} style={{ fontFamily: BOOK, fontSize: "clamp(18px, 4.8vw, 21px)", lineHeight: 1.55, color: p.ink }}>
-                          {m.name}
+                          {displayName(m, layout?.parentNames)}
                         </li>
                       ))}
                     </ul>

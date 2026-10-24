@@ -4,9 +4,9 @@ import { useId } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import Select, { type SelectOption } from "@/components/ui/Select";
 import { InputField } from "@/components/ui/InputField";
-import { ENTOURAGE, OTHER_CATEGORY, categoryOf, isPresetRole } from "@/lib/entourage";
+import { ENTOURAGE, OTHER_CATEGORY, categoryOf, displayName, isNamed, isPairedRole, isPresetRole } from "@/lib/entourage";
 import { asSide, sideOptions } from "@/lib/guestSides";
-import type { WeddingConfig, WeddingPartyMember } from "@/types/wedding";
+import type { EntourageColumns, EntourageLayout, ParentNameStyle, WeddingConfig, WeddingPartyMember } from "@/types/wedding";
 
 interface Props {
   config: WeddingConfig;
@@ -31,6 +31,16 @@ const CATEGORIES = [
   { id: OTHER_CATEGORY.id, label: OTHER_CATEGORY.label, roles: [] },
 ];
 
+const COLUMN_OPTIONS: SelectOption[] = [
+  { value: "", label: "Template layout" },
+  { value: "1", label: "1 column" },
+  { value: "2", label: "2 columns" },
+  { value: "3", label: "3 columns" },
+];
+
+// Shown when no pair has both names yet.
+const SAMPLE_PAIR: WeddingPartyMember = { id: "", role: "Parent", name: "Rafael Dizon", name2: "Maria Santos Dizon" };
+
 /** Canonical spelling of a preset role, or CUSTOM. */
 const roleValue = (role: string) =>
   ENTOURAGE.flatMap((c) => c.roles).find((r) => r.role.toLowerCase() === role.trim().toLowerCase())?.role ?? CUSTOM;
@@ -39,6 +49,21 @@ export default function EntourageEditor({ config, update, shownOnSite }: Props) 
   const members = config.weddingParty ?? [];
   const sides = sideOptions(config, "Either side");
   const full = members.length >= MAX_MEMBERS;
+
+  const layout = config.entourageLayout ?? {};
+  const setLayout = (data: Partial<EntourageLayout>) => update({ entourageLayout: { ...layout, ...data } });
+  const setColumns = (categoryId: string, value: string) => {
+    const columns = { ...layout.columns };
+    if (value) columns[categoryId] = Number(value) as EntourageColumns;
+    else delete columns[categoryId];
+    setLayout({ columns });
+  };
+
+  const pair = members.find((m) => isPairedRole(m.role) && m.name.trim() && m.name2?.trim()) ?? SAMPLE_PAIR;
+  const nameStyles: SelectOption[] = (["titled", "full"] as const).map((style) => ({
+    value: style,
+    label: displayName(pair, style),
+  }));
 
   const save = (next: WeddingPartyMember[]) => update({ weddingParty: next });
   const patch = (id: string, data: Partial<WeddingPartyMember>) =>
@@ -65,12 +90,31 @@ export default function EntourageEditor({ config, update, shownOnSite }: Props) 
 
       {CATEGORIES.map((cat) => {
         const list = members.filter((m) => categoryOf(m.role) === cat.id);
+        const count = list.filter(isNamed).length;
         return (
-          <CategorySection
-            key={cat.id}
-            label={cat.label}
-            count={list.filter((m) => m.name.trim()).length}
-          >
+          <CategorySection key={cat.id} label={cat.label} count={count}>
+            {count > 0 && (
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <Select
+                  variant="chip"
+                  aria-label={`Columns for ${cat.label} on your website`}
+                  value={String(layout.columns?.[cat.id] ?? "")}
+                  onChange={(v) => setColumns(cat.id, v)}
+                  options={COLUMN_OPTIONS}
+                  style={{ fontSize: "0.75rem" }}
+                />
+                {cat.id === "parents" && list.some((m) => m.name2?.trim()) && (
+                  <Select
+                    variant="chip"
+                    aria-label="How parents' names appear"
+                    value={layout.parentNames ?? "titled"}
+                    onChange={(v) => setLayout({ parentNames: v as ParentNameStyle })}
+                    options={nameStyles}
+                    style={{ fontSize: "0.75rem" }}
+                  />
+                )}
+              </div>
+            )}
             {list.length > 0 && (
               <ul className="mb-3" style={{ borderTop: "1px solid var(--color-outline)" }}>
                 {list.map((m) => (
@@ -145,6 +189,7 @@ interface RowProps {
 
 function MemberRow({ member, sides, onChange, onRemove }: RowProps) {
   const custom = !isPresetRole(member.role);
+  const paired = isPairedRole(member.role);
   const label = member.name.trim() || member.role || "this person";
 
   return (
@@ -153,11 +198,28 @@ function MemberRow({ member, sides, onChange, onRemove }: RowProps) {
         <InputField
           id={`ent-${member.id}`}
           aria-label={`Name${member.role ? `, ${member.role}` : ""}`}
-          placeholder={member.role === "Godfather" ? "e.g. Mr. Jose Reyes" : member.role === "Godmother" ? "e.g. Mrs. Ana Reyes" : "Full name"}
+          placeholder={
+            member.role === "Godfather" ? "e.g. Mr. Jose Reyes"
+            : member.role === "Godmother" ? "e.g. Mrs. Ana Reyes"
+            : paired ? "Full name, e.g. Rafael Dizon"
+            : "Full name"
+          }
           value={member.name}
           maxLength={120}
           onChange={(e) => onChange({ name: e.target.value })}
         />
+        {paired && (
+          <div className="mt-1">
+            <InputField
+              id={`ent-name2-${member.id}`}
+              aria-label={`Partner's name, ${member.role}`}
+              placeholder="Their partner, e.g. Maria Santos Dizon"
+              value={member.name2 ?? ""}
+              maxLength={120}
+              onChange={(e) => onChange({ name2: e.target.value || undefined })}
+            />
+          </div>
+        )}
         {custom && (
           <div className="mt-1">
             <InputField
