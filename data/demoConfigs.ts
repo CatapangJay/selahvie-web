@@ -279,7 +279,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     primaryColor: "#c4205f",
     accentColor: "#2b6a62",
     themePresetId: "jt1",
-    heroImageUrl: "https://picsum.photos/seed/jewel-tones-hero/900/1200",
+    heroImageUrl: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=900&h=1200&q=80",
     galleryImageUrls: [
       "https://picsum.photos/seed/jt-g1/800/1000",
       "https://picsum.photos/seed/jt-g2/800/1000",
@@ -337,7 +337,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     primaryColor: "#0A0A0A",
     accentColor: "#8E8C88",
     themePresetId: "mc1",
-    heroImageUrl: "https://picsum.photos/seed/foundry-portrait/1000/1500?grayscale",
+    heroImageUrl: "https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=1000&h=1500&q=80",
     galleryImageUrls: [
       "https://picsum.photos/seed/foundry-break/1400/900?grayscale",
       "https://picsum.photos/seed/foundry-f1/800/1000?grayscale",
@@ -461,7 +461,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     primaryColor: "#6B3E1F",
     accentColor: "#B48A3C",
     themePresetId: "nk1",
-    heroImageUrl: "https://picsum.photos/seed/narra-kapis-hero/900/1300",
+    heroImageUrl: "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=900&h=1300&q=80",
     galleryImageUrls: [
       "https://picsum.photos/seed/nk-g1/800/1000",
       "https://picsum.photos/seed/nk-g2/800/1000",
@@ -530,7 +530,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     primaryColor: "#1E2B45",
     accentColor: "#B4442E",
     themePresetId: "ss1",
-    heroImageUrl: "https://picsum.photos/seed/shutter-strip-hero/900/1100",
+    heroImageUrl: "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=900&h=1100&q=80",
     galleryImageUrls: [
       "https://picsum.photos/seed/ss-g1/800/800",
       "https://picsum.photos/seed/ss-g2/800/800",
@@ -602,7 +602,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     primaryColor: "#6E2B2B",
     accentColor: "#CFAE62",
     themePresetId: "wv1",
-    heroImageUrl: "https://picsum.photos/seed/wizarding-vows-hero/900/1100",
+    heroImageUrl: "https://images.unsplash.com/photo-1460978812857-470ed1c77af0?auto=format&fit=crop&w=900&h=1100&q=80",
     galleryImageUrls: [
       "https://picsum.photos/seed/wv-g1/800/1000",
       "https://picsum.photos/seed/wv-g2/800/1000",
