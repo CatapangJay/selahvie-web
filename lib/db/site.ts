@@ -1,4 +1,4 @@
-import { personalizeConfig, visiblePrivateSections, type Invitee } from "@/lib/invitations";
+import { applyPackage, personalizeConfig, visiblePrivateSections, type Invitee } from "@/lib/invitations";
 import type { GuestGroup, GuestListEntry, WeddingConfig } from "@/types/wedding";
 
 /** GET /api/sites/[site] */
@@ -21,7 +21,9 @@ export type { FindResult } from "@/lib/invitations";
  * are dropped and the content of audience-restricted sections is emptied, so
  * nothing meant for other guests reaches the browser.
  */
-export function redactForViewer(config: WeddingConfig, invitee: Invitee | null): WeddingConfig {
+export function redactForViewer(source: WeddingConfig, invitee: Invitee | null): WeddingConfig {
+  // Modules outside the package are emptied first, so their content isn't sent either.
+  const config = applyPackage(source);
   const hidden = personalizeConfig(config, invitee).sectionVisibility ?? {};
   const restricted = (key: string) =>
     Boolean(config.sectionAudiences?.[key as keyof typeof config.sectionAudiences]) &&
@@ -39,5 +41,6 @@ export function redactForViewer(config: WeddingConfig, invitee: Invitee | null):
     faq: restricted("faq") ? [] : config.faq,
     coupleStory: restricted("story") ? "" : config.coupleStory,
     galleryImageUrls: restricted("gallery") ? [] : config.galleryImageUrls,
+    galleryAlbums: restricted("gallery") ? undefined : config.galleryAlbums,
   };
 }

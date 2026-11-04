@@ -23,6 +23,8 @@ export default function RsvpSection({ config, palette: p, band, rsvpDeadline }: 
   const uid = useId();
   const [name, setName] = useState(prefillName);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dietary, setDietary] = useState("");
   const [attending, setAttending] = useState<boolean | null>(null);
   const [meal, setMeal] = useState<string | undefined>();
   const [plusOneName, setPlusOneName] = useState("");
@@ -36,6 +38,8 @@ export default function RsvpSection({ config, palette: p, band, rsvpDeadline }: 
     const sent = await submit({
       guestName: name,
       email,
+      phone: phone.trim() || undefined,
+      dietaryRestrictions: attending ? dietary.trim() || undefined : undefined,
       attending,
       mealChoice: meal,
       plusOne: Boolean(plusOneName.trim()),
@@ -132,6 +136,11 @@ export default function RsvpSection({ config, palette: p, band, rsvpDeadline }: 
               </div>
             </div>
 
+            <div className="flex flex-col gap-1" style={{ marginTop: "1.5rem" }}>
+              <label htmlFor={`${uid}-phone`} style={label}>Phone (optional)</label>
+              <input id={`${uid}-phone`} type="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className={focus} style={field} />
+            </div>
+
             <OpenInviteNotice
               matching={matching}
               labelColor={p.apricotDeep}
@@ -167,6 +176,13 @@ export default function RsvpSection({ config, palette: p, band, rsvpDeadline }: 
                   ))}
                 </div>
               </fieldset>
+            )}
+
+            {attending && (
+              <div className="flex flex-col gap-1" style={{ marginTop: "1.75rem" }}>
+                <label htmlFor={`${uid}-diet`} style={label}>Dietary restrictions (optional)</label>
+                <input id={`${uid}-diet`} value={dietary} onChange={(e) => setDietary(e.target.value)} placeholder="Allergies or dietary needs" className={focus} style={field} />
+              </div>
             )}
 
             {attending && maxPlusOnes > 1 && (

@@ -4,7 +4,7 @@ export const DEFAULT_PRIMARY_COLOR = "#A75463";
 export const DEFAULT_ACCENT_COLOR = "#C69D63";
 
 /** A freshly purchased website: sample photos and sensible RSVP defaults, everything else blank. */
-export function defaultWeddingConfig(id: string, templateId: string, tier: Tier = "base"): WeddingConfig {
+export function defaultWeddingConfig(id: string, templateId: string, tier: Tier = "essential"): WeddingConfig {
   return {
     id,
     templateId,

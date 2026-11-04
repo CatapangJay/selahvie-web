@@ -4,7 +4,7 @@ import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
 import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
-import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
+import { isSectionVisible, WeddingPartySection, FaqSection } from "@/components/wedding-templates/_shared/sections";
 
 import HeroSection       from "./components/HeroSection";
 import SaveTheDateBanner from "./components/SaveTheDateBanner";
@@ -38,6 +38,16 @@ export default function EnchantedGroveTemplate({ config, showBranding = true }: 
       })
     : "";
 
+  /*  The shared entourage and FAQ sections read the site theme tokens;
+      re-point them at the grove's night palette.                          */
+  const nightTheme = {
+    background: "#060e12",
+    "--color-surface-container-low": "#08110e",
+    "--color-on-surface": "#eef5ee",
+    "--color-on-surface-variant": "rgba(238,245,238,0.72)",
+    "--color-on-surface-muted": "rgba(238,245,238,0.55)",
+  } as React.CSSProperties;
+
   return (
     <div style={{ background: "#060e12", color: "#eef5ee", fontFamily: "var(--font-sans)" }}>
       <AudioPlayer src={musicSrc} accentColor={gold} />
@@ -61,7 +71,13 @@ export default function EnchantedGroveTemplate({ config, showBranding = true }: 
         weddingDateFormatted={weddingDateFormatted}
       />
       <ScheduleSection gold={gold} accent={accent} />
+      {isSectionVisible(config, "weddingParty") && (
+        <div style={nightTheme}><WeddingPartySection config={config} primary={gold} accent={accent} /></div>
+      )}
       {isSectionVisible(config, "gallery") && <GallerySection config={config} gold={gold} accent={accent} />}
+      {isSectionVisible(config, "faq") && (
+        <div style={nightTheme}><FaqSection config={config} primary={gold} accent={accent} /></div>
+      )}
       <PrivateSections config={config} accent={gold} tone="dark" />
       {isSectionVisible(config, "rsvp") && <RsvpSection config={config} gold={gold} accent={accent} />}
       <TemplateFooter

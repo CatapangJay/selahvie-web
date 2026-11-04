@@ -103,11 +103,6 @@ export function cssImage(url?: string): string | undefined {
   }
 }
 
-export function mapsUrl(config: Pick<WeddingConfig, "venueName" | "venueAddress" | "venueCity">): string | null {
-  const query = [config.venueName, config.venueAddress, config.venueCity].filter(Boolean).join(", ");
-  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
-}
-
 /** The booth's four poses: the hero portrait first, then gallery shots, repeating if there are few. */
 export function stripFrames(config: Pick<WeddingConfig, "heroImageUrl" | "galleryImageUrls">, count = 4): (string | undefined)[] {
   const pool = [config.heroImageUrl, ...config.galleryImageUrls].map(cssImage).filter((u): u is string => Boolean(u));

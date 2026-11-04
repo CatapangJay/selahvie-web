@@ -7,6 +7,7 @@ import { resolveMusicSrc } from "@/data/musicTracks";
 import { greetingFor } from "@/lib/invitations";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
 import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { dressCodeOf } from "@/lib/weddingDetails";
 import { useInvitee } from "@/components/wedding-templates/_shared/InviteeContext";
 import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 import { DISPLAY, FONTS_HREF, dateParts, isDressCodeQuestion, makePalette, paperStyle, stripFrames } from "./theme";
@@ -58,8 +59,9 @@ export default function ShutterStripTemplate({ config, showBranding = true }: Pr
   const greeting = greetingFor(config, invitee);
   const showFaq = isSectionVisible(config, "faq");
   const faq = (config.faq ?? []).filter((f) => f.question.trim());
-  // The dress-code answer gets its own colour card; the rest stay in the FAQ.
-  const dressCode = showFaq ? faq.find((f) => isDressCodeQuestion(f.question)) : undefined;
+  // The couple's own dress code gets the colour card. Without one, a dress-code FAQ answer moves there instead.
+  const couplesDressCode = dressCodeOf(config);
+  const dressCodeFaq = !couplesDressCode && showFaq ? faq.find((f) => isDressCodeQuestion(f.question)) : undefined;
 
   return (
     <div style={{ ...paperStyle(palette), fontFamily: DISPLAY, overflowX: "clip" }}>
@@ -100,9 +102,13 @@ export default function ShutterStripTemplate({ config, showBranding = true }: Pr
           </Reveal>
         )}
         {isSectionVisible(config, "gallery") && <GallerySection config={config} palette={palette} imprint={date.imprint} />}
-        {dressCode && (
+        {(couplesDressCode || dressCodeFaq) && (
           <Reveal>
-            <DressCodeSection item={dressCode} palette={palette} />
+            {couplesDressCode ? (
+              <DressCodeSection title={couplesDressCode.title} description={couplesDressCode.description} swatches={couplesDressCode.palette} palette={palette} />
+            ) : (
+              dressCodeFaq && <DressCodeSection description={dressCodeFaq.answer} palette={palette} />
+            )}
           </Reveal>
         )}
         {isSectionVisible(config, "weddingParty") && (
@@ -122,7 +128,7 @@ export default function ShutterStripTemplate({ config, showBranding = true }: Pr
         )}
         {showFaq && (
           <Reveal>
-            <FaqSection items={faq.filter((f) => f !== dressCode)} palette={palette} />
+            <FaqSection items={faq.filter((f) => f !== dressCodeFaq)} palette={palette} />
           </Reveal>
         )}
         <div style={paperStyle(palette)}>

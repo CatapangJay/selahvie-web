@@ -5,19 +5,21 @@ import { persist } from "zustand/middleware";
 import { CartItem } from "@/types/cart";
 import { WeddingTemplate } from "@/types/template";
 import type { Tier } from "@/types/wedding";
-import { PERSONALIZED_ADDON_CENTS, resolveTier, tierPrice } from "@/lib/tiers";
+import { normalizeTier, resolveTier, tierPrice, upgradePrice } from "@/lib/tiers";
 
 export function cartItemPrice(item: CartItem): number {
-  return item.kind === "upgrade" ? PERSONALIZED_ADDON_CENTS : tierPrice(item.template.price, item.tier);
+  return item.kind === "upgrade"
+    ? upgradePrice(item.fromTier ?? "essential", item.tier)
+    : tierPrice(item.template.price, item.tier);
 }
 
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
-  /** Add a template at a tier. Defaults to Personalized; re-adding updates the tier. */
+  /** Add a template at a tier. Defaults to Premium; re-adding updates the tier. */
   addItem: (template: WeddingTemplate, tier?: Tier) => void;
-  /** Add the Personalized Invitations add-on for a website already owned. */
-  addUpgrade: (weddingId: string, template: WeddingTemplate, weddingLabel: string) => void;
+  /** Move a website already owned from `fromTier` to `toTier`. Re-adding replaces the target. */
+  addUpgrade: (weddingId: string, template: WeddingTemplate, weddingLabel: string, fromTier: Tier, toTier: Tier) => void;
   setTier: (itemId: string, tier: Tier) => void;
   removeItem: (itemId: string) => void;
   clearCart: () => void;
@@ -35,7 +37,7 @@ export const useCartStore = create<CartState>()(
       items: [],
       isOpen: false,
 
-      addItem: (template, requestedTier = "personalized") => {
+      addItem: (template, requestedTier = "premium") => {
         const tier = resolveTier(template, requestedTier);
         const exists = get().items.find((i) => i.kind === "template" && i.templateId === template.id);
         if (exists) {
@@ -59,18 +61,18 @@ export const useCartStore = create<CartState>()(
         }));
       },
 
-      addUpgrade: (weddingId, template, weddingLabel) => {
+      addUpgrade: (weddingId, template, weddingLabel, fromTier, toTier) => {
         const id = `upgrade:${weddingId}`;
-        if (get().items.some((i) => i.id === id)) return;
         set((state) => ({
           items: [
-            ...state.items,
+            ...state.items.filter((i) => i.id !== id),
             {
               id,
               kind: "upgrade",
               templateId: template.id,
               template,
-              tier: "personalized",
+              tier: toTier,
+              fromTier,
               weddingId,
               weddingLabel,
               addedAt: new Date().toISOString(),
@@ -107,18 +109,23 @@ export const useCartStore = create<CartState>()(
     }),
     {
       name: "selahvie-cart",
-      version: 1,
-      // v0 items had no id/kind/tier. Treat them as Personalized template purchases.
+      version: 2,
+      // v0 items had no id/kind/tier (treated as Personalized). v1 tiers were "base" / "personalized":
+      // a Base template keeps its price as Essential; v1 upgrades (base → personalized) are now classic → premium.
       migrate: (persisted: unknown) => {
         const state = (persisted ?? {}) as { items?: Partial<CartItem>[] };
         return {
           ...state,
-          items: (state.items ?? []).map((i) => ({
-            ...i,
-            id: i.id ?? i.templateId,
-            kind: i.kind ?? "template",
-            tier: i.tier ?? "personalized",
-          })),
+          items: (state.items ?? []).map((i) => {
+            const kind = i.kind ?? "template";
+            return {
+              ...i,
+              id: i.id ?? i.templateId,
+              kind,
+              tier: kind === "template" && i.tier === ("base" as string) ? "essential" : normalizeTier(i.tier ?? "personalized"),
+              ...(kind === "upgrade" ? { fromTier: normalizeTier(i.fromTier ?? "base") } : {}),
+            };
+          }),
         } as CartState;
       },
     }

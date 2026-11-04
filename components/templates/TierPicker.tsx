@@ -2,7 +2,7 @@
 
 import { Check } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { PERSONALIZED_ADDON_CENTS, TIER_INFO, tierPrice } from "@/lib/tiers";
+import { TIERS, TIER_ADDON_CENTS, TIER_INFO, tierPrice } from "@/lib/tiers";
 import type { Tier } from "@/types/wedding";
 
 interface Props {
@@ -12,13 +12,14 @@ interface Props {
   /** Hide the feature list (e.g. in tight spaces like the preview bar). */
   compact?: boolean;
   name?: string;
-  /** Premium template: the Base plan isn't offered. */
+  /** Template built around personalization: only Premium is offered. */
   personalizedOnly?: boolean;
 }
 
-const ORDER: Tier[] = ["personalized", "base"];
+/** Highest first, so the recommended package leads. */
+const ORDER: Tier[] = [...TIERS].reverse();
 
-/** Radio group for choosing the plan at purchase. Personalized is listed first and marked recommended. */
+/** Radio group for choosing the plan at purchase. Premium is listed first and marked recommended. */
 export default function TierPicker({ templatePrice, value, onChange, compact = false, name = "tier", personalizedOnly = false }: Props) {
   return (
     <fieldset>
@@ -26,7 +27,7 @@ export default function TierPicker({ templatePrice, value, onChange, compact = f
         Choose your plan
       </legend>
       <div className="flex flex-col gap-2">
-        {ORDER.filter((tier) => !personalizedOnly || tier === "personalized").map((tier) => {
+        {ORDER.filter((tier) => !personalizedOnly || tier === "premium").map((tier) => {
           const info = TIER_INFO[tier];
           const selected = value === tier;
           return (
@@ -54,7 +55,7 @@ export default function TierPicker({ templatePrice, value, onChange, compact = f
                     <span className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
                       {info.label}
                     </span>
-                    {tier === "personalized" && (
+                    {tier === "premium" && (
                       <span
                         className="label-luxury px-2 py-0.5"
                         style={{
@@ -73,13 +74,13 @@ export default function TierPicker({ templatePrice, value, onChange, compact = f
                   </span>
                 </span>
                 <span className="mt-1 text-xs font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
-                  {tier === "personalized"
-                    ? personalizedOnly
-                      ? `${info.summary} This design is built around it, so it's always included (${formatPrice(PERSONALIZED_ADDON_CENTS)}).`
-                      : `${info.summary} Adds ${formatPrice(PERSONALIZED_ADDON_CENTS)}.`
-                    : `${info.summary} You can upgrade later.`}
+                  {personalizedOnly
+                    ? `${info.summary} This design is built around personal invitations, so it comes with Premium (${formatPrice(TIER_ADDON_CENTS.premium)}).`
+                    : tier === "essential"
+                      ? `${info.summary} You can upgrade later.`
+                      : `${info.summary} Adds ${formatPrice(TIER_ADDON_CENTS[tier])}.`}
                 </span>
-                {!compact && tier === "personalized" && selected && (
+                {!compact && selected && info.features.length > 0 && (
                   <ul className="mt-3 flex flex-col gap-1.5">
                     {info.features.map((f) => (
                       <li key={f} className="flex items-start gap-2 text-xs font-light" style={{ color: "var(--color-on-surface-variant)" }}>

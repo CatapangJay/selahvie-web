@@ -36,6 +36,16 @@ export default function EntourageSection({ config, palette: p, index }: Props) {
                     {[...group.members].sort(bySide).map((m) => (
                       <li key={m.id} style={{ fontFamily: HEADING, fontSize: "clamp(17px, 4.6vw, 20px)", fontWeight: 300, lineHeight: 1.6, color: p.slate }}>
                         {displayName(m, layout?.parentNames)}
+                        {m.relationship?.trim() && (
+                          <span style={{ display: "block", fontFamily: BODY, fontSize: 12, fontWeight: 500, letterSpacing: "0.22em", textTransform: "uppercase", color: "rgba(36,39,44,.6)" }}>
+                            {m.relationship.trim()}
+                          </span>
+                        )}
+                        {m.message?.trim() && (
+                          <span style={{ display: "block", maxWidth: 360, margin: "0.25rem auto 0.75rem", fontSize: "clamp(15px, 4vw, 16px)", lineHeight: 1.6, fontStyle: "italic", color: "rgba(36,39,44,.8)" }}>
+                            &ldquo;{m.message.trim()}&rdquo;
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

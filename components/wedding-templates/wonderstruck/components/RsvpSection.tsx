@@ -21,6 +21,8 @@ interface RsvpState {
   mealChoice: string;
   plusOne: boolean;
   wishes: string;
+  phone: string;
+  dietary: string;
 }
 
 const MEALS = ["Chicken", "Fish", "Vegetarian"];
@@ -52,7 +54,7 @@ const inputStyle = (accent: string): React.CSSProperties => ({
 
 export default function RsvpSection({ config, accent, gold }: Props) {
   const { submit, prefillName, maxPlusOnes, matching } = useRsvpSubmit(config);
-  const [rsvp, setRsvp]       = useState<RsvpState>({ name: prefillName, attending: null, mealChoice: "", plusOne: false, wishes: "" });
+  const [rsvp, setRsvp]       = useState<RsvpState>({ name: prefillName, attending: null, mealChoice: "", plusOne: false, wishes: "", phone: "", dietary: "" });
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [submitted, setSubmit] = useState(false);
 
@@ -61,6 +63,8 @@ export default function RsvpSection({ config, accent, gold }: Props) {
     if (!rsvp.name || !rsvp.attending) return;
     const sent = await submit({
       guestName: rsvp.name,
+      phone: rsvp.phone.trim() || undefined,
+      dietaryRestrictions: rsvp.attending === "yes" ? rsvp.dietary.trim() || undefined : undefined,
       attending: rsvp.attending === "yes",
       mealChoice: rsvp.mealChoice || undefined,
       plusOne: Boolean(maxPlusOnes === 1 && rsvp.plusOne),
@@ -72,6 +76,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
 
   return (
     <section
+      id="rsvp"
       className="relative py-24 px-6 overflow-hidden"
       style={{ background: "#0c0d1a", borderTop: `1px solid ${accent}10` }}
     >
@@ -91,7 +96,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
           transition={{ duration: 0.7, ease: "easeOut" as const }}
           className="text-center mb-12"
         >
-          <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}60`, fontFamily: "var(--font-sans)" }}>
+          <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}b0`, fontFamily: "var(--font-sans)" }}>
             Kindly Reply By {config.rsvpDeadline || "the date indicated"}
           </p>
           <h2
@@ -130,10 +135,11 @@ export default function RsvpSection({ config, accent, gold }: Props) {
 
               {/* Name */}
               <div className="mb-7">
-                <label className="block text-xs uppercase tracking-[0.18em] mb-2" style={{ color: `${accent}60` }}>
+                <label htmlFor="guestName" className="block text-xs uppercase tracking-[0.18em] mb-2" style={{ color: `${accent}b0` }}>
                   Your Name
                 </label>
                 <input
+                  id="guestName"
                   type="text"
                   value={rsvp.name}
                   onChange={(e) => setRsvp((p) => ({ ...p, name: e.target.value }))}
@@ -147,7 +153,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
                 />
                 <OpenInviteNotice
                   matching={matching}
-                  labelColor={`${accent}60`}
+                  labelColor={`${accent}b0`}
                   textColor="#f0ecf8"
                   lineColor={`${accent}30`}
                   accent={gold}
@@ -157,7 +163,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
 
               {/* Attending */}
               <div className="mb-7">
-                <p className="text-xs uppercase tracking-[0.18em] mb-3" style={{ color: `${accent}60` }}>
+                <p className="text-xs uppercase tracking-[0.18em] mb-3" style={{ color: `${accent}b0` }}>
                   Will you attend?
                 </p>
                 <div className="flex gap-3">
@@ -172,7 +178,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
                           ? `linear-gradient(135deg, ${accent}50, ${gold}50)`
                           : "transparent",
                         border: `1px solid ${rsvp.attending === val ? gold : `${accent}25`}`,
-                        color: rsvp.attending === val ? "#f0ecf8" : `${accent}60`,
+                        color: rsvp.attending === val ? "#f0ecf8" : `${accent}b0`,
                         boxShadow: rsvp.attending === val ? `0 0 20px ${gold}20` : "none",
                       }}
                     >
@@ -180,6 +186,24 @@ export default function RsvpSection({ config, accent, gold }: Props) {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Phone */}
+              <div className="mb-7">
+                <label htmlFor="guestPhone" className="block text-xs uppercase tracking-[0.18em] mb-2" style={{ color: `${accent}b0` }}>
+                  Phone Number (optional)
+                </label>
+                <input
+                  id="guestPhone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={rsvp.phone}
+                  onChange={(e) => setRsvp((p) => ({ ...p, phone: e.target.value }))}
+                  placeholder="+1 555 123 4567"
+                  style={inputStyle(accent)}
+                  onFocus={(e) => (e.currentTarget.style.borderBottomColor = gold)}
+                  onBlur={(e)  => (e.currentTarget.style.borderBottomColor = `${accent}30`)}
+                />
               </div>
 
               {/* Meal + Plus one */}
@@ -190,7 +214,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
                   transition={{ duration: 0.4 }}
                 >
                   <div className="mb-7">
-                    <p className="text-xs uppercase tracking-[0.18em] mb-3" style={{ color: `${accent}60` }}>
+                    <p className="text-xs uppercase tracking-[0.18em] mb-3" style={{ color: `${accent}b0` }}>
                       Meal Preference
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -203,7 +227,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
                           style={{
                             background: rsvp.mealChoice === opt ? `${gold}20` : "transparent",
                             border: `1px solid ${rsvp.mealChoice === opt ? `${gold}60` : `${accent}20`}`,
-                            color: rsvp.mealChoice === opt ? gold : `${accent}60`,
+                            color: rsvp.mealChoice === opt ? gold : `${accent}b0`,
                           }}
                         >
                           {opt}
@@ -218,7 +242,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
                         max={maxPlusOnes}
                         names={extraNames}
                         onChange={setExtraNames}
-                        labelColor={`${accent}60`}
+                        labelColor={`${accent}b0`}
                         textColor="#f0ecf8"
                         lineColor={`${accent}30`}
                         accent={gold}
@@ -238,20 +262,37 @@ export default function RsvpSection({ config, accent, gold }: Props) {
                     >
                       {rsvp.plusOne && <Check size={11} style={{ color: gold }} />}
                     </button>
-                    <span className="text-sm" style={{ color: `${accent}70` }}>
+                    <span className="text-sm" style={{ color: `${accent}cc` }}>
                       I&apos;ll be bringing a guest (+1)
                     </span>
                   </div>
                   )}
+
+                  <div className="mb-7">
+                    <label htmlFor="dietaryRestrictions" className="block text-xs uppercase tracking-[0.18em] mb-2" style={{ color: `${accent}b0` }}>
+                      Dietary Restrictions (optional)
+                    </label>
+                    <input
+                      id="dietaryRestrictions"
+                      type="text"
+                      value={rsvp.dietary}
+                      onChange={(e) => setRsvp((p) => ({ ...p, dietary: e.target.value }))}
+                      placeholder="Allergies or foods you avoid"
+                      style={inputStyle(accent)}
+                      onFocus={(e) => (e.currentTarget.style.borderBottomColor = gold)}
+                      onBlur={(e)  => (e.currentTarget.style.borderBottomColor = `${accent}30`)}
+                    />
+                  </div>
                 </motion.div>
               )}
 
               {/* Wishes */}
               <div className="mb-8">
-                <label className="block text-xs uppercase tracking-[0.18em] mb-2" style={{ color: `${accent}60` }}>
+                <label htmlFor="wishes" className="block text-xs uppercase tracking-[0.18em] mb-2" style={{ color: `${accent}b0` }}>
                   Wishes for the Couple
                 </label>
                 <textarea
+                  id="wishes"
                   rows={3}
                   value={rsvp.wishes}
                   onChange={(e) => setRsvp((p) => ({ ...p, wishes: e.target.value }))}
@@ -307,7 +348,7 @@ export default function RsvpSection({ config, accent, gold }: Props) {
               <h3 style={{ fontFamily: "var(--font-serif)", fontSize: "1.8rem", color: "#f0ecf8", marginBottom: "0.5rem" }}>
                 Wonderstruck!
               </h3>
-              <p style={{ color: `${accent}70`, fontStyle: "italic", fontFamily: "var(--font-serif)" }}>
+              <p style={{ color: `${accent}cc`, fontStyle: "italic", fontFamily: "var(--font-serif)" }}>
                 {rsvp.attending === "yes"
                   ? `We can't wait to celebrate with you, ${rsvp.name}.`
                   : `Thank you for your kind reply, ${rsvp.name}. You'll be missed.`}

@@ -5,6 +5,7 @@ import { AnimatePresence } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
 import { resolveMusicSrc } from "@/data/musicTracks";
 import { groupEntourage } from "@/lib/entourage";
+import { dressCodeOf, hashtagOf } from "@/lib/weddingDetails";
 import { greetingFor } from "@/lib/invitations";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
 import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
@@ -68,6 +69,7 @@ export default function ApricotHourTemplate({ config, showBranding = true }: Pro
       key: "venue",
       when:
         Boolean(config.venueName || config.venueAddress || config.venueCity) ||
+        Boolean(dressCodeOf(config) || hashtagOf(config)) ||
         (isSectionVisible(config, "travel") && Boolean(travel?.directions || travel?.accommodations || travel?.notes)),
       render: (band) => <VenueSection config={config} palette={palette} band={band} showNotes={isSectionVisible(config, "travel")} />,
     },

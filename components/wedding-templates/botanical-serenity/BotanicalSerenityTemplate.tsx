@@ -9,7 +9,9 @@ import GallerySection from "./components/GallerySection";
 import WishesSection from "./components/WishesSection";
 import TemplateFooter from "./components/TemplateFooter";
 import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
-import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
+import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
+import { isSectionVisible, WeddingPartySection, FaqSection } from "@/components/wedding-templates/_shared/sections";
+import { resolveMusicSrc } from "@/data/musicTracks";
 
 interface Props {
   config: WeddingConfig;
@@ -21,9 +23,11 @@ const TEXT_DEEP = "#1a2c10";
 export default function BotanicalSerenityTemplate({ config }: Props) {
   const green = config.primaryColor || "#3d6b2e";
   const floral = config.accentColor || "#c8745a";
+  const musicSrc = resolveMusicSrc(config.musicTrackId, config.musicCustomUrl);
 
   return (
     <main style={{ background: BG, overflowX: "hidden" }}>
+      <AudioPlayer src={musicSrc} accentColor={green} />
       <HeroSection
         config={config}
         green={green}
@@ -54,6 +58,9 @@ export default function BotanicalSerenityTemplate({ config }: Props) {
         bg={BG}
         textDeep={TEXT_DEEP}
       />
+      {isSectionVisible(config, "weddingParty") && (
+        <WeddingPartySection config={config} primary={green} accent={floral} />
+      )}
       {isSectionVisible(config, "gallery") && (
         <GallerySection
           config={config}
@@ -63,14 +70,17 @@ export default function BotanicalSerenityTemplate({ config }: Props) {
           textDeep={TEXT_DEEP}
         />
       )}
+      {isSectionVisible(config, "faq") && <FaqSection config={config} primary={green} accent={floral} />}
       <PrivateSections config={config} accent={green} tone="light" />
-      <WishesSection
-        config={config}
-        green={green}
-        floral={floral}
-        bg={BG}
-        textDeep={TEXT_DEEP}
-      />
+      {isSectionVisible(config, "guestbook") && (
+        <WishesSection
+          config={config}
+          green={green}
+          floral={floral}
+          bg={BG}
+          textDeep={TEXT_DEEP}
+        />
+      )}
       <TemplateFooter
         config={config}
         green={green}

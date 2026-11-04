@@ -34,6 +34,12 @@ export default function EntourageSection({ config, palette: p }: Props) {
                     {[...group.members].sort(bySide).map((m) => (
                       <li key={m.id} style={{ fontFamily: DISPLAY, fontSize: "clamp(18px, 4.8vw, 21px)", lineHeight: 1.55, color: p.paper }}>
                         {displayName(m, layout?.parentNames)}
+                        {m.relationship?.trim() && (
+                          <span style={{ display: "block", fontFamily: MONO, fontSize: 12, letterSpacing: "0.12em", textTransform: "uppercase", color: p.stamp, opacity: 0.9 }}>{m.relationship.trim()}</span>
+                        )}
+                        {m.message?.trim() && (
+                          <span style={{ display: "block", fontStyle: "italic", fontSize: "0.8em", lineHeight: 1.45, color: p.paper, opacity: 0.8, margin: "0.15rem auto 0.6rem", maxWidth: "28ch" }}>{m.message.trim()}</span>
+                        )}
                       </li>
                     ))}
                   </ul>

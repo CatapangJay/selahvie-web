@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
+import { contactOf, hashtagOf, socialLinksOf } from "@/lib/weddingDetails";
+import InvitationDownloadLink from "@/components/wedding-templates/_shared/InvitationDownloadLink";
 import BotanicalCorner from "./BotanicalCorner";
 
 interface Props {
@@ -9,10 +11,15 @@ interface Props {
   gold: string;
   accent: string;
   weddingDateFormatted: string;
+  showBranding?: boolean;
 }
 
-export default function TemplateFooter({ config, gold, accent, weddingDateFormatted }: Props) {
+export default function TemplateFooter({ config, gold, accent, weddingDateFormatted, showBranding = true }: Props) {
   const BG = "#1d2820";
+  const contact = contactOf(config);
+  const socials = socialLinksOf(config);
+  const hashtag = hashtagOf(config);
+  const linkStyle = { color: gold, fontFamily: "var(--font-sans)" };
 
   return (
     <footer
@@ -65,10 +72,40 @@ export default function TemplateFooter({ config, gold, accent, weddingDateFormat
           </p>
         )}
 
+        {hashtag && (
+          <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "1.2rem", color: gold }}>{hashtag}</p>
+        )}
+
+        {contact && (
+          <address className="not-italic flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm" style={{ color: "rgba(255,255,255,0.65)", fontFamily: "var(--font-sans)" }}>
+            {contact.name && <span>{contact.name}</span>}
+            {contact.emailHref && <a href={contact.emailHref} className="py-2 underline underline-offset-4" style={linkStyle}>{contact.email}</a>}
+            {contact.phoneHref && <a href={contact.phoneHref} className="py-2 underline underline-offset-4" style={linkStyle}>{contact.phone}</a>}
+          </address>
+        )}
+
+        {socials.length > 0 && (
+          <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs uppercase tracking-widest" aria-label="Follow along">
+            {socials.map((l) => (
+              <li key={l.id}>
+                <a href={l.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2 underline underline-offset-4" style={linkStyle}>{l.label}</a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <InvitationDownloadLink
+          config={config}
+          className="inline-flex px-7 py-2.5 rounded-full text-xs font-semibold uppercase tracking-[0.1em]"
+          style={{ color: gold, border: `1px solid ${gold}70`, fontFamily: "var(--font-sans)" }}
+        />
+
         {/* Built-with tagline */}
-        <p className="text-xs mt-4" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-sans)" }}>
-          Created with Selah Vie
-        </p>
+        {showBranding && (
+          <p className="text-xs mt-4" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-sans)" }}>
+            Created with Selah Vie
+          </p>
+        )}
       </motion.div>
     </footer>
   );

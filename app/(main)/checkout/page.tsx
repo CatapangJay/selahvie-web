@@ -4,7 +4,7 @@ import { cartItemPrice, useCartStore } from "@/store/cartStore";
 import { useWeddingStore } from "@/store/weddingStore";
 import { useAuthStore } from "@/store/authStore";
 import { formatPrice } from "@/lib/utils";
-import { PERSONALIZED_ADDON_CENTS, TIER_INFO } from "@/lib/tiers";
+import { TIER_ADDON_CENTS, TIER_INFO, higherTiers } from "@/lib/tiers";
 import { InputField } from "@/components/ui/InputField";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import EmptyState from "@/components/ui/EmptyState";
@@ -329,25 +329,26 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col justify-center">
                     <p className="truncate text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
-                      {item.kind === "upgrade" ? "Personalized Invitations" : item.template.name}
+                      {item.kind === "upgrade" ? `${TIER_INFO[item.tier].label} upgrade` : item.template.name}
                     </p>
                     <p className="mt-0.5 text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
                       {item.kind === "upgrade"
-                        ? `Add-on for ${item.weddingLabel ?? item.template.name}`
-                        : item.tier === "personalized"
-                        ? `${formatPrice(item.template.price)} + ${formatPrice(PERSONALIZED_ADDON_CENTS)} Personalized`
-                        : `${TIER_INFO.base.label} plan`}
+                        ? `${TIER_INFO[item.fromTier ?? "essential"].label} to ${TIER_INFO[item.tier].label} for ${item.weddingLabel ?? item.template.name}`
+                        : item.tier === "essential"
+                        ? `${TIER_INFO.essential.label} plan`
+                        : `${formatPrice(item.template.price)} + ${formatPrice(TIER_ADDON_CENTS[item.tier])} ${TIER_INFO[item.tier].label}`}
                     </p>
-                    {item.kind === "template" && item.tier === "base" && (
+                    {item.kind === "template" && !item.template.personalizedOnly && higherTiers(item.tier).map((t) => (
                       <button
+                        key={t}
                         type="button"
-                        onClick={() => setTier(item.id, "personalized")}
+                        onClick={() => setTier(item.id, t)}
                         className="mt-1 min-h-[28px] text-left text-xs underline underline-offset-2 transition-opacity hover:opacity-70"
                         style={{ color: "var(--color-primary)" }}
                       >
-                        Add Personalized Invitations (+{formatPrice(PERSONALIZED_ADDON_CENTS)})
+                        Switch to {TIER_INFO[t].label} (+{formatPrice(TIER_ADDON_CENTS[t] - TIER_ADDON_CENTS[item.tier])})
                       </button>
-                    )}
+                    ))}
                   </div>
                   <p className="shrink-0 font-serif text-sm" style={{ fontFamily: "var(--font-serif)", fontWeight: 300, color: "var(--color-primary)", fontSize: "1rem" }}>
                     {formatPrice(cartItemPrice(item))}

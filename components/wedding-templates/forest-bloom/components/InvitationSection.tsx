@@ -2,6 +2,7 @@
 
 import { motion, type Variants } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
+import { ceremonyVenue, receptionVenue, receptionTimeAtCeremony, hashtagOf } from "@/lib/weddingDetails";
 import BotanicalCorner from "./BotanicalCorner";
 import GoldPillButton from "./GoldPillButton";
 
@@ -38,6 +39,14 @@ export default function InvitationSection({ config, gold, accent, weddingDateFor
     ? new Date(config.weddingDate).toLocaleDateString("en-US", { weekday: "long" })
     : "";
 
+  const ceremonyTime = ceremonyVenue(config).time;
+  const receptionTime = receptionVenue(config)?.time || receptionTimeAtCeremony(config);
+  const times = [
+    { label: "Ceremony", value: ceremonyTime },
+    { label: "Reception", value: receptionTime },
+  ].filter((t) => t.value);
+  const hashtag = hashtagOf(config);
+
   return (
     <section
       className="relative overflow-hidden py-20 px-6"
@@ -63,7 +72,7 @@ export default function InvitationSection({ config, gold, accent, weddingDateFor
           className="text-xs uppercase tracking-[0.3em] mb-2"
           style={{ color: `${accent}70`, fontFamily: "var(--font-sans)" }}
         >
-          The Reception
+          The Celebration
         </motion.p>
         <motion.h2
           variants={rise}
@@ -108,26 +117,40 @@ export default function InvitationSection({ config, gold, accent, weddingDateFor
             <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "clamp(1.5rem, 4vw, 2.4rem)", color: "rgba(255,255,255,0.7)", marginTop: "0.2rem" }}>{year}</p>
           )}
 
-          {/* Gold divider */}
-          <div className="flex items-center justify-center gap-3 my-5">
-            <div className="h-px flex-1" style={{ background: `${gold}55` }} />
-            <div className="w-1 h-1 rounded-full" style={{ background: gold }} />
-            <div className="h-px flex-1" style={{ background: `${gold}55` }} />
-          </div>
+          {times.length > 0 && (
+            <>
+              {/* Gold divider */}
+              <div className="flex items-center justify-center gap-3 my-5">
+                <div className="h-px flex-1" style={{ background: `${gold}55` }} />
+                <div className="w-1 h-1 rounded-full" style={{ background: gold }} />
+                <div className="h-px flex-1" style={{ background: `${gold}55` }} />
+              </div>
 
-          {/* Times */}
-          <div className="flex justify-center gap-8 text-sm" style={{ color: "rgba(255,255,255,0.65)", fontFamily: "var(--font-sans)" }}>
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-xs uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>Ceremony</span>
-              <span>07:00 – 08:00 AM</span>
-            </div>
-            <div className="w-px" style={{ background: `${gold}25` }} />
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-xs uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.35)" }}>Reception</span>
-              <span>13:00 – 18:00 PM</span>
-            </div>
-          </div>
+              {/* Times */}
+              <div className="flex justify-center gap-8 text-sm" style={{ color: "rgba(255,255,255,0.65)", fontFamily: "var(--font-sans)" }}>
+                {times.map((t, i) => (
+                  <div key={t.label} className="flex items-stretch gap-8">
+                    {i > 0 && <div className="w-px" style={{ background: `${gold}25` }} />}
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-xs uppercase tracking-widest" style={{ color: "rgba(255,255,255,0.55)" }}>{t.label}</span>
+                      <span>{t.value}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </motion.div>
+
+        {hashtag && (
+          <motion.p
+            variants={rise}
+            className="mb-6"
+            style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "1.3rem", color: gold }}
+          >
+            {hashtag}
+          </motion.p>
+        )}
 
         <motion.div variants={rise} className="flex justify-center">
           <GoldPillButton gold={gold}>Save the Date</GoldPillButton>

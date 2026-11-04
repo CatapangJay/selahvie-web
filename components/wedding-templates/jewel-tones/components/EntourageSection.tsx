@@ -146,6 +146,16 @@ function Member({ member: m, name, palette: p }: { member: WeddingPartyMember; n
         </GiltFrame>
       )}
       <span style={{ fontFamily: SERIF, fontSize: "clamp(1.2rem, 2.4vw, 1.35rem)", lineHeight: 1.3, color: p.ink }}>{name}</span>
+      {m.relationship?.trim() && (
+        <span style={{ fontFamily: SERIF, fontWeight: 600, fontSize: "0.78rem", letterSpacing: "0.24em", textTransform: "uppercase", color: p.goldInk }}>
+          {m.relationship.trim()}
+        </span>
+      )}
+      {m.message?.trim() && (
+        <span className="block" style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: "1.1rem", lineHeight: 1.5, color: p.ink, maxWidth: "24rem", textWrap: "balance" }}>
+          &ldquo;{m.message.trim()}&rdquo;
+        </span>
+      )}
     </li>
   );
 }

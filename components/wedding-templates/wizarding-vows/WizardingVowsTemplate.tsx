@@ -7,6 +7,7 @@ import { resolveMusicSrc } from "@/data/musicTracks";
 import { greetingFor } from "@/lib/invitations";
 import AudioPlayer from "@/components/wedding-templates/_shared/AudioPlayer";
 import PrivateSections from "@/components/wedding-templates/_shared/PrivateSections";
+import { dressCodeOf } from "@/lib/weddingDetails";
 import { useInvitee } from "@/components/wedding-templates/_shared/InviteeContext";
 import { isSectionVisible } from "@/components/wedding-templates/_shared/sections";
 import { BOOK, FONTS_HREF, dateParts, isDressCodeQuestion, makePalette, parchmentStyle } from "./theme";
@@ -61,8 +62,9 @@ export default function WizardingVowsTemplate({ config, showBranding = true }: P
   const greeting = greetingFor(config, invitee);
   const showFaq = isSectionVisible(config, "faq");
   const faq = (config.faq ?? []).filter((f) => f.question.trim());
-  // The dress-code answer gets the scarves; the rest stay in the FAQ.
-  const dressCode = showFaq ? faq.find((f) => isDressCodeQuestion(f.question)) : undefined;
+  // The couple's own dress code gets the scarves. Without one, a dress-code FAQ answer moves there instead.
+  const couplesDressCode = dressCodeOf(config);
+  const dressCodeFaq = !couplesDressCode && showFaq ? faq.find((f) => isDressCodeQuestion(f.question)) : undefined;
   const showSchedule = isSectionVisible(config, "schedule") && (config.schedule ?? []).some((e) => e.title.trim());
   const showRegistry = isSectionVisible(config, "registry") && (config.registryLinks ?? []).some((l) => l.label.trim());
   const showRsvp = isSectionVisible(config, "rsvp");
@@ -117,9 +119,13 @@ export default function WizardingVowsTemplate({ config, showBranding = true }: P
         />
         {showSchedule && <ScheduleSection config={config} palette={palette} />}
         {isSectionVisible(config, "gallery") && <GallerySection config={config} palette={palette} />}
-        {dressCode && (
+        {(couplesDressCode || dressCodeFaq) && (
           <Reveal>
-            <DressCodeSection item={dressCode} palette={palette} />
+            {couplesDressCode ? (
+              <DressCodeSection title={couplesDressCode.title} description={couplesDressCode.description} swatches={couplesDressCode.palette} palette={palette} />
+            ) : (
+              dressCodeFaq && <DressCodeSection description={dressCodeFaq.answer} palette={palette} />
+            )}
           </Reveal>
         )}
         {isSectionVisible(config, "weddingParty") && (
@@ -131,7 +137,7 @@ export default function WizardingVowsTemplate({ config, showBranding = true }: P
         {showRegistry && <RegistrySection config={config} palette={palette} />}
         {showFaq && (
           <Reveal>
-            <FaqSection items={faq.filter((f) => f !== dressCode)} palette={palette} />
+            <FaqSection items={faq.filter((f) => f !== dressCodeFaq)} palette={palette} />
           </Reveal>
         )}
         <div style={parchmentStyle(palette)}>

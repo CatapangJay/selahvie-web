@@ -31,6 +31,8 @@ export default function RsvpSection({ config, palette: p }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState(prefillName);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [dietary, setDietary] = useState("");
   const [attending, setAttending] = useState<boolean | null>(null);
   const [meal, setMeal] = useState<string | undefined>();
   const [plusOneName, setPlusOneName] = useState("");
@@ -44,6 +46,8 @@ export default function RsvpSection({ config, palette: p }: Props) {
     const sent = await submit({
       guestName: name,
       email,
+      phone,
+      dietaryRestrictions: attending ? dietary : undefined,
       attending,
       mealChoice: meal,
       plusOne: Boolean(plusOneName.trim()),
@@ -196,6 +200,19 @@ export default function RsvpSection({ config, palette: p }: Props) {
                 </div>
               </div>
 
+              <div className="flex flex-col gap-1" style={{ marginTop: "1.5rem" }}>
+                <label htmlFor={`${uid}-phone`} style={label}>Mobile number (optional)</label>
+                <input
+                  id={`${uid}-phone`}
+                  type="tel"
+                  autoComplete="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className={FOCUS}
+                  style={field}
+                />
+              </div>
+
               <OpenInviteNotice
                 matching={matching}
                 labelColor={p.inkSoft}
@@ -231,6 +248,20 @@ export default function RsvpSection({ config, palette: p }: Props) {
                     ))}
                   </div>
                 </fieldset>
+              )}
+
+              {attending && (
+                <div className="flex flex-col gap-1" style={{ marginTop: "2rem" }}>
+                  <label htmlFor={`${uid}-diet`} style={label}>Dietary restrictions (optional)</label>
+                  <input
+                    id={`${uid}-diet`}
+                    value={dietary}
+                    onChange={(e) => setDietary(e.target.value)}
+                    placeholder="Allergies or foods you avoid"
+                    className={`${FOCUS} placeholder:text-[#2e1f12]/40`}
+                    style={field}
+                  />
+                </div>
               )}
 
               {attending && maxPlusOnes > 1 && (

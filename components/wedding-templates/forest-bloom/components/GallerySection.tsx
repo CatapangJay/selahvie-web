@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { motion, type Variants } from "framer-motion";
 import Image from "next/image";
 import type { WeddingConfig } from "@/types/wedding";
+import { galleryAlbumsOf, galleryHasAlbums } from "@/lib/weddingDetails";
 import BotanicalCorner from "./BotanicalCorner";
 
 interface Props {
@@ -24,8 +26,12 @@ const PLACEHOLDER_HEIGHTS = [280, 320, 280, 300, 320, 280];
 
 export default function GallerySection({ config, gold, accent }: Props) {
   const BG = "#243028";
-  const images = config.galleryImageUrls ?? [];
-  const displayCount = Math.min(images.length || 6, 6);
+  const albums = galleryAlbumsOf(config);
+  const hasAlbums = galleryHasAlbums(config);
+  const [active, setActive] = useState(0);
+  const album = albums[Math.min(active, albums.length - 1)];
+  const images = hasAlbums ? album.urls : config.galleryImageUrls ?? [];
+  const displayCount = hasAlbums ? images.length : Math.min(images.length || 6, 6);
   const cards = Array.from({ length: displayCount }, (_, i) => images[i] ?? null);
 
   return (
@@ -82,9 +88,51 @@ export default function GallerySection({ config, gold, accent }: Props) {
           </motion.div>
         </div>
 
+        {hasAlbums && albums.length > 1 && (
+          <motion.div variants={rise} role="tablist" aria-label="Photo albums" className="flex flex-wrap justify-center gap-3 mb-10">
+            {albums.map((a, i) => {
+              const on = a.key === album.key;
+              return (
+                <button
+                  key={a.key}
+                  id={`forest-album-tab-${a.key}`}
+                  role="tab"
+                  type="button"
+                  aria-selected={on}
+                  aria-controls="forest-album-panel"
+                  tabIndex={on ? 0 : -1}
+                  onClick={() => setActive(i)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+                    e.preventDefault();
+                    const next = (i + (e.key === "ArrowRight" ? 1 : -1) + albums.length) % albums.length;
+                    setActive(next);
+                    document.getElementById(`forest-album-tab-${albums[next].key}`)?.focus();
+                  }}
+                  className="px-6 py-2.5 rounded-full text-sm tracking-wider uppercase"
+                  style={{
+                    background: on ? gold : "transparent",
+                    color: on ? "#1a2417" : gold,
+                    border: `1px solid ${gold}70`,
+                    fontFamily: "var(--font-sans)",
+                    fontWeight: 600,
+                    letterSpacing: "0.1em",
+                  }}
+                >
+                  {a.label}
+                </button>
+              );
+            })}
+          </motion.div>
+        )}
+
         {/* Gallery grid */}
         {cards.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 lg:gap-6 gap-4">
+          <div
+            id="forest-album-panel"
+            role={hasAlbums && albums.length > 1 ? "tabpanel" : undefined}
+            aria-labelledby={hasAlbums && albums.length > 1 ? `forest-album-tab-${album.key}` : undefined}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 lg:gap-6 gap-4">
             {cards.map((src, i) => (
               <motion.div
                 key={i}
@@ -98,7 +146,7 @@ export default function GallerySection({ config, gold, accent }: Props) {
                 }}
               >
                 {src ? (
-                  <Image src={src} alt={`Gallery ${i + 1}`} fill style={{ objectFit: "cover" }} />
+                  <Image src={src} alt={hasAlbums ? `${album.label} photo ${i + 1}` : `Gallery photo ${i + 1}`} fill style={{ objectFit: "cover" }} />
                 ) : (
                   <div
                     className="w-full h-full flex items-center justify-center"

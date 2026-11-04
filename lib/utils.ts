@@ -25,7 +25,8 @@ export function generateSlug(name1: string, name2: string): string {
  */
 function csvCell(value: string | number | boolean | undefined | null): string {
   let s = value == null ? "" : String(value);
-  if (typeof value === "string" && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+  const phone = /^\+[\d\s().-]+$/.test(s);
+  if (typeof value === "string" && !phone && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 

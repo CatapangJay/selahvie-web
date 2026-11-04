@@ -41,6 +41,7 @@ export type NewGuest = Omit<GuestListEntry, "id" | "createdAt" | "inviteCode" | 
 export interface ImportGuestRow {
   name: string;
   email?: string;
+  phone?: string;
   partySize: number;
   status?: GuestListEntry["status"];
   side?: GuestListEntry["side"];
@@ -470,6 +471,7 @@ export const useWeddingStore = create<WeddingState>()((set, get) => {
           weddingId,
           name,
           email,
+          phone: row.phone?.trim() || undefined,
           partySize: Math.max(1, Math.min(20, row.partySize || 1)),
           status: row.status ?? "invited",
           side: row.side,

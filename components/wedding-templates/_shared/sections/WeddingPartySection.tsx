@@ -81,6 +81,19 @@ export default function WeddingPartySection({ config, primary, accent }: Props) 
                               </span>
                             )}
                             <span className="text-base" style={{ color: "var(--color-on-surface)" }}>{displayName(m, nameStyle)}</span>
+                            {m.relationship?.trim() && (
+                              <span className="-mt-1.5 text-xs" style={{ color: "var(--color-on-surface-muted)" }}>
+                                {m.relationship}
+                              </span>
+                            )}
+                            {m.message?.trim() && (
+                              <span
+                                className="max-w-xs text-sm italic leading-relaxed"
+                                style={{ fontFamily: "var(--font-serif)", color: "var(--color-on-surface-variant)" }}
+                              >
+                                &ldquo;{m.message.trim()}&rdquo;
+                              </span>
+                            )}
                           </li>
                         ))}
                       </ul>

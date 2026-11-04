@@ -72,7 +72,7 @@ export async function insertWeddingBundles(admin: SupabaseClient, ownerId: strin
   const created: string[] = [];
   try {
     for (const b of bundles) {
-      const row = { id: b.config.id, owner_id: ownerId, tier: b.config.tier ?? "base", ...weddingColumns(b.config) };
+      const row = { id: b.config.id, owner_id: ownerId, tier: b.config.tier ?? "essential", ...weddingColumns(b.config) };
       let { error } = await admin.from("weddings").insert(row);
       if (error?.code === UNIQUE_VIOLATION && row.slug !== row.id) {
         ({ error } = await admin.from("weddings").insert({ ...row, slug: row.id }));

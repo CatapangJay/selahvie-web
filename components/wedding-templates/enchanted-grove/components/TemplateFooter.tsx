@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
+import { contactOf, hashtagOf, socialLinksOf } from "@/lib/weddingDetails";
+import InvitationDownloadLink from "@/components/wedding-templates/_shared/InvitationDownloadLink";
 
 interface Props {
   config: WeddingConfig;
@@ -13,6 +15,10 @@ interface Props {
 
 export default function TemplateFooter({ config, gold, accent, weddingDateFormatted, show }: Props) {
   const hasNames = config.partner1Name && config.partner2Name;
+  const contact = contactOf(config);
+  const socials = socialLinksOf(config);
+  const hashtag = hashtagOf(config);
+  const linkStyle = { color: gold, fontFamily: "var(--font-sans)" };
 
   return (
     <footer
@@ -89,6 +95,42 @@ export default function TemplateFooter({ config, gold, accent, weddingDateFormat
           <div className="w-1 h-1 rounded-full" style={{ background: `${accent}60` }} />
           <div className="h-px w-14" style={{ background: `linear-gradient(to left, transparent, ${accent}40)` }} />
         </div>
+
+        {hashtag && (
+          <p className="mb-5" style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "1.15rem", color: gold }}>
+            {hashtag}
+          </p>
+        )}
+
+        {contact && (
+          <address className="not-italic mb-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-sm" style={{ color: `${accent}90` }}>
+            {contact.name && <span>{contact.name}</span>}
+            {contact.emailHref && (
+              <a href={contact.emailHref} className="py-2 underline underline-offset-4" style={linkStyle}>{contact.email}</a>
+            )}
+            {contact.phoneHref && (
+              <a href={contact.phoneHref} className="py-2 underline underline-offset-4" style={linkStyle}>{contact.phone}</a>
+            )}
+          </address>
+        )}
+
+        {socials.length > 0 && (
+          <ul className="mb-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs uppercase tracking-widest" aria-label="Follow along">
+            {socials.map((l) => (
+              <li key={l.id}>
+                <a href={l.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2 underline underline-offset-4" style={linkStyle}>
+                  {l.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <InvitationDownloadLink
+          config={config}
+          className="inline-block mb-5 px-6 py-2.5 rounded-full text-xs uppercase tracking-[0.18em]"
+          style={{ color: gold, border: `1px solid ${gold}55`, fontFamily: "var(--font-sans)" }}
+        />
 
         {show && (
           <p className="text-xs" style={{ color: `${accent}28`, letterSpacing: "0.12em" }}>

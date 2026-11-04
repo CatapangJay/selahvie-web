@@ -49,8 +49,8 @@ function audienceOf(v: unknown): Audience {
 
 /** Keep only fields of the right type; anything missing comes from a fresh website. */
 function coerceConfig(raw: Raw, id: string, templateId: string): WeddingConfig {
-  const tier = raw.tier === "personalized" ? "personalized" : "base";
-  const base = defaultWeddingConfig(id, templateId, tier);
+  // The tier is an entitlement and this body is client data, so imports never carry a paid package.
+  const base = defaultWeddingConfig(id, templateId, "essential");
   const pick = <K extends keyof WeddingConfig>(key: K, value: WeddingConfig[K] | undefined) =>
     value === undefined ? {} : { [key]: value };
   const slug = str(raw.slug, 120);

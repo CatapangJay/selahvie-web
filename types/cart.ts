@@ -3,7 +3,7 @@ import type { Tier } from "./wedding";
 
 /**
  * - "template": buy a new wedding website at a tier.
- * - "upgrade": add Personalized Invitations to a website already owned.
+ * - "upgrade": move a website already owned to a higher package (`tier` is the target).
  */
 export interface CartItem {
   /** Template items: the template id. Upgrade items: `upgrade:<weddingId>`. */
@@ -12,6 +12,8 @@ export interface CartItem {
   templateId: string;
   template: WeddingTemplate;
   tier: Tier;
+  /** Upgrade items only: the package the website is on now (for the price shown; the server re-checks). */
+  fromTier?: Tier;
   /** Upgrade items only: the wedding website being upgraded. */
   weddingId?: string;
   /** Upgrade items only: display label, e.g. "Alex & Sam". */

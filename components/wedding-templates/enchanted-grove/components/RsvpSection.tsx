@@ -22,6 +22,8 @@ interface RsvpState {
   mealChoice: string;
   plusOne: boolean;
   wishes: string;
+  phone: string;
+  dietary: string;
 }
 
 const MEALS = ["Chicken", "Fish", "Vegetarian"];
@@ -53,7 +55,7 @@ const inputBase = (accent: string): React.CSSProperties => ({
 
 export default function RsvpSection({ config, gold, accent }: Props) {
   const { submit, prefillName, maxPlusOnes, matching } = useRsvpSubmit(config);
-  const [rsvp, setRsvp]       = useState<RsvpState>({ name: prefillName, attending: null, mealChoice: "", plusOne: false, wishes: "" });
+  const [rsvp, setRsvp]       = useState<RsvpState>({ name: prefillName, attending: null, mealChoice: "", plusOne: false, wishes: "", phone: "", dietary: "" });
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [submitted, setSubmit] = useState(false);
 
@@ -63,6 +65,8 @@ export default function RsvpSection({ config, gold, accent }: Props) {
     const sent = await submit({
       guestName: rsvp.name,
       attending: rsvp.attending === "yes",
+      phone: rsvp.phone || undefined,
+      dietaryRestrictions: rsvp.dietary || undefined,
       mealChoice: rsvp.mealChoice || undefined,
       plusOne: Boolean(maxPlusOnes === 1 && rsvp.plusOne),
       additionalGuestNames: extraNames,
@@ -73,6 +77,7 @@ export default function RsvpSection({ config, gold, accent }: Props) {
 
   return (
     <section
+      id="rsvp"
       className="relative overflow-hidden py-28 px-6"
       style={{ background: "#08110e", borderTop: `1px solid ${gold}10` }}
     >
@@ -128,10 +133,11 @@ export default function RsvpSection({ config, gold, accent }: Props) {
 
               {/* Name */}
               <div className="mb-7">
-                <label className="block text-xs uppercase tracking-[0.2em] mb-2" style={{ color: `${accent}55` }}>
+                <label htmlFor="grove-rsvp-name" className="block text-xs uppercase tracking-[0.2em] mb-2" style={{ color: `${accent}55` }}>
                   Your Name
                 </label>
                 <input
+                  id="grove-rsvp-name"
                   type="text"
                   value={rsvp.name}
                   onChange={(e) => setRsvp((p) => ({ ...p, name: e.target.value }))}
@@ -150,6 +156,23 @@ export default function RsvpSection({ config, gold, accent }: Props) {
                   lineColor={`${accent}28`}
                   accent={gold}
                   errorColor="#f2b8b5"
+                />
+              </div>
+
+              {/* Phone */}
+              <div className="mb-7">
+                <label htmlFor="grove-rsvp-phone" className="block text-xs uppercase tracking-[0.2em] mb-2" style={{ color: `${accent}55` }}>
+                  Phone <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                </label>
+                <input
+                  id="grove-rsvp-phone"
+                  type="tel"
+                  autoComplete="tel"
+                  value={rsvp.phone}
+                  onChange={(e) => setRsvp((p) => ({ ...p, phone: e.target.value }))}
+                  style={inputBase(accent)}
+                  onFocus={(e) => (e.currentTarget.style.borderBottomColor = gold)}
+                  onBlur={(e) => (e.currentTarget.style.borderBottomColor = `${accent}28`)}
                 />
               </div>
 
@@ -217,6 +240,22 @@ export default function RsvpSection({ config, gold, accent }: Props) {
                       </div>
                     </div>
 
+                    <div className="mb-7">
+                      <label htmlFor="grove-rsvp-dietary" className="block text-xs uppercase tracking-[0.2em] mb-2" style={{ color: `${accent}55` }}>
+                        Dietary restrictions <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span>
+                      </label>
+                      <input
+                        id="grove-rsvp-dietary"
+                        type="text"
+                        value={rsvp.dietary}
+                        onChange={(e) => setRsvp((p) => ({ ...p, dietary: e.target.value }))}
+                        placeholder="Allergies or dietary needs"
+                        style={inputBase(accent)}
+                        onFocus={(e) => (e.currentTarget.style.borderBottomColor = gold)}
+                        onBlur={(e) => (e.currentTarget.style.borderBottomColor = `${accent}28`)}
+                      />
+                    </div>
+
                     {maxPlusOnes > 1 && (
                       <div className="mb-7">
                         <AdditionalGuestsField
@@ -255,10 +294,11 @@ export default function RsvpSection({ config, gold, accent }: Props) {
 
               {/* Wishes */}
               <div className="mb-8">
-                <label className="block text-xs uppercase tracking-[0.2em] mb-2" style={{ color: `${accent}55` }}>
+                <label htmlFor="grove-rsvp-wishes" className="block text-xs uppercase tracking-[0.2em] mb-2" style={{ color: `${accent}55` }}>
                   Wishes for the Couple
                 </label>
                 <textarea
+                  id="grove-rsvp-wishes"
                   rows={3}
                   value={rsvp.wishes}
                   onChange={(e) => setRsvp((p) => ({ ...p, wishes: e.target.value }))}

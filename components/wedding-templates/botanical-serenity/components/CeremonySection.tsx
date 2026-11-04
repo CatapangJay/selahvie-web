@@ -2,8 +2,16 @@
 
 import { useRef } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { MapPin, Clock } from "lucide-react";
+import { MapPin, Clock, Navigation } from "lucide-react";
 import type { WeddingConfig } from "@/types/wedding";
+import {
+  ceremonyVenue,
+  receptionVenue,
+  receptionTimeAtCeremony,
+  dressCodeOf,
+  hashtagOf,
+  type VenueView,
+} from "@/lib/weddingDetails";
 import BotanicalOrnament from "./BotanicalOrnament";
 
 interface Props {
@@ -24,10 +32,21 @@ export default function CeremonySection({ config, green, floral, bg, textDeep }:
   const opacity = useTransform(scrollYProgress, [0, 0.45], [0, 1]);
   const y = useTransform(scrollYProgress, [0, 0.5], [40, 0]);
 
-  const events: { label: string; time?: string; venue?: string }[] = [
-    { label: "Ceremony", time: "3:00 PM", venue: config.venueName },
-    { label: "Reception", time: "5:30 PM", venue: `${config.venueName}${config.venueCity ? ` — ${config.venueCity}` : ""}` },
+  const ceremony = ceremonyVenue(config);
+  const reception = receptionVenue(config);
+  const receptionTime = receptionTimeAtCeremony(config);
+  const dress = dressCodeOf(config);
+  const hashtag = hashtagOf(config);
+
+  const lines = (v: VenueView) => [v.name, v.address, v.city].filter(Boolean);
+  const events: { label: string; time?: string; venue: string[]; note?: string; links?: VenueView }[] = [
+    { label: "Ceremony", time: ceremony.time, venue: lines(ceremony), links: ceremony },
   ];
+  if (reception) {
+    events.push({ label: "Reception", time: reception.time, venue: lines(reception), links: reception });
+  } else if (receptionTime) {
+    events.push({ label: "Reception", time: receptionTime, venue: [], note: "At the ceremony venue" });
+  }
 
   return (
     <section
@@ -103,7 +122,7 @@ export default function CeremonySection({ config, green, floral, bg, textDeep }:
         />
 
         {/* Event cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+        <div className={`grid grid-cols-1 gap-10 ${events.length > 1 ? "sm:grid-cols-2" : "max-w-sm mx-auto"}`}>
           {events.map((ev, i) => (
             <motion.div
               key={ev.label}
@@ -128,17 +147,75 @@ export default function CeremonySection({ config, green, floral, bg, textDeep }:
                   </span>
                 </div>
               )}
-              {ev.venue && (
+              {ev.venue.length > 0 && (
                 <div className="flex items-start gap-2">
                   <MapPin size={13} style={{ color: `${green}80`, marginTop: "3px", flexShrink: 0 }} />
                   <span className="text-sm leading-relaxed" style={{ color: `${textDeep}90` }}>
-                    {ev.venue}
+                    {ev.venue.map((line) => (
+                      <span key={line} className="block">{line}</span>
+                    ))}
                   </span>
+                </div>
+              )}
+              {ev.note && (
+                <p className="text-sm leading-relaxed" style={{ color: `${textDeep}90` }}>{ev.note}</p>
+              )}
+              {ev.links && (ev.links.mapUrl || ev.links.directionsUrl) && (
+                <div className="flex flex-wrap gap-x-5 mt-4">
+                  {ev.links.mapUrl && (
+                    <a href={ev.links.mapUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 py-1.5 text-xs tracking-wide underline underline-offset-4" style={{ color: green }}>
+                      <MapPin size={12} aria-hidden /> View map
+                    </a>
+                  )}
+                  {ev.links.directionsUrl && (
+                    <a href={ev.links.directionsUrl} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 py-1.5 text-xs tracking-wide underline underline-offset-4" style={{ color: green }}>
+                      <Navigation size={12} aria-hidden /> Get directions
+                    </a>
+                  )}
                 </div>
               )}
             </motion.div>
           ))}
         </div>
+
+        {dress && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ type: "spring", stiffness: 80, damping: 18, delay: 0.2 }}
+            className="mt-16"
+          >
+            <p className="text-[10px] tracking-[0.22em] uppercase mb-4" style={{ color: floral }}>
+              Dress code
+            </p>
+            {dress.title && (
+              <p className="text-xl font-light mb-2" style={{ color: textDeep, letterSpacing: "-0.01em" }}>{dress.title}</p>
+            )}
+            {dress.description && (
+              <p className="text-sm leading-relaxed max-w-md mx-auto" style={{ color: `${textDeep}90` }}>{dress.description}</p>
+            )}
+            {dress.palette.length > 0 && (
+              <ul className="flex flex-wrap justify-center gap-3 mt-6" aria-label="Colour palette">
+                {dress.palette.map((hex) => (
+                  <li
+                    key={hex}
+                    role="img"
+                    aria-label={`Palette colour ${hex}`}
+                    className="w-8 h-8 rounded-full"
+                    style={{ background: hex, border: `1px solid ${green}30` }}
+                  />
+                ))}
+              </ul>
+            )}
+          </motion.div>
+        )}
+
+        {hashtag && (
+          <p className="mt-16 text-lg font-light italic" style={{ color: green, letterSpacing: "0.02em" }}>
+            {hashtag}
+          </p>
+        )}
       </motion.div>
     </section>
   );

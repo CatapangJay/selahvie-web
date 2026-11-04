@@ -43,7 +43,7 @@ export function samplePersonalization(config: WeddingConfig): {
   return {
     config: {
       ...config,
-      tier: "personalized",
+      tier: "premium",
       inviteGreeting: { enabled: true, message: "We saved a seat just for you." },
       privateSections: [
         {

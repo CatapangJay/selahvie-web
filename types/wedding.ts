@@ -13,6 +13,15 @@ export interface WeddingConfig {
   venueName: string;
   venueAddress: string;
   venueCity: string;
+  /** Ceremony start, free text ("3:00 PM"). */
+  ceremonyTime?: string;
+  /** Pasted Google Maps link for the ceremony venue. Absent = searched from name and address. */
+  venueMapUrl?: string;
+  /** Reception venue. Absent or `sameAsCeremony` = held at the ceremony venue. */
+  reception?: ReceptionInfo;
+  /** Wedding hashtag, stored without the leading "#". */
+  hashtag?: string;
+  dressCode?: DressCode;
 
   // Step 2: Theme
   primaryColor: string; // hex
@@ -21,7 +30,10 @@ export interface WeddingConfig {
 
   // Step 3: Media
   heroImageUrl: string;
+  /** Every gallery photo, in order. Kept as the union of `galleryAlbums` when albums are used. */
   galleryImageUrls: string[];
+  /** Photos sorted into albums. Absent = all of `galleryImageUrls` are shown as one gallery. */
+  galleryAlbums?: Partial<Record<GalleryAlbumKey, string[]>>;
   coupleStory: string;
 
   // Step 4: RSVP Settings
@@ -42,6 +54,9 @@ export interface WeddingConfig {
   weddingParty?: WeddingPartyMember[];
   entourageLayout?: EntourageLayout;
   schedule?: ScheduleEvent[];
+  /** Footer contact details for guests with questions. */
+  contact?: ContactInfo;
+  socialLinks?: SocialLink[];
 
   // ─── Deeper customization ───
   /** Font pairing preset id (see data/fontPresets.ts); undefined = template default. */
@@ -50,10 +65,10 @@ export interface WeddingConfig {
   sectionVisibility?: Partial<Record<AudienceSectionKey, boolean>>;
 
   // ─── Tier ───
-  /** Purchase tier. Absent = "base". */
+  /** Purchase tier. Absent = "essential". Read it through `configTier`, which maps legacy values. */
   tier?: Tier;
 
-  // ─── Personalized Invitations (tier: "personalized" only) ───
+  // ─── Personalized Invitations (Premium tier only) ───
   /** Content blocks only the targeted groups/guests can see. */
   privateSections?: PrivateSection[];
   /** Sections restricted to an audience. Absent or empty audience = everyone. */
@@ -68,7 +83,57 @@ export interface WeddingConfig {
   seatingPlan?: SeatingPlan;
 }
 
-export type Tier = "base" | "personalized";
+export type Tier = "essential" | "classic" | "premium";
+
+/** Website modules that depend on the package (see lib/tiers.ts → TIER_MODULES). */
+export type ModuleKey =
+  | "entourage"
+  | "gallery"
+  | "music"
+  | "faq"
+  | "guestbook"
+  | "qrCodes"
+  | "invitationDownload"
+  | "personalization"
+  | "seating"
+  | "sms";
+
+export interface ReceptionInfo {
+  sameAsCeremony: boolean;
+  name: string;
+  address: string;
+  city: string;
+  /** Free text ("6:00 PM"). */
+  time?: string;
+  /** Pasted Google Maps link. Absent = searched from name and address. */
+  mapUrl?: string;
+}
+
+export interface DressCode {
+  /** Short label, e.g. "Formal", "Garden semi-formal". */
+  title: string;
+  /** Guidance for guests: what to wear, what to avoid. */
+  description?: string;
+  /** Suggested colours, hex. */
+  palette?: string[];
+}
+
+export type GalleryAlbumKey = "prenup" | "engagement" | "memories";
+
+export interface ContactInfo {
+  /** Who to contact, e.g. "Our coordinator, Ana". */
+  name?: string;
+  email?: string;
+  phone?: string;
+}
+
+export type SocialPlatform = "instagram" | "facebook" | "tiktok" | "x" | "youtube" | "website";
+
+export interface SocialLink {
+  id: string;
+  platform: SocialPlatform;
+  url: string;
+}
 
 /** Which partner's side a guest (or entourage member) is on. */
 export type GuestSide = "partner1" | "partner2";
@@ -162,6 +227,10 @@ export interface WeddingPartyMember {
   photoUrl?: string;
   /** Parent and grandparent rows: the other person of the pair. `name` is listed first. */
   name2?: string;
+  /** Relationship to the couple, e.g. "Bride's sister", "College roommate". */
+  relationship?: string;
+  /** A short description or personal message from them. */
+  message?: string;
 }
 
 export type EntourageColumns = 1 | 2 | 3;
@@ -191,8 +260,11 @@ export interface RSVPEntry {
   weddingId: string; // WeddingConfig.id this response belongs to
   guestName: string;
   email?: string;
+  phone?: string;
   attending: boolean;
   mealChoice?: string;
+  /** Allergies or dietary needs, free text. */
+  dietaryRestrictions?: string;
   plusOne: boolean;
   plusOneName?: string;
   /** Extra guests this response brings. Absent on older entries = `plusOne ? 1 : 0`. */
@@ -220,6 +292,8 @@ export interface GuestListEntry {
   weddingId: string;
   name: string;
   email?: string;
+  /** Mobile number for texting the invitation (Premium), as entered. */
+  phone?: string;
   /**
    * Total seats for this invitation, the guest included. 1 = just them; 2+ includes
    * plus-ones/family. On Personalized sites a guest can name `partySize - 1` extra guests.

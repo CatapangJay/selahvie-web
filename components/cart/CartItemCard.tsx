@@ -1,16 +1,17 @@
 "use client";
 
 import { CartItem } from "@/types/cart";
+import type { Tier } from "@/types/wedding";
 import { cartItemPrice, useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
-import { PERSONALIZED_ADDON_CENTS, TIER_INFO } from "@/lib/tiers";
+import { TIERS, TIER_INFO } from "@/lib/tiers";
 import { X } from "lucide-react";
 import Image from "next/image";
 
 export default function CartItemCard({ item }: { item: CartItem }) {
   const { removeItem, setTier } = useCartStore();
   const isUpgrade = item.kind === "upgrade";
-  const title = isUpgrade ? "Personalized Invitations" : item.template.name;
+  const title = isUpgrade ? `${TIER_INFO[item.tier].label} upgrade` : item.template.name;
 
   return (
     <div
@@ -47,20 +48,25 @@ export default function CartItemCard({ item }: { item: CartItem }) {
           </p>
           <p className="mt-1 text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
             {isUpgrade
-              ? `Add-on for ${item.weddingLabel ?? item.template.name}`
+              ? `${TIER_INFO[item.fromTier ?? "essential"].label} to ${TIER_INFO[item.tier].label} for ${item.weddingLabel ?? item.template.name}`
               : `${TIER_INFO[item.tier].label} plan`}
           </p>
           {!isUpgrade && !item.template.personalizedOnly && (
-            <button
-              type="button"
-              onClick={() => setTier(item.id, item.tier === "base" ? "personalized" : "base")}
-              className="mt-1 min-h-[28px] text-left text-xs underline underline-offset-2 transition-opacity hover:opacity-70"
-              style={{ color: item.tier === "base" ? "var(--color-primary)" : "var(--color-on-surface-muted)" }}
-            >
-              {item.tier === "base"
-                ? `Add Personalized Invitations (+${formatPrice(PERSONALIZED_ADDON_CENTS)})`
-                : "Switch to Base"}
-            </button>
+            <label className="mt-1 flex min-h-[28px] items-center gap-2 text-xs" style={{ color: "var(--color-on-surface-muted)" }}>
+              <span className="sr-only">Package for {title}</span>
+              <select
+                value={item.tier}
+                onChange={(e) => setTier(item.id, e.target.value as Tier)}
+                className="bg-transparent text-xs underline underline-offset-2"
+                style={{ color: "var(--color-primary)" }}
+              >
+                {TIERS.map((t) => (
+                  <option key={t} value={t}>
+                    {TIER_INFO[t].label}
+                  </option>
+                ))}
+              </select>
+            </label>
           )}
         </div>
         <p

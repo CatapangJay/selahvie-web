@@ -4,6 +4,7 @@
  * server routes.
  */
 import { DEFAULT_ACCENT_COLOR, DEFAULT_PRIMARY_COLOR } from "@/lib/weddingDefaults";
+import { normalizeTier } from "@/lib/tiers";
 import type {
   Audience,
   GuestbookEntry,
@@ -28,6 +29,15 @@ interface WeddingSectionsJson {
   weddingParty?: WeddingConfig["weddingParty"];
   entourageLayout?: WeddingConfig["entourageLayout"];
   schedule?: WeddingConfig["schedule"];
+  // Wedding details, gallery albums and footer (no columns of their own).
+  ceremonyTime?: string;
+  venueMapUrl?: string;
+  reception?: WeddingConfig["reception"];
+  hashtag?: string;
+  dressCode?: WeddingConfig["dressCode"];
+  galleryAlbums?: WeddingConfig["galleryAlbums"];
+  contact?: WeddingConfig["contact"];
+  socialLinks?: WeddingConfig["socialLinks"];
 }
 
 export interface WeddingRow {
@@ -36,7 +46,8 @@ export interface WeddingRow {
   template_id: string;
   slug: string;
   status: WeddingConfig["status"];
-  tier: Tier;
+  /** May still hold a legacy value ("base", "personalized") on rows the 0012 migration hasn't reached. */
+  tier: Tier | string;
   partner1_name: string;
   partner2_name: string;
   wedding_date: string | null;
@@ -82,6 +93,8 @@ export interface GuestRow {
   status: GuestListEntry["status"];
   /** Added in migration 0011. Absent on databases that haven't run it. */
   side?: GuestSide | null;
+  /** Added in migration 0013. */
+  phone?: string | null;
   note: string | null;
   invite_code: string;
   created_at: string;
@@ -107,8 +120,11 @@ export interface RsvpRow {
   guest_id: string | null;
   guest_name: string;
   email: string | null;
+  /** Added in 0012; optional so inserts work before that migration runs. */
+  phone?: string | null;
   attending: boolean;
   meal_choice: string | null;
+  dietary_restrictions?: string | null;
   plus_one: boolean;
   plus_one_name: string | null;
   additional_guests: number;
@@ -143,7 +159,7 @@ export function fromWeddingRow(row: WeddingRow, ownerEmail?: string): WeddingCon
     slug: row.slug,
     status: row.status,
     ownerEmail,
-    tier: row.tier,
+    tier: normalizeTier(row.tier),
     partner1Name: row.partner1_name,
     partner2Name: row.partner2_name,
     weddingDate: row.wedding_date ?? "",
@@ -168,6 +184,14 @@ export function fromWeddingRow(row: WeddingRow, ownerEmail?: string): WeddingCon
     weddingParty: sections.weddingParty ?? [],
     entourageLayout: sections.entourageLayout ?? {},
     schedule: sections.schedule ?? [],
+    ceremonyTime: sections.ceremonyTime ?? "",
+    venueMapUrl: sections.venueMapUrl ?? "",
+    reception: sections.reception,
+    hashtag: sections.hashtag ?? "",
+    dressCode: sections.dressCode,
+    galleryAlbums: sections.galleryAlbums,
+    contact: sections.contact,
+    socialLinks: sections.socialLinks ?? [],
     fontPresetId: row.font_preset_id ?? undefined,
     sectionVisibility: row.section_visibility ?? {},
     privateSections: row.private_sections ?? [],
@@ -214,6 +238,14 @@ export function weddingColumns(c: WeddingConfig): WeddingColumns {
       weddingParty: c.weddingParty ?? [],
       entourageLayout: c.entourageLayout ?? {},
       schedule: c.schedule ?? [],
+      ceremonyTime: c.ceremonyTime ?? "",
+      venueMapUrl: c.venueMapUrl ?? "",
+      ...(c.reception ? { reception: c.reception } : {}),
+      hashtag: (c.hashtag ?? "").replace(/^#+/, "").trim(),
+      ...(c.dressCode ? { dressCode: c.dressCode } : {}),
+      ...(c.galleryAlbums ? { galleryAlbums: c.galleryAlbums } : {}),
+      ...(c.contact ? { contact: c.contact } : {}),
+      socialLinks: c.socialLinks ?? [],
     },
     section_visibility: c.sectionVisibility ?? {},
     section_audiences: c.sectionAudiences ?? {},
@@ -254,6 +286,14 @@ const COLUMN_FOR: Partial<Record<keyof WeddingConfig, keyof WeddingColumns>> = {
   weddingParty: "sections",
   entourageLayout: "sections",
   schedule: "sections",
+  ceremonyTime: "sections",
+  venueMapUrl: "sections",
+  reception: "sections",
+  hashtag: "sections",
+  dressCode: "sections",
+  galleryAlbums: "sections",
+  contact: "sections",
+  socialLinks: "sections",
   sectionVisibility: "section_visibility",
   sectionAudiences: "section_audiences",
   privateSections: "private_sections",
@@ -291,6 +331,7 @@ export function fromGuestRow(row: GuestRow, groupIds: string[]): GuestListEntry 
     weddingId: row.wedding_id,
     name: row.name,
     email: row.email ?? undefined,
+    phone: row.phone ?? undefined,
     partySize: row.party_size,
     status: row.status,
     side: sideOrNull(row.side) ?? undefined,
@@ -311,19 +352,22 @@ export function guestRow(g: GuestListEntry): GuestRow {
     status: g.status,
     // Only sent when set, so inserts keep working before migration 0011 runs.
     ...(sideOrNull(g.side) ? { side: g.side } : {}),
+    // Same for phone and migration 0013.
+    ...(g.phone?.trim() ? { phone: g.phone.trim().slice(0, 40) } : {}),
     note: textOrNull(g.note),
     invite_code: g.inviteCode,
     created_at: g.createdAt,
   };
 }
 
-type GuestEditable = Pick<GuestRow, "name" | "email" | "party_size" | "status" | "side" | "note">;
+type GuestEditable = Pick<GuestRow, "name" | "email" | "phone" | "party_size" | "status" | "side" | "note">;
 
 /** Editable guest columns present in `data`. */
 export function guestColumns(data: Partial<GuestListEntry>): Partial<GuestEditable> {
   const out: Partial<GuestEditable> = {};
   if ("name" in data && data.name !== undefined) out.name = data.name.trim();
   if ("email" in data) out.email = textOrNull(data.email);
+  if ("phone" in data) out.phone = textOrNull(data.phone)?.slice(0, 40) ?? null;
   if ("partySize" in data && data.partySize !== undefined) out.party_size = clampPartySize(data.partySize);
   if ("status" in data && data.status !== undefined) out.status = data.status;
   if ("side" in data) out.side = sideOrNull(data.side);
@@ -362,8 +406,10 @@ export function fromRsvpRow(row: RsvpRow): RSVPEntry {
     weddingId: row.wedding_id,
     guestName: row.guest_name,
     email: row.email ?? undefined,
+    phone: row.phone ?? undefined,
     attending: row.attending,
     mealChoice: row.meal_choice ?? undefined,
+    dietaryRestrictions: row.dietary_restrictions ?? undefined,
     plusOne: row.plus_one,
     plusOneName: row.plus_one_name ?? undefined,
     additionalGuests: row.additional_guests,
@@ -383,6 +429,9 @@ export function rsvpInsert(entry: Omit<RSVPEntry, "id" | "submittedAt">): Omit<R
     email: textOrNull(entry.email),
     attending: entry.attending,
     meal_choice: textOrNull(entry.mealChoice),
+    // Only sent when given, so responses keep working before migration 0012 runs.
+    ...(entry.phone?.trim() ? { phone: entry.phone.trim().slice(0, 40) } : {}),
+    ...(entry.dietaryRestrictions?.trim() ? { dietary_restrictions: entry.dietaryRestrictions.trim().slice(0, 500) } : {}),
     plus_one: entry.plusOne,
     plus_one_name: textOrNull(entry.plusOneName),
     additional_guests: Math.max(0, Math.min(50, entry.additionalGuests ?? (entry.plusOne ? 1 : 0))),

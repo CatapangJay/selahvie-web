@@ -104,16 +104,20 @@ export default function WishesSection({ config, gold, accent }: Props) {
           onSubmit={handleSubmit}
           className="flex flex-col gap-3 mb-8"
         >
+          <motion.label variants={rise} htmlFor="forest-wish-name" className="sr-only">Your name</motion.label>
           <motion.input
             variants={rise}
+            id="forest-wish-name"
             type="text"
             placeholder="Your name"
             value={name}
             onChange={e => setName(e.target.value)}
             style={inputStyle}
           />
+          <motion.label variants={rise} htmlFor="forest-wish-message" className="sr-only">Your wishes for the couple</motion.label>
           <motion.textarea
             variants={rise}
+            id="forest-wish-message"
             rows={4}
             placeholder="Write your wishes for the couple..."
             value={message}
@@ -127,7 +131,7 @@ export default function WishesSection({ config, gold, accent }: Props) {
                 animate={{ opacity: 1, scale: 1 }}
                 style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", color: gold, fontSize: "1rem" }}
               >
-                Thank you! 🌿
+                Thank you, your wishes were added.
               </motion.p>
             ) : (
               <GoldPillButton gold={gold} type="submit" disabled={!name.trim() || !message.trim()}>

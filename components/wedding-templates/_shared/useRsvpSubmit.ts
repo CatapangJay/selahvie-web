@@ -12,8 +12,12 @@ import type { WeddingConfig, RSVPEntry } from "@/types/wedding";
 export type RsvpDraft = {
   guestName: string;
   email?: string;
+  /** Guest contact number. */
+  phone?: string;
   attending: boolean;
   mealChoice?: string;
+  /** Allergies or dietary needs (only kept when attending). */
+  dietaryRestrictions?: string;
   plusOne?: boolean;
   plusOneName?: string;
   /** Names from the multi-guest field (used when the invitee may bring more than one). */
@@ -93,8 +97,10 @@ export function useRsvpSubmit(config: WeddingConfig) {
         weddingId: config.id,
         guestName,
         email: draft.email?.trim() || undefined,
+        phone: draft.phone?.trim() || undefined,
         attending: draft.attending,
         mealChoice: draft.attending ? draft.mealChoice : undefined,
+        dietaryRestrictions: draft.attending ? draft.dietaryRestrictions?.trim() || undefined : undefined,
         plusOne: additionalGuests > 0,
         plusOneName: names[0],
         additionalGuests,

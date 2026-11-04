@@ -1,9 +1,9 @@
 "use client";
 
-import { useId } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useId, useState } from "react";
+import { ChevronDown, Plus, Trash2 } from "lucide-react";
 import Select, { type SelectOption } from "@/components/ui/Select";
-import { InputField } from "@/components/ui/InputField";
+import { InputField, TextareaField } from "@/components/ui/InputField";
 import { ENTOURAGE, OTHER_CATEGORY, categoryOf, displayName, isNamed, isPairedRole, isPresetRole } from "@/lib/entourage";
 import { asSide, sideOptions } from "@/lib/guestSides";
 import type { EntourageColumns, EntourageLayout, ParentNameStyle, WeddingConfig, WeddingPartyMember } from "@/types/wedding";
@@ -191,6 +191,8 @@ function MemberRow({ member, sides, onChange, onRemove }: RowProps) {
   const custom = !isPresetRole(member.role);
   const paired = isPairedRole(member.role);
   const label = member.name.trim() || member.role || "this person";
+  // The optional extras stay tucked away until the couple asks for them (or has filled them in).
+  const [extrasOpen, setExtrasOpen] = useState(() => Boolean(member.relationship?.trim() || member.message?.trim()));
 
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-x-3 gap-y-2 py-3 @lg:grid-cols-[minmax(0,1fr)_auto_auto_auto]" style={{ borderBottom: "1px solid var(--color-outline)" }}>
@@ -229,6 +231,43 @@ function MemberRow({ member, sides, onChange, onRemove }: RowProps) {
               value={member.role}
               maxLength={60}
               onChange={(e) => onChange({ role: e.target.value })}
+            />
+          </div>
+        )}
+        <button
+          type="button"
+          aria-expanded={extrasOpen}
+          aria-controls={extrasOpen ? `ent-extras-${member.id}` : undefined}
+          onClick={() => setExtrasOpen((v) => !v)}
+          className="mt-1.5 inline-flex min-h-[32px] items-center gap-1 text-xs underline-offset-4 hover:underline"
+          style={{ color: "var(--color-on-surface-variant)" }}
+        >
+          Relationship &amp; message
+          <ChevronDown
+            size={13}
+            aria-hidden
+            className="transition-transform duration-200 ease-out"
+            style={{ transform: extrasOpen ? "rotate(180deg)" : undefined }}
+          />
+        </button>
+        {extrasOpen && (
+          <div id={`ent-extras-${member.id}`} className="mt-2 space-y-4 pb-1">
+            <InputField
+              id={`ent-rel-${member.id}`}
+              label="Relationship to the couple (optional)"
+              placeholder="e.g. Bride's sister, Groom's college roommate"
+              value={member.relationship ?? ""}
+              maxLength={80}
+              onChange={(e) => onChange({ relationship: e.target.value || undefined })}
+            />
+            <TextareaField
+              id={`ent-msg-${member.id}`}
+              label="Personal message (optional)"
+              rows={2}
+              placeholder="A few words about them, or from them to you"
+              value={member.message ?? ""}
+              maxLength={280}
+              onChange={(e) => onChange({ message: e.target.value || undefined })}
             />
           </div>
         )}

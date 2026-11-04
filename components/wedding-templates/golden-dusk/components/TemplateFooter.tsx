@@ -3,14 +3,21 @@
 import { motion } from "framer-motion";
 import { Phone, MapPin } from "lucide-react";
 import type { WeddingConfig } from "@/types/wedding";
+import { contactOf, hashtagOf, socialLinksOf } from "@/lib/weddingDetails";
+import InvitationDownloadLink from "@/components/wedding-templates/_shared/InvitationDownloadLink";
 
 interface Props {
   config: WeddingConfig;
   accent: string;
+  showBranding?: boolean;
 }
 
-export default function TemplateFooter({ config, accent }: Props) {
+export default function TemplateFooter({ config, accent, showBranding = true }: Props) {
   const BG = "#2c1810";
+  const contact = contactOf(config);
+  const socials = socialLinksOf(config);
+  const hashtag = hashtagOf(config);
+  const linkStyle = { color: "#f0c9a0", fontFamily: "var(--font-sans)" };
   const year = config.weddingDate
     ? new Date(config.weddingDate).getFullYear()
     : new Date().getFullYear();
@@ -73,6 +80,38 @@ export default function TemplateFooter({ config, accent }: Props) {
             )}
           </div>
 
+          {hashtag && (
+            <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "1.25rem", color: "#f0c9a0" }}>{hashtag}</p>
+          )}
+
+          {contact && (
+            <address className="not-italic flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs" style={{ color: "rgba(255,255,255,0.7)", fontFamily: "var(--font-sans)" }}>
+              {contact.name && <span>{contact.name}</span>}
+              {contact.emailHref && <a href={contact.emailHref} className="py-2 underline underline-offset-4" style={linkStyle}>{contact.email}</a>}
+              {contact.phoneHref && (
+                <a href={contact.phoneHref} className="inline-flex items-center gap-1.5 py-2 underline underline-offset-4" style={linkStyle}>
+                  <Phone size={11} aria-hidden /> {contact.phone}
+                </a>
+              )}
+            </address>
+          )}
+
+          {socials.length > 0 && (
+            <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-1 text-xs uppercase tracking-[0.18em]" aria-label="Follow along">
+              {socials.map((l) => (
+                <li key={l.id}>
+                  <a href={l.url} target="_blank" rel="noopener noreferrer" className="inline-block py-2 underline underline-offset-4" style={linkStyle}>{l.label}</a>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <InvitationDownloadLink
+            config={config}
+            className="inline-block px-7 py-2.5 rounded-full text-xs uppercase tracking-[0.15em]"
+            style={{ background: accent, color: "#ffffff", fontFamily: "var(--font-sans)" }}
+          />
+
           {/* Wedding date */}
           {config.weddingDate && (
             <p
@@ -83,12 +122,14 @@ export default function TemplateFooter({ config, accent }: Props) {
             </p>
           )}
 
-          <p
-            className="text-xs mt-2"
-            style={{ color: "rgba(255,255,255,0.18)", fontFamily: "var(--font-sans)" }}
-          >
-            Wedding Design by Selah Vie
-          </p>
+          {showBranding && (
+            <p
+              className="text-xs mt-2"
+              style={{ color: "rgba(255,255,255,0.18)", fontFamily: "var(--font-sans)" }}
+            >
+              Wedding Design by Selah Vie
+            </p>
+          )}
         </motion.div>
       </div>
     </footer>

@@ -3,8 +3,9 @@
 import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
+import { ceremonyVenue, hashtagOf, receptionTimeAtCeremony, receptionVenue, type VenueView } from "@/lib/weddingDetails";
 import type { DateParts, Palette } from "../theme";
-import { BOOK, CAPS, DISPLAY, QUILL, capsLabel, mapsUrl, slateStyle, parchmentStyle } from "../theme";
+import { BOOK, CAPS, DISPLAY, QUILL, capsLabel, slateStyle, parchmentStyle } from "../theme";
 import { SectionHeading } from "./Motion";
 
 interface Props {
@@ -105,13 +106,16 @@ export default function MapSection({ config, palette: p, date, guestName, showNo
   useEffect(() => {
     if (revealed) mapRef.current?.focus({ preventScroll: true });
   }, [revealed]);
-  const maps = mapsUrl(config);
+  const ceremony = ceremonyVenue(config);
+  const reception = receptionVenue(config);
+  const receptionTime = receptionTimeAtCeremony(config);
+  const hashtag = hashtagOf(config);
   const t = config.travel;
   const notes = showNotes
     ? [t?.directions, t?.accommodations, ...(t?.notes?.split("\n") ?? [])].map((s) => s?.trim()).filter((s): s is string => Boolean(s))
     : [];
   const hasVenue = Boolean(config.venueName || config.venueAddress || config.venueCity);
-  if (!hasVenue && notes.length === 0) return null;
+  if (!hasVenue && !hashtag && notes.length === 0) return null;
   const firstTime = showSchedule ? config.schedule?.find((e) => e.time.trim())?.time : undefined;
   const ink = p.ink;
   const draw = (delay: number, duration = 1.4) =>
@@ -263,33 +267,14 @@ export default function MapSection({ config, palette: p, date, guestName, showNo
         )}
 
         {hasVenue && (
-          <div style={{ ...parchmentStyle(p), position: "relative", width: "min(100%, 30rem)", margin: "2rem auto 0", padding: "1.8rem 1.5rem 1.6rem", borderRadius: 3, textAlign: "center", boxShadow: "0 24px 40px -26px rgba(0,0,0,.8)" }}>
-            <p style={{ ...capsLabel(p.wax, 11), margin: 0 }}>The ceremony</p>
-            {config.venueName && <h3 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(1.5rem, 7vw, 2.1rem)", lineHeight: 1.15, color: ink, margin: "0.5rem 0 0" }}>{config.venueName}</h3>}
-            {(config.venueAddress || config.venueCity) && (
-              <p style={{ fontFamily: BOOK, fontStyle: "italic", fontSize: "clamp(17px, 4.6vw, 19px)", lineHeight: 1.45, color: ink, margin: "0.4rem 0 0" }}>
-                {[config.venueAddress, config.venueCity].filter(Boolean).join(", ")}
-              </p>
-            )}
-            {(date.long || firstTime) && (
-              <p style={{ ...capsLabel(p.inkSoft, 12), lineHeight: 1.8, margin: "1rem 0 0", paddingTop: "0.9rem", borderTop: `1px solid color-mix(in srgb, ${p.inkSoft} 35%, transparent)` }}>
-                {date.long}
-                {date.long && firstTime && " · "}
-                {firstTime && `Arrive by ${firstTime}`}
-              </p>
-            )}
-            {maps && (
-              <a
-                href={maps}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4"
-                style={{ display: "inline-flex", alignItems: "center", minHeight: 50, marginTop: "1.2rem", padding: "0 1.5rem", borderRadius: 2, background: p.wax, color: p.parchment, border: `1px solid ${p.gilt}`, fontFamily: CAPS, fontWeight: 700, fontSize: 12, letterSpacing: "0.2em", textTransform: "uppercase", textDecoration: "none", outlineColor: p.wax }}
-              >
-                Open the muggle map →
-              </a>
-            )}
-          </div>
+          <VenueCard role="The ceremony" venue={ceremony} palette={p} line={[date.long, ceremony.time ? `Ceremony at ${ceremony.time}` : firstTime ? `Arrive by ${firstTime}` : ""].filter(Boolean).join(" · ")} />
+        )}
+        {hasVenue && reception && <VenueCard role="The feast" venue={reception} palette={p} line={reception.time ? `Feast at ${reception.time}` : ""} />}
+        {hasVenue && !reception && receptionTime && (
+          <p style={{ ...capsLabel(p.giltSoft, 12), lineHeight: 1.8, textAlign: "center", margin: "1.6rem 0 0" }}>The feast follows at {receptionTime}</p>
+        )}
+        {hashtag && (
+          <p style={{ fontFamily: QUILL, fontSize: "clamp(1.7rem, 7vw, 2.2rem)", lineHeight: 1.2, color: p.gilt, textAlign: "center", margin: "2rem 0 0" }}>{hashtag}</p>
         )}
 
         {notes.length > 0 && (
@@ -307,6 +292,54 @@ export default function MapSection({ config, palette: p, date, guestName, showNo
         )}
       </div>
     </section>
+  );
+}
+
+/** A venue on its own parchment card: role, name, address, the day and time, and the two map links. */
+function VenueCard({ role, venue, line, palette: p }: { role: string; venue: VenueView; line: string; palette: Palette }) {
+  const address = [venue.address, venue.city].filter(Boolean).join(", ");
+  if (!venue.name && !address && !line) return null;
+  const link = (filled: boolean): CSSProperties => ({
+    display: "inline-flex",
+    alignItems: "center",
+    minHeight: 50,
+    padding: "0 1.5rem",
+    borderRadius: 2,
+    background: filled ? p.wax : "transparent",
+    color: filled ? p.parchment : p.ink,
+    border: `1px solid ${filled ? p.gilt : p.ink}`,
+    fontFamily: CAPS,
+    fontWeight: 700,
+    fontSize: 12,
+    letterSpacing: "0.2em",
+    textTransform: "uppercase",
+    textDecoration: "none",
+    outlineColor: p.wax,
+  });
+  const cls = "transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-4";
+  return (
+    <div style={{ ...parchmentStyle(p), position: "relative", width: "min(100%, 30rem)", margin: "2rem auto 0", padding: "1.8rem 1.5rem 1.6rem", borderRadius: 3, textAlign: "center", boxShadow: "0 24px 40px -26px rgba(0,0,0,.8)" }}>
+      <p style={{ ...capsLabel(p.wax, 11), margin: 0 }}>{role}</p>
+      {venue.name && <h3 style={{ fontFamily: DISPLAY, fontWeight: 700, fontSize: "clamp(1.5rem, 7vw, 2.1rem)", lineHeight: 1.15, color: p.ink, margin: "0.5rem 0 0" }}>{venue.name}</h3>}
+      {address && <p style={{ fontFamily: BOOK, fontStyle: "italic", fontSize: "clamp(17px, 4.6vw, 19px)", lineHeight: 1.45, color: p.ink, margin: "0.4rem 0 0" }}>{address}</p>}
+      {line && (
+        <p style={{ ...capsLabel(p.inkSoft, 12), lineHeight: 1.8, margin: "1rem 0 0", paddingTop: "0.9rem", borderTop: `1px solid color-mix(in srgb, ${p.inkSoft} 35%, transparent)` }}>{line}</p>
+      )}
+      {(venue.mapUrl || venue.directionsUrl) && (
+        <div className="flex flex-wrap justify-center gap-3" style={{ marginTop: "1.2rem" }}>
+          {venue.mapUrl && (
+            <a href={venue.mapUrl} target="_blank" rel="noopener noreferrer" className={cls} style={link(false)}>
+              Open the muggle map<span className="sr-only"> for {venue.name || role}</span>
+            </a>
+          )}
+          {venue.directionsUrl && (
+            <a href={venue.directionsUrl} target="_blank" rel="noopener noreferrer" className={cls} style={link(true)}>
+              Get directions →<span className="sr-only"> to {venue.name || role}</span>
+            </a>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

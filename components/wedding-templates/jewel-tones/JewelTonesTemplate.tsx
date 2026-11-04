@@ -17,6 +17,7 @@ import StorySection from "./components/StorySection";
 import ScheduleSection from "./components/ScheduleSection";
 import EntourageSection from "./components/EntourageSection";
 import GallerySection from "./components/GallerySection";
+import FaqSection from "./components/FaqSection";
 import RsvpSection from "./components/RsvpSection";
 import TemplateFooter from "./components/TemplateFooter";
 
@@ -27,7 +28,7 @@ interface Props {
 
 /**
  * Jewel Tones: a sealed envelope addressed to the viewing guest opens onto a
- * save-the-date card, then the invitation website. Personalized tier only; the
+ * save-the-date card, then the invitation website. Premium only; the
  * guest's name comes from the invite context (InviteeProvider).
  */
 export default function JewelTonesTemplate({ config, showBranding = true }: Props) {
@@ -81,6 +82,7 @@ export default function JewelTonesTemplate({ config, showBranding = true }: Prop
         <div style={paperStyle(palette.cream, palette.creamDeep)}>
           <PrivateSections config={config} accent={palette.raspberry} tone="light" />
         </div>
+        {isSectionVisible(config, "faq") && <FaqSection config={config} palette={palette} />}
         {showRsvp && <RsvpSection config={config} palette={palette} rsvpDeadline={rsvpDeadline} />}
       </main>
 

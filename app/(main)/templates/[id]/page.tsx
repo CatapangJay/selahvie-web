@@ -26,7 +26,7 @@ export default function TemplateDetailPage(props: Props) {
   const { addItem, isInCart, openCart, setTier } = useCartStore();
   const cartItem = useCartStore((s) => s.items.find((i) => i.kind === "template" && i.templateId === template.id));
   const inCart = isInCart(template.id);
-  const [pickedTier, setPickedTier] = useState<Tier>("personalized");
+  const [pickedTier, setPickedTier] = useState<Tier>("premium");
   const tier = resolveTier(template, cartItem?.tier ?? pickedTier);
 
   const handleTier = (next: Tier) => {

@@ -192,11 +192,6 @@ export function cssImage(url?: string): string | undefined {
   }
 }
 
-export function mapsUrl(config: Pick<WeddingConfig, "venueName" | "venueAddress" | "venueCity">): string | null {
-  const query = [config.venueName, config.venueAddress, config.venueCity].filter(Boolean).join(", ");
-  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
-}
-
 /** First letters of both names for the crest medallion and wax seal, e.g. "W·C". */
 export function monogram(p1: string, p2: string): string {
   const first = (s: string) => s.trim().charAt(0).toUpperCase();

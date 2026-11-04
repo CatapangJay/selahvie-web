@@ -3,23 +3,27 @@
 import { useEffect, useState, use, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
-import { Users, MailCheck, Sparkles, Lock, Armchair, ExternalLink, Pencil } from "lucide-react";
+import { Users, MailCheck, Sparkles, Lock, Armchair, ExternalLink, Pencil, QrCode } from "lucide-react";
 import { useWeddingStore } from "@/store/weddingStore";
 import { useCartStore } from "@/store/cartStore";
 import { useOwnedConfig } from "@/lib/useOwnedConfig";
 import { templates } from "@/data/templates";
+import { configTier, hasModule, upgradePrice } from "@/lib/tiers";
+import type { Tier } from "@/types/wedding";
 import Skeleton from "@/components/ui/Skeleton";
 import GuestListManager from "@/components/manage/GuestListManager";
 import RsvpDashboard from "@/components/manage/RsvpDashboard";
 import PersonalizationEditor from "@/components/manage/PersonalizationEditor";
 import SeatingPlanner from "@/components/manage/SeatingPlanner";
+import ShareKit from "@/components/manage/ShareKit";
+import SmsInvites from "@/components/manage/SmsInvites";
 
 interface Props {
   params: Promise<{ id: string }>;
 }
 
-type Tab = "rsvps" | "guests" | "seating" | "personalize";
-const TABS: readonly Tab[] = ["rsvps", "guests", "seating", "personalize"];
+type Tab = "rsvps" | "guests" | "seating" | "personalize" | "share";
+const TABS: readonly Tab[] = ["rsvps", "guests", "seating", "personalize", "share"];
 
 const HEADER_ACTION =
   "btn-outline inline-flex min-h-[40px] items-center justify-center gap-2 px-4 text-sm";
@@ -87,18 +91,20 @@ export default function ManageWeddingPage(props: Props) {
     config.partner1Name && config.partner2Name
       ? `${config.partner1Name} & ${config.partner2Name}`
       : template?.name ?? "Your wedding";
-  const personalized = config.tier === "personalized";
+  const tier = configTier(config);
+  const personalized = hasModule(config, "personalization");
 
-  const handleUpgrade = () => {
-    addUpgrade(config.id, template ?? templates[0], coupleLabel);
+  const handleUpgrade = (to: Tier = "premium") => {
+    addUpgrade(config.id, template ?? templates[0], coupleLabel, tier, to);
     router.push("/checkout");
   };
 
   const tabs: { id: Tab; label: string; icon: typeof Users; badge: number; locked?: boolean }[] = [
     { id: "rsvps", label: "RSVPs", icon: MailCheck, badge: rsvpCount },
     { id: "guests", label: "Guest list", icon: Users, badge: guestCount },
-    { id: "seating", label: "Seating", icon: Armchair, badge: config.seatingPlan?.tables.length ?? 0, locked: !personalized },
+    { id: "seating", label: "Seating", icon: Armchair, badge: config.seatingPlan?.tables.length ?? 0, locked: !hasModule(config, "seating") },
     { id: "personalize", label: "Personalize", icon: Sparkles, badge: 0, locked: !personalized },
+    { id: "share", label: "Share", icon: QrCode, badge: 0, locked: !hasModule(config, "qrCodes") },
   ];
 
   const published = config.status === "published";
@@ -214,7 +220,7 @@ export default function ManageWeddingPage(props: Props) {
             >
               <Icon size={15} aria-hidden />
               {label}
-              {locked && <Lock size={12} aria-label="Locked on Base plan" />}
+              {locked && <Lock size={12} aria-label="Comes with Premium" />}
               {badge > 0 && (
                 <span
                   className="inline-flex h-5 min-w-5 items-center justify-center px-1.5 text-xs tabular-nums"
@@ -240,18 +246,24 @@ export default function ManageWeddingPage(props: Props) {
             weddingId={config.id}
             coupleLabel={coupleLabel}
             personalized={personalized}
+            upgradeCents={upgradePrice(tier, "premium")}
             siteSlug={config.slug || config.id}
-            onUpgrade={handleUpgrade}
+            onUpgrade={() => handleUpgrade()}
           />
         ) : tab === "seating" ? (
           <SeatingPlanner
             config={config}
             coupleLabel={coupleLabel}
-            onUpgrade={handleUpgrade}
+            onUpgrade={() => handleUpgrade()}
             onOpenGuests={() => openTab("guests")}
           />
+        ) : tab === "share" ? (
+          <div className="space-y-12">
+            <ShareKit config={config} onUpgrade={() => handleUpgrade()} />
+            {hasModule(config, "sms") && <SmsInvites config={config} />}
+          </div>
         ) : (
-          <PersonalizationEditor config={config} onUpgrade={handleUpgrade} onOpenGuests={() => openTab("guests")} />
+          <PersonalizationEditor config={config} onUpgrade={() => handleUpgrade()} onOpenGuests={() => openTab("guests")} />
         )}
       </div>
     </div>

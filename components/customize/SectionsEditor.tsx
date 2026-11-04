@@ -2,21 +2,40 @@
 
 import { InputField, TextareaField } from "@/components/ui/InputField";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
+import ModuleLock from "@/components/ui/ModuleLock";
+import Select from "@/components/ui/Select";
 import { fontPresets } from "@/data/fontPresets";
 import { OPTIONAL_SECTIONS } from "@/components/wedding-templates/_shared/sections";
+import { MODULE_LABELS, TIER_INFO, hasModule, tierFor } from "@/lib/tiers";
+import { SOCIAL_PLATFORMS } from "@/lib/weddingDetails";
 import type {
   WeddingConfig,
   RegistryLink,
   FaqItem,
   ScheduleEvent,
   OptionalSectionKey,
+  ModuleKey,
+  SocialLink,
+  SocialPlatform,
+  Tier,
 } from "@/types/wedding";
-import { Plus, Trash2 } from "lucide-react";
+import { Lock, Plus, Trash2 } from "lucide-react";
 
 interface Props {
   config: WeddingConfig;
   update: (data: Partial<WeddingConfig>) => void;
+  /** Starts an upgrade to the given package (for modules this one lacks). */
+  onUpgrade: (to: Tier) => void;
 }
+
+/** Sections that only show on packages with the matching module. */
+const SECTION_MODULE: Partial<Record<OptionalSectionKey, ModuleKey>> = {
+  weddingParty: "entourage",
+  faq: "faq",
+  guestbook: "guestbook",
+};
+
+const PLATFORM_OPTIONS = SOCIAL_PLATFORMS.map((p) => ({ value: p.key, label: p.label }));
 
 let localSeq = 0;
 const rid = (p: string) => `${p}-${Date.now().toString(36)}-${(localSeq++).toString(36)}`;
@@ -29,8 +48,13 @@ function Subhead({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function SectionsEditor({ config, update }: Props) {
+export default function SectionsEditor({ config, update, onUpgrade }: Props) {
   const registry = config.registryLinks ?? [];
+  const socials = config.socialLinks ?? [];
+  const contact = config.contact ?? {};
+  const setContact = (data: Partial<typeof contact>) => update({ contact: { ...contact, ...data } });
+  const patchSocial = (id: string, data: Partial<SocialLink>) =>
+    update({ socialLinks: socials.map((l) => (l.id === id ? { ...l, ...data } : l)) });
   const faq = config.faq ?? [];
   const schedule = config.schedule ?? [];
   const travel = config.travel ?? { accommodations: "", directions: "", notes: "" };
@@ -78,6 +102,22 @@ export default function SectionsEditor({ config, update }: Props) {
         <Subhead>Show or hide sections</Subhead>
         <div className="flex flex-wrap gap-2">
           {OPTIONAL_SECTIONS.map(({ key, label }) => {
+            const needs = SECTION_MODULE[key];
+            if (needs && !hasModule(config, needs)) {
+              const tier = TIER_INFO[tierFor(needs)].label;
+              return (
+                <span
+                  key={key}
+                  title={`Comes with ${tier}`}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 rounded-full px-4 text-sm"
+                  style={{ border: "1px dashed var(--color-outline)", color: "var(--color-on-surface-variant)" }}
+                >
+                  <Lock size={12} aria-hidden />
+                  {label}
+                  <span className="sr-only">(comes with {tier})</span>
+                </span>
+              );
+            }
             const shown = visibility[key] !== false;
             return (
               <button
@@ -97,6 +137,9 @@ export default function SectionsEditor({ config, update }: Props) {
             );
           })}
         </div>
+        {!hasModule(config, "guestbook") && (
+          <ModuleLock config={config} module="guestbook" onUpgrade={onUpgrade} label={`A ${MODULE_LABELS.guestbook.toLowerCase()}`} />
+        )}
       </div>
 
       {/* Schedule / order of events */}
@@ -148,18 +191,53 @@ export default function SectionsEditor({ config, update }: Props) {
       />
 
       {/* FAQ */}
+      <ModuleLock config={config} module="faq" onUpgrade={onUpgrade}>
+        <RepeatingGroup
+          title="FAQ"
+          items={faq}
+          onAdd={() => update({ faq: [...faq, { id: rid("fq"), question: "", answer: "" }] })}
+          onRemove={(id) => update({ faq: faq.filter((f) => f.id !== id) })}
+          addLabel="Add question"
+          render={(item: FaqItem) => (
+            <div className="space-y-3">
+              <InputField id={`q-${item.id}`} label="Question" placeholder="Can I bring my kids?" value={item.question}
+                onChange={(e) => update({ faq: faq.map((x) => x.id === item.id ? { ...x, question: e.target.value } : x) })} />
+              <TextareaField id={`a-${item.id}`} label="Answer" placeholder="We love your little ones, but…" value={item.answer}
+                onChange={(e) => update({ faq: faq.map((x) => x.id === item.id ? { ...x, answer: e.target.value } : x) })} />
+            </div>
+          )}
+        />
+      </ModuleLock>
+
+      {/* Footer */}
+      <div className="space-y-4">
+        <Subhead>Contact for guests</Subhead>
+        <p className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+          Shown in your website&rsquo;s footer for guests with questions. Leave it empty to hide it.
+        </p>
+        <InputField id="contact-name" label="Name" placeholder="Our coordinator, Ana" autoComplete="off" value={contact.name ?? ""}
+          onChange={(e) => setContact({ name: e.target.value })} />
+        <div className="grid grid-cols-1 gap-4 @lg:grid-cols-2">
+          <InputField id="contact-email" label="Email" type="email" autoComplete="off" placeholder="hello@example.com" value={contact.email ?? ""}
+            onChange={(e) => setContact({ email: e.target.value })} />
+          <InputField id="contact-phone" label="Phone" type="tel" inputMode="tel" autoComplete="off" placeholder="+63 917 123 4567" value={contact.phone ?? ""}
+            onChange={(e) => setContact({ phone: e.target.value })} />
+        </div>
+      </div>
+
       <RepeatingGroup
-        title="FAQ"
-        items={faq}
-        onAdd={() => update({ faq: [...faq, { id: rid("fq"), question: "", answer: "" }] })}
-        onRemove={(id) => update({ faq: faq.filter((f) => f.id !== id) })}
-        addLabel="Add question"
-        render={(item: FaqItem) => (
-          <div className="space-y-3">
-            <InputField id={`q-${item.id}`} label="Question" placeholder="Can I bring my kids?" value={item.question}
-              onChange={(e) => update({ faq: faq.map((x) => x.id === item.id ? { ...x, question: e.target.value } : x) })} />
-            <TextareaField id={`a-${item.id}`} label="Answer" placeholder="We love your little ones, but…" value={item.answer}
-              onChange={(e) => update({ faq: faq.map((x) => x.id === item.id ? { ...x, answer: e.target.value } : x) })} />
+        title="Social links"
+        items={socials}
+        onAdd={() => update({ socialLinks: [...socials, { id: rid("sl"), platform: "instagram", url: "" }] })}
+        onRemove={(id) => update({ socialLinks: socials.filter((l) => l.id !== id) })}
+        addLabel="Add link"
+        render={(l: SocialLink) => (
+          <div className="grid grid-cols-1 gap-3 @lg:grid-cols-[9rem_1fr]">
+            <Select id={`sp-${l.id}`} label="Platform" value={l.platform} options={PLATFORM_OPTIONS}
+              onChange={(v) => patchSocial(l.id, { platform: v as SocialPlatform })} />
+            <InputField id={`su-${l.id}`} label="Link" type="url" inputMode="url" autoComplete="off"
+              placeholder={SOCIAL_PLATFORMS.find((p) => p.key === l.platform)?.placeholder ?? "https://…"} value={l.url}
+              onChange={(e) => patchSocial(l.id, { url: e.target.value })} />
           </div>
         )}
       />

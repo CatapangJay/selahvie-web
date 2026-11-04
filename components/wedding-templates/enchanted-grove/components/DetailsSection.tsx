@@ -1,8 +1,16 @@
 "use client";
 
 import { motion, type Variants } from "framer-motion";
-import { Calendar, MapPin, Clock } from "lucide-react";
+import { Calendar, MapPin, Clock, Sparkles, Shirt } from "lucide-react";
 import type { WeddingConfig } from "@/types/wedding";
+import {
+  ceremonyVenue,
+  receptionVenue,
+  receptionTimeAtCeremony,
+  hashtagOf,
+  dressCodeOf,
+  type VenueView,
+} from "@/lib/weddingDetails";
 import Divider from "./Divider";
 
 interface Props {
@@ -25,28 +33,69 @@ const container: Variants = {
 };
 
 export default function DetailsSection({ config, gold, accent, weddingDateFormatted }: Props) {
-  const cards = [
+  const ceremony = ceremonyVenue(config);
+  const reception = receptionVenue(config);
+  const receptionTime = receptionTimeAtCeremony(config);
+  const dress = dressCodeOf(config);
+  const hashtag = hashtagOf(config);
+
+  const venueLines = (v: VenueView) => [v.name, v.address, v.city].filter(Boolean);
+
+  const cards: {
+    icon: typeof Calendar;
+    label: string;
+    lines: string[];
+    venue?: VenueView;
+    floatDelay: number;
+    swatches?: string[];
+  }[] = [
     {
       icon: Calendar,
       label: "Date",
-      value: weddingDateFormatted || "Date to be announced",
+      lines: [weddingDateFormatted || "Date to be announced"],
       floatDelay: FLOAT_DELAYS[0],
     },
     {
       icon: MapPin,
-      label: "Venue",
-      value: config.venueName
-        ? `${config.venueName}${config.venueCity ? `, ${config.venueCity}` : ""}`
-        : "Venue to be announced",
+      label: "Ceremony Venue",
+      lines: venueLines(ceremony).length ? venueLines(ceremony) : ["Venue to be announced"],
+      venue: ceremony,
       floatDelay: FLOAT_DELAYS[1],
     },
     {
       icon: Clock,
-      label: "Ceremony",
-      value: weddingDateFormatted ? "Details to follow" : "Time to be announced",
+      label: "Ceremony Time",
+      lines: [ceremony.time || (weddingDateFormatted ? "Details to follow" : "Time to be announced")],
       floatDelay: FLOAT_DELAYS[2],
     },
   ];
+
+  if (reception) {
+    cards.push({
+      icon: Sparkles,
+      label: "Reception",
+      lines: [...venueLines(reception), ...(reception.time ? [reception.time] : [])],
+      venue: reception,
+      floatDelay: FLOAT_DELAYS[0],
+    });
+  } else if (receptionTime) {
+    cards.push({
+      icon: Sparkles,
+      label: "Reception",
+      lines: [receptionTime, "At the ceremony venue"],
+      floatDelay: FLOAT_DELAYS[0],
+    });
+  }
+
+  if (dress) {
+    cards.push({
+      icon: Shirt,
+      label: "Dress Code",
+      lines: [dress.title, dress.description].filter(Boolean),
+      swatches: dress.palette,
+      floatDelay: FLOAT_DELAYS[1],
+    });
+  }
 
   return (
     <section
@@ -86,7 +135,7 @@ export default function DetailsSection({ config, gold, accent, weddingDateFormat
           viewport={{ once: true, amount: 0.2 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {cards.map(({ icon: Icon, label, value, floatDelay }) => (
+          {cards.map(({ icon: Icon, label, lines, venue, swatches, floatDelay }) => (
             <motion.div
               key={label}
               variants={cardEntry}
@@ -137,25 +186,63 @@ export default function DetailsSection({ config, gold, accent, weddingDateFormat
                 <p className="uppercase tracking-widest text-xs mb-2" style={{ color: `${accent}55`, fontFamily: "var(--font-sans)" }}>
                   {label}
                 </p>
-                <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.05rem", color: "#eef5ee", lineHeight: 1.55 }}>
-                  {value}
-                </p>
+                {lines.map((line, i) => (
+                  <p
+                    key={i}
+                    style={{
+                      fontFamily: "var(--font-serif)",
+                      fontSize: i === 0 ? "1.05rem" : "0.9rem",
+                      color: i === 0 ? "#eef5ee" : `${accent}90`,
+                      lineHeight: 1.55,
+                    }}
+                  >
+                    {line}
+                  </p>
+                ))}
+
+                {swatches && swatches.length > 0 && (
+                  <ul className="flex flex-wrap justify-center gap-2 mt-4" aria-label="Colour palette">
+                    {swatches.map((hex) => (
+                      <li
+                        key={hex}
+                        role="img"
+                        aria-label={`Palette colour ${hex}`}
+                        className="w-6 h-6 rounded-full"
+                        style={{ background: hex, border: `1px solid ${gold}60`, boxShadow: `0 0 10px ${hex}40` }}
+                      />
+                    ))}
+                  </ul>
+                )}
+
+                {venue && (venue.mapUrl || venue.directionsUrl) && (
+                  <p className="relative flex flex-wrap justify-center gap-x-5 gap-y-1 mt-4 text-xs uppercase tracking-widest">
+                    {venue.mapUrl && (
+                      <a href={venue.mapUrl} target="_blank" rel="noopener" className="py-2 underline underline-offset-4" style={{ color: gold }}>
+                        View map
+                      </a>
+                    )}
+                    {venue.directionsUrl && (
+                      <a href={venue.directionsUrl} target="_blank" rel="noopener" className="py-2 underline underline-offset-4" style={{ color: gold }}>
+                        Get directions
+                      </a>
+                    )}
+                  </p>
+                )}
               </motion.div>
             </motion.div>
           ))}
         </motion.div>
 
-        {/* Venue address */}
-        {config.venueAddress && (
+        {hashtag && (
           <motion.p
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, delay: 0.5 }}
-            className="text-center mt-7 text-sm"
-            style={{ color: `${accent}45`, letterSpacing: "0.07em" }}
+            className="text-center mt-10"
+            style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "1.2rem", color: gold }}
           >
-            {config.venueAddress}
+            {hashtag}
           </motion.p>
         )}
       </div>

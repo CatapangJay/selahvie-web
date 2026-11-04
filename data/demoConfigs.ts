@@ -11,7 +11,7 @@ import { templates } from "@/data/templates";
  * Templates without a bespoke demo fall back to a synthesized config (see
  * `getDemoConfig`), which still renders through `resolveTemplate`.
  */
-export const demoConfigs: Record<string, WeddingConfig> = {
+const bespokeDemos: Record<string, WeddingConfig> = {
   t1: {
     id: "demo",
     templateId: "t1",
@@ -269,7 +269,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     templateId: "t12",
     slug: "jewel-tones-demo",
     status: "published",
-    tier: "personalized",
+    tier: "premium",
     partner1Name: "Amara",
     partner2Name: "Teodoro",
     weddingDate: "2027-03-13",
@@ -321,6 +321,12 @@ export const demoConfigs: Record<string, WeddingConfig> = {
       { id: "jt-p15", name: "Pia Gomez", role: "Bridesmaid" },
       { id: "jt-p16", name: "Theo Villareal", role: "Ring Bearer" },
       { id: "jt-p17", name: "Sofia Dizon", role: "Flower Girl" },
+    ],
+    faq: [
+      { id: "jt-f1", question: "What should I wear?", answer: "Formal attire in deep jewel tones: ruby, emerald, sapphire or garnet. Tagaytay evenings turn cool, so bring a wrap or a light jacket for the garden." },
+      { id: "jt-f2", question: "Is there parking at Casa Rubí?", answer: "Yes. The gardens have free parking beside the chapel, and attendants will guide you in from Calle Esmeralda." },
+      { id: "jt-f3", question: "Are children invited?", answer: "We love your little ones, but apart from our ring bearer and flower girl, the celebration is for adults only." },
+      { id: "jt-f4", question: "When should I arrive?", answer: "Please be seated by 2:45 PM. The ceremony begins promptly at 3:00 PM." },
     ],
   },
   t13: {
@@ -386,7 +392,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     templateId: "t14",
     slug: "apricot-hour-demo",
     status: "published",
-    tier: "personalized",
+    tier: "premium",
     partner1Name: "Lucia",
     partner2Name: "Marco",
     weddingDate: "2027-04-24",
@@ -451,7 +457,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     templateId: "t15",
     slug: "narra-kapis-demo",
     status: "published",
-    tier: "personalized",
+    tier: "premium",
     partner1Name: "Ines",
     partner2Name: "Rafael",
     weddingDate: "2027-06-12",
@@ -520,7 +526,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     templateId: "t16",
     slug: "shutter-strip-demo",
     status: "published",
-    tier: "personalized",
+    tier: "premium",
     partner1Name: "Bea",
     partner2Name: "Gabriel",
     weddingDate: "2027-02-20",
@@ -592,7 +598,7 @@ export const demoConfigs: Record<string, WeddingConfig> = {
     templateId: "t17",
     slug: "wizarding-vows-demo",
     status: "published",
-    tier: "personalized",
+    tier: "premium",
     partner1Name: "Wren",
     partner2Name: "Callum",
     weddingDate: "2027-10-30",
@@ -661,6 +667,49 @@ export const demoConfigs: Record<string, WeddingConfig> = {
   },
 };
 
+/**
+ * Wedding details the bespoke demos don't spell out themselves: times, a
+ * separate reception, hashtag, dress code, albums and footer links. A demo's
+ * own values always win.
+ */
+export function withDemoDetails(c: WeddingConfig): WeddingConfig {
+  const [first, second] = [c.partner1Name, c.partner2Name].map((n) => n.split(" ")[0].normalize("NFD").replace(/[^A-Za-z]/g, ""));
+  const photos = c.galleryImageUrls ?? [];
+  const third = Math.ceil(photos.length / 3);
+  return {
+    ceremonyTime: "3:00 PM",
+    reception: {
+      sameAsCeremony: false,
+      name: `${c.venueName} Garden Pavilion`,
+      address: c.venueAddress,
+      city: c.venueCity,
+      time: "6:00 PM",
+    },
+    hashtag: `${first}And${second}SayIDo`,
+    dressCode: {
+      title: "Formal",
+      description: "Long gowns or cocktail dresses, suits or barongs. Please leave white and ivory to the bride.",
+      palette: [c.primaryColor, c.accentColor].filter((x) => /^#[0-9a-f]{6}$/i.test(x)),
+    },
+    galleryAlbums:
+      photos.length >= 3
+        ? { prenup: photos.slice(0, third), engagement: photos.slice(third, third * 2), memories: photos.slice(third * 2) }
+        : undefined,
+    contact: { name: "Our coordinator, Ana", email: "hello@example.com", phone: "+63 917 555 0142" },
+    socialLinks: [{ id: "demo-ig", platform: "instagram", url: "https://instagram.com/" }],
+    ...c,
+    weddingParty: c.weddingParty?.map((m, i) =>
+      i === 0 && !m.message ? { ...m, message: "I've waited years to stand beside you two. Here's to forever." } : m
+    ),
+    tier: "premium",
+  };
+}
+
+/** Demos show every module, so they're all on Premium (the preview page can pick a lower package). */
+export const demoConfigs: Record<string, WeddingConfig> = Object.fromEntries(
+  Object.entries(bespokeDemos).map(([id, c]) => [id, withDemoDetails(c)])
+);
+
 /** Look up a demo config by its public slug (used by the /wedding route). */
 export function getDemoConfigBySlug(slug: string): WeddingConfig | undefined {
   return Object.values(demoConfigs).find((c) => c.slug === slug);
@@ -682,11 +731,12 @@ export function getDemoConfig(templateId: string): WeddingConfig | undefined {
   if (!template) return undefined;
 
   const preset = template.colorPalettes[0];
-  return {
+  return withDemoDetails({
     id: `${templateId}-preview`,
     templateId,
     slug: `${template.slug}-preview`,
     status: "published",
+    tier: "premium",
     partner1Name: "Emma",
     partner2Name: "Noah",
     weddingDate: "2026-09-19",
@@ -711,5 +761,5 @@ export function getDemoConfig(templateId: string): WeddingConfig | undefined {
     customQuestions: [],
     musicTrackId: "romantic",
     musicCustomUrl: "",
-  };
+  });
 }

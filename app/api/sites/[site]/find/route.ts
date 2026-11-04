@@ -27,7 +27,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     .from("weddings")
     .select("id, tier, status, invite_lookup_enabled")
     .eq("id", site)
-    .maybeSingle<{ id: string; tier: "base" | "personalized"; status: string; invite_lookup_enabled: boolean }>();
+    .maybeSingle<{ id: string; tier: string; status: string; invite_lookup_enabled: boolean }>();
   if (error) {
     return NextResponse.json({ error: "Couldn't look that up." }, { status: 502, headers: NO_STORE });
   }

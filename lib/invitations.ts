@@ -1,3 +1,4 @@
+import { hasModule } from "@/lib/tiers";
 import type {
   Audience,
   AudienceSectionKey,
@@ -112,8 +113,35 @@ export function isInAudience(a: Audience | undefined, invitee: Invitee | null): 
   return invitee.groupIds.some((id) => a.groupIds.includes(id));
 }
 
-export function isPersonalized(config: Pick<WeddingConfig, "tier">): boolean {
-  return config.tier === "personalized";
+export function isPersonalized(config: { tier?: WeddingConfig["tier"] | string }): boolean {
+  return hasModule(config, "personalization");
+}
+
+/**
+ * The config with every module the package doesn't include switched off, so
+ * templates only need their usual `isSectionVisible` / music checks. Locked
+ * content is kept in the config (it comes back on upgrade), just not shown.
+ */
+export function applyPackage(config: WeddingConfig): WeddingConfig {
+  const locked: AudienceSectionKey[] = [];
+  if (!hasModule(config, "entourage")) locked.push("weddingParty");
+  if (!hasModule(config, "gallery")) locked.push("gallery");
+  if (!hasModule(config, "faq")) locked.push("faq");
+  if (!hasModule(config, "guestbook")) locked.push("guestbook");
+  const music = hasModule(config, "music");
+  const gallery = hasModule(config, "gallery");
+  if (locked.length === 0 && music) return config;
+  const visibility = { ...(config.sectionVisibility ?? {}) };
+  for (const key of locked) visibility[key] = false;
+  return {
+    ...config,
+    sectionVisibility: visibility,
+    ...(music ? {} : { musicTrackId: "none", musicCustomUrl: "" }),
+    // Several templates also use gallery photos in the story or hero, so locked photos are removed, not just hidden.
+    ...(gallery ? {} : { galleryImageUrls: [], galleryAlbums: undefined }),
+    ...(hasModule(config, "entourage") ? {} : { weddingParty: [] }),
+    ...(hasModule(config, "faq") ? {} : { faq: [] }),
+  };
 }
 
 /** Most extra guests a single response can name (matches the party-size cap of 20). */
@@ -123,7 +151,7 @@ export const MAX_ADDITIONAL_GUESTS = 19;
  * How many extra guests this viewer may bring. A guest identified on a Personalized
  * site gets `partySize - 1` whatever the site-wide plus-one setting, so a couple can
  * privilege specific guests with more seats (and keep everyone else solo). Everyone
- * else (Base sites, group links, unidentified visitors) gets the site-wide plus-one:
+ * else (non-Premium sites, group links, unidentified visitors) gets the site-wide plus-one:
  * 1 if allowed, otherwise 0.
  */
 export function plusOneAllowance(config: WeddingConfig, invitee: Invitee | null): number {
@@ -139,10 +167,12 @@ export function guestAllowance(partySize: number | undefined): number {
 /**
  * The config as this invitee should see it: audience-restricted sections are
  * hidden for everyone outside the audience, and an identified guest's plus-one
- * field follows their party size (solo = none, larger = extra guests). Base-tier
- * configs pass through untouched.
+ * field follows their party size (solo = none, larger = extra guests). Modules
+ * outside the package are switched off first (`applyPackage`); configs without
+ * personalization stop there.
  */
-export function personalizeConfig(config: WeddingConfig, invitee: Invitee | null): WeddingConfig {
+export function personalizeConfig(source: WeddingConfig, invitee: Invitee | null): WeddingConfig {
+  const config = applyPackage(source);
   if (!isPersonalized(config)) return config;
   const visibility = { ...(config.sectionVisibility ?? {}) };
   const audiences = Object.entries(config.sectionAudiences ?? {}) as [AudienceSectionKey, Audience][];

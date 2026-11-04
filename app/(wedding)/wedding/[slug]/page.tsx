@@ -2,7 +2,7 @@
 import { Suspense, use, useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-import { getDemoConfigBySlug } from "@/data/demoConfigs";
+import { getDemoConfigBySlug, withDemoDetails } from "@/data/demoConfigs";
 import PersonalizedTemplate from "@/components/wedding-templates/_shared/PersonalizedTemplate";
 import FindInvitation from "@/components/wedding-templates/_shared/FindInvitation";
 import ViewAsSelect from "@/components/wedding-templates/_shared/ViewAsSelect";
@@ -15,11 +15,12 @@ import type { WeddingConfig } from "@/types/wedding";
 
 // ─── Legacy demo config (kept for the /wedding/demo entry link) ──────────────
 
-const DEMO_CONFIG: WeddingConfig = {
+const DEMO_CONFIG: WeddingConfig = withDemoDetails({
   id: "demo",
   templateId: "t1",
   slug: "demo",
   status: "published",
+  tier: "premium",
   partner1Name: "Alexandra",
   partner2Name: "James",
   weddingDate: "2026-09-20",
@@ -44,7 +45,7 @@ const DEMO_CONFIG: WeddingConfig = {
   customQuestions: [],
   musicTrackId: "romantic",
   musicCustomUrl: "",
-};
+});
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 

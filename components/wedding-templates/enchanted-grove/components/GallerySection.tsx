@@ -1,9 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, useScroll, useTransform, type Variants } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
+import { galleryAlbumsOf, galleryHasAlbums } from "@/lib/weddingDetails";
 import Divider from "./Divider";
 
 interface Props {
@@ -78,8 +79,22 @@ const containerVar: Variants = {
 };
 
 export default function GallerySection({ config, gold, accent }: Props) {
-  const images = (config.galleryImageUrls ?? []).filter(Boolean).slice(0, 6);
+  const albums = galleryAlbumsOf(config);
+  const hasAlbums = galleryHasAlbums(config);
+  const [active, setActive] = useState(0);
+  const album = albums[Math.min(active, albums.length - 1)];
+  const images = hasAlbums
+    ? album.urls.filter(Boolean)
+    : (config.galleryImageUrls ?? []).filter(Boolean).slice(0, 6);
   if (!images.length) return null;
+
+  const onTabKey = (e: React.KeyboardEvent, i: number) => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    e.preventDefault();
+    const next = (i + (e.key === "ArrowRight" ? 1 : -1) + albums.length) % albums.length;
+    setActive(next);
+    document.getElementById(`grove-album-tab-${albums[next].key}`)?.focus();
+  };
 
   return (
     <section
@@ -104,7 +119,41 @@ export default function GallerySection({ config, gold, accent }: Props) {
           <Divider gold={gold} accent={accent} />
         </motion.div>
 
+        {hasAlbums && albums.length > 1 && (
+          <div role="tablist" aria-label="Photo albums" className="flex flex-wrap justify-center gap-3 mb-10">
+            {albums.map((a, i) => {
+              const on = a.key === album.key;
+              return (
+                <button
+                  key={a.key}
+                  id={`grove-album-tab-${a.key}`}
+                  role="tab"
+                  type="button"
+                  aria-selected={on}
+                  aria-controls="grove-album-panel"
+                  tabIndex={on ? 0 : -1}
+                  onClick={() => setActive(i)}
+                  onKeyDown={(e) => onTabKey(e, i)}
+                  className="px-5 py-2.5 rounded-full text-xs uppercase tracking-[0.2em]"
+                  style={{
+                    background: on ? `${gold}18` : "transparent",
+                    border: `1px solid ${on ? gold : `${accent}30`}`,
+                    color: on ? gold : `${accent}b0`,
+                    transition: "all 0.25s",
+                  }}
+                >
+                  {a.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         <motion.div
+          key={hasAlbums ? album.key : "all"}
+          id="grove-album-panel"
+          role={hasAlbums && albums.length > 1 ? "tabpanel" : undefined}
+          aria-labelledby={hasAlbums && albums.length > 1 ? `grove-album-tab-${album.key}` : undefined}
           variants={containerVar}
           initial="hidden"
           whileInView="show"
@@ -116,7 +165,7 @@ export default function GallerySection({ config, gold, accent }: Props) {
             <ParallaxImage
               key={i}
               src={src}
-              alt={`Gallery ${i + 1}`}
+              alt={hasAlbums ? `${album.label} photo ${i + 1}` : `Gallery photo ${i + 1}`}
               span={SPANS[i % SPANS.length]}
               parallaxRange={PARALLAX_RANGES[i % PARALLAX_RANGES.length]}
               gold={gold}

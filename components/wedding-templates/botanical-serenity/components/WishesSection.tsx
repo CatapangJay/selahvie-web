@@ -79,8 +79,9 @@ export default function WishesSection({ config, green, floral, bg, textDeep }: P
               className="space-y-10"
             >
               <div>
-                <label style={labelStyle}>Your name</label>
+                <label htmlFor="serenity-wish-name" style={labelStyle}>Your name</label>
                 <input
+                  id="serenity-wish-name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -93,8 +94,9 @@ export default function WishesSection({ config, green, floral, bg, textDeep }: P
               </div>
 
               <div>
-                <label style={labelStyle}>Your message</label>
+                <label htmlFor="serenity-wish-message" style={labelStyle}>Your message</label>
                 <textarea
+                  id="serenity-wish-message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Write something heartfelt..."

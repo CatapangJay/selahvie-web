@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { Plus, Minus } from "lucide-react";
+import type { WeddingConfig } from "@/types/wedding";
 
 interface Props {
+  config: WeddingConfig;
   accent: string;
 }
 
@@ -104,8 +106,10 @@ function FaqItem({ q, a, accent, isOpen, onToggle }: {
   );
 }
 
-export default function FaqSection({ accent }: Props) {
+export default function FaqSection({ config, accent }: Props) {
   const BG = "#faf8f4";
+  const custom = (config.faq ?? []).filter((f) => f.question.trim()).map((f) => ({ q: f.question, a: f.answer }));
+  const faqs = custom.length > 0 ? custom : DEFAULT_FAQS;
   const [openIdx, setOpenIdx] = useState<number | null>(null);
 
   return (
@@ -147,7 +151,7 @@ export default function FaqSection({ accent }: Props) {
 
           {/* Accordion */}
           <motion.div variants={cont} className="flex flex-col">
-            {DEFAULT_FAQS.map((item, i) => (
+            {faqs.map((item, i) => (
               <FaqItem
                 key={i}
                 q={item.q}

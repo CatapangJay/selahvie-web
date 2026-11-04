@@ -40,9 +40,19 @@ export default function EntourageSection({ config, palette: p, band }: Props) {
                     </p>
                     <div className={cat.cols?.names && `grid gap-x-6 ${cat.cols.names}`}>
                       {[...group.members].sort(bySide).map((m) => (
-                        <p key={m.id} style={{ fontFamily: DISPLAY, fontWeight: 300, fontSize: "1.2rem", lineHeight: 1.5, color: band.dark ? p.morning : p.ink, margin: 0 }}>
-                          {displayName(m, layout?.parentNames)}
-                        </p>
+                        <div key={m.id} style={{ margin: 0 }}>
+                          <p style={{ fontFamily: DISPLAY, fontWeight: 300, fontSize: "1.2rem", lineHeight: 1.5, color: band.dark ? p.morning : p.ink, margin: 0 }}>
+                            {displayName(m, layout?.parentNames)}
+                          </p>
+                          {m.relationship?.trim() && (
+                            <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 500, letterSpacing: "0.18em", textTransform: "uppercase", color: t.soft, margin: "0.1rem 0 0" }}>{m.relationship.trim()}</p>
+                          )}
+                          {m.message?.trim() && (
+                            <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 300, fontSize: "1.05rem", lineHeight: 1.55, color: t.soft, maxWidth: 320, margin: "0.35rem auto 0.9rem" }}>
+                              &ldquo;{m.message.trim()}&rdquo;
+                            </p>
+                          )}
+                        </div>
                       ))}
                     </div>
                   </div>

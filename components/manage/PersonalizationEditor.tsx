@@ -10,7 +10,7 @@ import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import PhotoField from "@/components/media/PhotoField";
 import { audienceSectionsFor } from "@/components/wedding-templates";
 import { DEFAULT_GREETING, emptyAudience, isAudienceEmpty } from "@/lib/invitations";
-import { PERSONALIZED_ADDON_CENTS, TIER_INFO } from "@/lib/tiers";
+import { TIER_INFO, configTier, hasModule, upgradePrice } from "@/lib/tiers";
 import { formatPrice } from "@/lib/utils";
 import type {
   Audience,
@@ -39,7 +39,7 @@ const KIND_META: Record<PrivateSectionKind, { label: string; icon: typeof FileTe
 const newId = () => `ps-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
 export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests }: Props) {
-  const personalized = config.tier === "personalized";
+  const personalized = hasModule(config, "personalization");
   const updateConfig = useWeddingStore((s) => s.updateConfig);
   const guests = useWeddingStore((s) => s.guests).filter((g) => g.weddingId === config.id);
   const groups = useWeddingStore((s) => s.groups).filter((g) => g.weddingId === config.id);
@@ -81,21 +81,21 @@ export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests 
           <div>
             <p className="flex items-center gap-2 label-luxury" style={{ color: "var(--color-primary)" }}>
               <Lock size={12} aria-hidden />
-              Personalized Invitations
+              Premium plan
             </p>
-            <h2 className="headline-sm mt-2" style={{ fontSize: "1.35rem" }}>{TIER_INFO.personalized.summary}</h2>
+            <h2 className="headline-sm mt-2" style={{ fontSize: "1.35rem" }}>{TIER_INFO.premium.summary}</h2>
             <ul className="mt-3 space-y-1 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-              {TIER_INFO.personalized.features.map((f) => (
+              {TIER_INFO.premium.features.map((f) => (
                 <li key={f}>{f}</li>
               ))}
             </ul>
           </div>
           <div className="shrink-0">
             <ButtonPrimary size="lg" onClick={onUpgrade}>
-              Unlock for {formatPrice(PERSONALIZED_ADDON_CENTS)}
+              Upgrade for {formatPrice(upgradePrice(configTier(config), "premium"))}
             </ButtonPrimary>
             <p className="mt-2 text-center text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
-              One-time add-on for this website
+              One-time upgrade for this website
             </p>
           </div>
         </div>

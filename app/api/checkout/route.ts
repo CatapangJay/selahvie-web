@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { templates } from "@/data/templates";
-import { PERSONALIZED_ADDON_CENTS, resolveTier, tierPrice } from "@/lib/tiers";
+import { TIERS, normalizeTier, resolveTier, tierPrice, tierRank, upgradePrice } from "@/lib/tiers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { insertWeddingBundles, requireUser } from "@/lib/db/server";
 import { defaultWeddingConfig } from "@/lib/weddingDefaults";
@@ -12,6 +12,8 @@ export const runtime = "nodejs";
 const METHODS = new Set(["gcash", "maya", "card"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_ITEMS = 20;
+
+const isTier = (v: unknown): v is Tier => typeof v === "string" && (TIERS as string[]).includes(v);
 
 const fail = (error: string, status: number) => NextResponse.json({ error }, { status });
 
@@ -24,7 +26,7 @@ interface ItemInput {
 
 /**
  * Mock payment: records a paid order, creates the purchased websites and
- * unlocks Personalized upgrades. Prices are always recomputed here from the
+ * moves owned websites up to the package they were upgraded to. Prices are always recomputed here from the
  * catalogue; the browser only says what's in the cart.
  */
 export async function POST(request: NextRequest) {
@@ -41,11 +43,14 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
   const purchases: { templateId: string; tier: Tier; price: number }[] = [];
-  const upgrades = new Map<string, { templateId: string; price: number }>();
+  // `stored` is the raw column value, so the write below only lands if nobody changed it meanwhile.
+  const upgrades = new Map<string, { templateId: string; stored: string; from: Tier; to: Tier; price: number }>();
 
   for (const item of items) {
     if (item.kind === "upgrade") {
-      if (typeof item.weddingId !== "string" || !UUID.test(item.weddingId)) return fail("Invalid order.", 400);
+      if (typeof item.weddingId !== "string" || !UUID.test(item.weddingId) || !isTier(item.tier)) {
+        return fail("Invalid order.", 400);
+      }
       if (upgrades.has(item.weddingId)) continue;
       const { data: wedding, error } = await admin
         .from("weddings")
@@ -55,12 +60,14 @@ export async function POST(request: NextRequest) {
         .maybeSingle();
       if (error) return fail("We couldn't process your order. Please try again.", 502);
       if (!wedding) return fail("One of the websites in your cart isn't yours.", 403);
-      if (wedding.tier === "personalized") continue; // already unlocked; don't charge twice
-      upgrades.set(wedding.id, { templateId: wedding.template_id, price: PERSONALIZED_ADDON_CENTS });
+      const from = normalizeTier(wedding.tier);
+      const to = item.tier;
+      if (tierRank(to) <= tierRank(from)) continue; // already on that package or higher; don't charge twice
+      upgrades.set(wedding.id, { templateId: wedding.template_id, stored: wedding.tier, from, to, price: upgradePrice(from, to) });
     } else if (item.kind === "template") {
       const template = templates.find((t) => t.id === item.templateId);
       if (!template) return fail("One of the templates in your cart no longer exists.", 400);
-      const tier = resolveTier(template, item.tier === "personalized" ? "personalized" : "base");
+      const tier = resolveTier(template, isTier(item.tier) ? item.tier : "essential");
       purchases.push({ templateId: template.id, tier, price: tierPrice(template.price, tier) });
     } else {
       return fail("Invalid order.", 400);
@@ -108,9 +115,16 @@ export async function POST(request: NextRequest) {
     await insertWeddingBundles(admin, user.id, bundles);
     created = true;
 
-    if (upgrades.size > 0) {
-      const { error } = await admin.from("weddings").update({ tier: "personalized" }).in("id", [...upgrades.keys()]);
+    for (const [weddingId, u] of upgrades) {
+      const { data, error } = await admin
+        .from("weddings")
+        .update({ tier: u.to })
+        .eq("id", weddingId)
+        .eq("tier", u.stored)
+        .select("id");
       if (error) throw new Error(`upgrade: ${error.message}`);
+      // Another order changed this website's package first; don't overwrite it.
+      if (!data?.length) throw new Error("upgrade: package changed during checkout");
       upgraded = true;
     }
 
@@ -127,7 +141,7 @@ export async function POST(request: NextRequest) {
         order_id: order.id,
         kind: "upgrade",
         template_id: u.templateId,
-        tier: "personalized",
+        tier: u.to,
         wedding_id: weddingId,
         unit_price_cents: u.price,
       })),
@@ -137,7 +151,12 @@ export async function POST(request: NextRequest) {
     console.error("[api/checkout] fulfilment failed:", error);
     // Undo what was granted so a failed order unlocks nothing.
     if (created && bundles.length > 0) await admin.from("weddings").delete().in("id", bundles.map((b) => b.config.id));
-    if (upgraded) await admin.from("weddings").update({ tier: "base" }).in("id", [...upgrades.keys()]);
+    if (upgraded) {
+      // Only undo our own write: leave a website alone if another order has moved it since.
+      for (const [weddingId, u] of upgrades) {
+        await admin.from("weddings").update({ tier: u.stored }).eq("id", weddingId).eq("tier", u.to);
+      }
+    }
     await admin.from("orders").update({ status: "failed" }).eq("id", order.id);
     return fail("Your order couldn't be completed. You haven't been charged.", 502);
   }

@@ -349,7 +349,7 @@ export const templates: WeddingTemplate[] = [
     slug: "jewel-tones",
     description: "A jewel-toned envelope invitation — raspberry and teal felt, a gold wax seal, and your guest's name written on the envelope.",
     longDescription:
-      "Jewel Tones opens like a letter that was written by hand, for one person. Every guest first meets a sealed envelope with their own name on the front; one tap on the gold wax seal cracks it, the flap lifts, and a cream save-the-date card rises out to reveal the website. Beneath it, raspberry and deep-teal felt panels, gilt-framed gallery pictures, calla lilies and old-master florals carry the same collected, candle-lit warmth. Built exclusively for the Personalized tier, because the envelope is only magic when it is addressed to someone.",
+      "Jewel Tones opens like a letter that was written by hand, for one person. Every guest first meets a sealed envelope with their own name on the front; one tap on the gold wax seal cracks it, the flap lifts, and a cream save-the-date card rises out to reveal the website. Beneath it, raspberry and deep-teal felt panels, gilt-framed gallery pictures, calla lilies and old-master florals carry the same collected, candle-lit warmth. Built exclusively for the Premium plan, because the envelope is only magic when it is addressed to someone.",
     price: 12900,
     previewImage: "https://picsum.photos/seed/jewel-tones/800/1000",
     previewImages: [
@@ -360,7 +360,7 @@ export const templates: WeddingTemplate[] = [
     features: [
       "Sealed envelope intro addressed to each guest by name",
       "Gold wax seal that cracks open, flap and card animation",
-      "Personalized tier included — personal links for every guest or group",
+      "Premium plan included — personal links for every guest or group",
       "Raspberry and teal felt panels with gilt-framed photography",
       "Live countdown timer",
       "Order of events timeline",

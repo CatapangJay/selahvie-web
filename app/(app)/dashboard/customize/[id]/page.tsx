@@ -17,7 +17,8 @@ import Collapse from "@/components/ui/Collapse";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { cn, generateSlug } from "@/lib/utils";
-import { TIER_INFO, configTier } from "@/lib/tiers";
+import { TIER_INFO, configTier, hasModule, tierFor, tierHasModule, upgradePrice } from "@/lib/tiers";
+import { GALLERY_ALBUMS, dressCodeOf, flattenAlbums, hashtagOf } from "@/lib/weddingDetails";
 import { musicTracks, CUSTOM_TRACK_ID, NO_MUSIC_ID } from "@/data/musicTracks";
 import SectionsEditor from "@/components/customize/SectionsEditor";
 import EntourageEditor from "@/components/customize/EntourageEditor";
@@ -30,9 +31,10 @@ import ViewAsSelect from "@/components/wedding-templates/_shared/ViewAsSelect";
 import PhotoField from "@/components/media/PhotoField";
 import PhotoGalleryField from "@/components/media/PhotoGalleryField";
 import Skeleton from "@/components/ui/Skeleton";
-import type { WeddingConfig } from "@/types/wedding";
+import ModuleLock from "@/components/ui/ModuleLock";
+import type { GalleryAlbumKey, ReceptionInfo, Tier, WeddingConfig } from "@/types/wedding";
 
-type StepId = "couple" | "look" | "story" | "rsvp" | "entourage" | "sections" | "guests" | "personalize" | "publish";
+type StepId = "couple" | "details" | "look" | "story" | "rsvp" | "entourage" | "sections" | "guests" | "personalize" | "publish";
 
 interface Step {
   id: StepId;
@@ -43,6 +45,7 @@ interface Step {
 
 const STEPS: Step[] = [
   { id: "couple", group: "Your website", label: "Couple & venue" },
+  { id: "details", group: "Your website", label: "Hashtag & dress code", optional: true },
   { id: "look", group: "Your website", label: "Colors" },
   { id: "story", group: "Your website", label: "Photos, story & music" },
   { id: "rsvp", group: "Your website", label: "RSVP settings" },
@@ -61,6 +64,9 @@ const WIDE_STEPS: StepId[] = ["guests", "personalize"];
 
 const isStepId = (v: string | null): v is StepId => STEPS.some((s) => s.id === v);
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+/** Most suggested colors a dress code can list. */
+const MAX_DRESS_COLORS = 5;
+const EMPTY_RECEPTION: ReceptionInfo = { sameAsCeremony: true, name: "", address: "", city: "" };
 const formatDate = (iso: string, dateStyle: "long" | "medium" = "long") =>
   /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", { dateStyle }) : "";
 
@@ -68,15 +74,17 @@ const formatDate = (iso: string, dateStyle: "long" | "medium" = "long") =>
 function stepsDone(config: WeddingConfig, guestCount: number): Record<StepId, boolean> {
   return {
     couple: Boolean(config.partner1Name && config.partner2Name && config.weddingDate),
+    details: Boolean(hashtagOf(config) || dressCodeOf(config)),
     look: Boolean(config.themePresetId || config.primaryColor),
     story: Boolean(config.heroImageUrl && config.coupleStory),
     rsvp: Boolean(config.rsvpDeadline),
-    entourage: Boolean(config.weddingParty?.some(isNamed)),
+    entourage: hasModule(config, "entourage") && Boolean(config.weddingParty?.some(isNamed)),
     sections: Boolean(
-      config.schedule?.length || config.faq?.length || config.registryLinks?.length
+      config.schedule?.length || config.faq?.length || config.registryLinks?.length ||
+        config.socialLinks?.length || config.contact?.name || config.contact?.email || config.contact?.phone
     ),
     guests: guestCount > 0,
-    personalize: configTier(config) === "personalized" && Boolean(config.privateSections?.length),
+    personalize: hasModule(config, "personalization") && Boolean(config.privateSections?.length),
     publish: config.status === "published",
   };
 }
@@ -228,7 +236,7 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
   }, [step]);
 
   const tier = configTier(config);
-  const personalized = tier === "personalized";
+  const personalized = tierHasModule(tier, "personalization");
   const published = config.status === "published";
   const coupleLabel =
     config.partner1Name && config.partner2Name
@@ -246,8 +254,21 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
   const filledSections = [
     config.schedule?.length && "Schedule",
     config.registryLinks?.length && "Registry",
-    config.faq?.length && "FAQ",
+    hasModule(config, "faq") && config.faq?.length && "FAQ",
+    (config.contact?.name || config.contact?.email || config.contact?.phone || config.socialLinks?.length) && "Footer",
   ].filter(Boolean);
+  const dressCode = dressCodeOf(config);
+  const reception = config.reception ?? EMPTY_RECEPTION;
+  const setReception = (data: Partial<ReceptionInfo>) => update({ reception: { ...reception, ...data } });
+  const dressPalette = config.dressCode?.palette ?? [];
+  const setDressCode = (data: Partial<NonNullable<WeddingConfig["dressCode"]>>) =>
+    update({ dressCode: { title: "", ...config.dressCode, ...data } });
+  // Sites from before albums show their photos as "Favorite memories"; albums are only written once one is edited.
+  const albums = config.galleryAlbums ?? { memories: config.galleryImageUrls ?? [] };
+  const setAlbum = (key: GalleryAlbumKey, urls: string[]) => {
+    const next = { ...albums, [key]: urls };
+    update({ galleryAlbums: next, galleryImageUrls: flattenAlbums(next) });
+  };
   const entourageCount = config.weddingParty?.filter(isNamed).length ?? 0;
   /** One line shown under a collapsed step, so the couple can scan what's set. */
   const summaries: Record<StepId, string> = {
@@ -256,6 +277,7 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
       formatDate(config.weddingDate, "medium"),
       config.venueName,
     ].filter(Boolean).join(" · "),
+    details: [hashtagOf(config), dressCode?.title].filter(Boolean).join(" · "),
     look: chosenPalette?.name ?? (config.primaryColor ? "Custom colors" : ""),
     story: [
       config.heroImageUrl && "Hero photo",
@@ -263,21 +285,21 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
       config.coupleStory && "Your story",
     ].filter(Boolean).join(" · "),
     rsvp: config.rsvpDeadline ? `Reply by ${formatDate(config.rsvpDeadline, "medium")}` : "",
-    entourage: entourageCount ? `${entourageCount} ${entourageCount === 1 ? "person" : "people"}` : "",
+    entourage: !hasModule(config, "entourage") ? `Comes with the ${TIER_INFO[tierFor("entourage")].label} plan` : entourageCount ? `${entourageCount} ${entourageCount === 1 ? "person" : "people"}` : "",
     sections: filledSections.join(", "),
     guests: guests.length
       ? `${plural(guests.length, "guest")}${groups.length ? ` in ${plural(groups.length, "group")}` : ""}`
       : "",
     personalize: !personalized
-      ? "Comes with the Personalized plan"
+      ? "Comes with the Premium plan"
       : config.privateSections?.length
         ? plural(config.privateSections.length, "private section")
         : "",
     publish: published ? "Live" : essentialsDone === ESSENTIALS.length ? "Ready when you are" : "",
   };
 
-  const handleUpgrade = () => {
-    addUpgrade(config.id, template ?? templates[0], coupleLabel);
+  const handleUpgrade = (to: Tier = "premium") => {
+    addUpgrade(config.id, template ?? templates[0], coupleLabel, tier, to);
     router.push("/checkout");
   };
 
@@ -308,7 +330,8 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
   };
 
   const descriptions: Record<StepId, ReactNode> = {
-    couple: "Your names, date and venue appear throughout your website.",
+    couple: "Your names, date and venues appear throughout your website.",
+    details: "Your hashtag helps guests share photos in one place. A dress code tells them what to wear.",
     look: "Start from one of this template's palettes, or set your own colors.",
     story: "The first things guests see and hear when they open your website.",
     rsvp: "Set a reply-by date and choose what to ask guests when they respond.",
@@ -337,7 +360,9 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
   const canViewAs = personalized && guests.length + groups.length > 0;
 
   const stepHeader = (s: Step, open: boolean) => {
-    const locked = s.id === "personalize" && !personalized;
+    const locked =
+      s.id === "personalize" ? !personalized : s.id === "entourage" ? !hasModule(config, "entourage") : false;
+    const lockedTier = s.id === "entourage" ? tierFor("entourage") : "premium";
     const summary = summaries[s.id] || (s.optional && !done[s.id] ? "Optional" : "");
     return (
       <h3
@@ -352,7 +377,7 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
           onClick={() => (open ? collapse() : goTo(s.id))}
           className="flex min-h-[60px] w-full items-center gap-3.5 px-5 py-3 text-left transition-colors duration-150 hover:bg-[var(--color-surface-container-low)]"
         >
-          <StepMark done={done[s.id]} locked={locked} />
+          <StepMark done={done[s.id]} locked={locked ? lockedTier : null} />
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
               {s.label}
@@ -579,6 +604,109 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                     <InputField label="Venue name" id="venue" placeholder="The Grand Ballroom" value={config.venueName} onChange={(e) => update({ venueName: e.target.value })} />
                     <InputField label="Venue address" id="venueAddr" placeholder="123 Rose Avenue" value={config.venueAddress} onChange={(e) => update({ venueAddress: e.target.value })} />
                     <InputField label="City" id="city" placeholder="San Francisco, CA" value={config.venueCity} onChange={(e) => update({ venueCity: e.target.value })} />
+                    <InputField label="Ceremony time" id="ceremonyTime" placeholder="3:00 PM" autoComplete="off" value={config.ceremonyTime ?? ""} onChange={(e) => update({ ceremonyTime: e.target.value })} />
+                    <MapLinkField id="venueMapUrl" label="Google Maps link (optional)" value={config.venueMapUrl ?? ""} onChange={(v) => update({ venueMapUrl: v })} />
+
+                    <fieldset className="space-y-7 pt-3">
+                      <legend className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>Reception</legend>
+                      <ToggleRow
+                        id="reception-same"
+                        label="Reception is at the same venue"
+                        hint="Turn this off to add a separate reception venue."
+                        checked={reception.sameAsCeremony}
+                        onChange={(on) => setReception({ sameAsCeremony: on })}
+                      />
+                      {!reception.sameAsCeremony && (
+                        <>
+                          <InputField label="Reception venue name" id="receptionName" placeholder="The Garden Pavilion" value={reception.name} onChange={(e) => setReception({ name: e.target.value })} />
+                          <InputField label="Reception address" id="receptionAddr" placeholder="45 Magnolia Street" value={reception.address} onChange={(e) => setReception({ address: e.target.value })} />
+                          <InputField label="Reception city" id="receptionCity" placeholder="San Francisco, CA" value={reception.city} onChange={(e) => setReception({ city: e.target.value })} />
+                        </>
+                      )}
+                      <InputField label="Reception time" id="receptionTime" placeholder="6:00 PM" autoComplete="off" value={reception.time ?? ""} onChange={(e) => setReception({ time: e.target.value })} />
+                      {!reception.sameAsCeremony && (
+                        <MapLinkField id="receptionMapUrl" label="Google Maps link for the reception (optional)" value={reception.mapUrl ?? ""} onChange={(v) => setReception({ mapUrl: v })} />
+                      )}
+                    </fieldset>
+                  </div>
+                )}
+
+                {s.id === "details" && (
+                  <div className="space-y-10">
+                    <div>
+                      <label htmlFor="hashtag" className="text-[0.8125rem] font-medium" style={{ color: "var(--color-on-surface-variant)" }}>
+                        Wedding hashtag
+                      </label>
+                      <div className="mt-1.5 flex items-baseline border-0 border-b border-[var(--color-outline)]! transition-colors duration-200 hover:border-[var(--color-on-surface-muted)]! focus-within:border-[var(--color-primary)]!">
+                        <span aria-hidden className="pr-0.5 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>#</span>
+                        <input
+                          id="hashtag"
+                          autoComplete="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          maxLength={60}
+                          placeholder="AlexAndJames2026"
+                          value={config.hashtag ?? ""}
+                          onChange={(e) => update({ hashtag: e.target.value.replace(/^#+/, "").replace(/\s+/g, "") })}
+                          className="w-full border-0 bg-transparent py-2.5 text-sm outline-none placeholder:text-[var(--color-on-surface-muted)]"
+                          style={{ color: "var(--color-on-surface)" }}
+                        />
+                      </div>
+                    </div>
+
+                    <fieldset className="space-y-7">
+                      <legend className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>Dress code</legend>
+                      <InputField label="Dress code" id="dressTitle" placeholder="Garden semi-formal" value={config.dressCode?.title ?? ""} onChange={(e) => setDressCode({ title: e.target.value })} />
+                      <TextareaField
+                        label="Guidance for guests"
+                        id="dressDescription"
+                        rows={3}
+                        placeholder="Light fabrics and comfortable shoes for the lawn. Please leave white to the bride."
+                        value={config.dressCode?.description ?? ""}
+                        onChange={(e) => setDressCode({ description: e.target.value })}
+                      />
+                      <div>
+                        <p className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>Suggested colors</p>
+                        <p className="mt-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+                          Up to {MAX_DRESS_COLORS}. Guests see them as swatches with your dress code.
+                        </p>
+                        {dressPalette.length > 0 && (
+                          <ul className="mt-5 space-y-5">
+                            {dressPalette.map((color, i) => (
+                              <li key={i} className="flex items-end gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <ColorField
+                                    id={`dressColor-${i}`}
+                                    label={`Color ${i + 1}`}
+                                    placeholder="#d8c3a5"
+                                    value={color}
+                                    onChange={(v) => setDressCode({ palette: dressPalette.map((c, j) => (j === i ? v : c)) })}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setDressCode({ palette: dressPalette.filter((_, j) => j !== i) })}
+                                  aria-label={`Remove color ${i + 1}`}
+                                  className="mb-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors duration-150 hover:bg-[var(--color-surface-container-high)]"
+                                  style={{ color: "var(--color-on-surface-variant)" }}
+                                >
+                                  <X size={15} aria-hidden />
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <ButtonSecondary
+                          size="sm"
+                          className="mt-5"
+                          disabled={dressPalette.length >= MAX_DRESS_COLORS}
+                          onClick={() => setDressCode({ palette: [...dressPalette, "#d8c3a5"] })}
+                        >
+                          <Plus size={13} aria-hidden />
+                          Add a color
+                        </ButtonSecondary>
+                      </div>
+                    </fieldset>
                   </div>
                 )}
 
@@ -640,13 +768,27 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                       hint="The big photo guests see first. A landscape photo works best."
                     />
 
-                    <PhotoGalleryField
-                      label="Gallery"
-                      scope={config.id}
-                      value={config.galleryImageUrls}
-                      onChange={(urls) => update({ galleryImageUrls: urls })}
-                      hint="Photos appear in this order. Some templates feature the first few in the story section."
-                    />
+                    <fieldset>
+                      <legend className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>Gallery</legend>
+                      <p className="mt-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+                        Sort your photos into albums. They appear in this order, and an empty album stays hidden.
+                      </p>
+                      <div className="mt-5">
+                        <ModuleLock config={config} module="gallery" onUpgrade={handleUpgrade}>
+                          <div className="space-y-8">
+                            {GALLERY_ALBUMS.map((album) => (
+                              <PhotoGalleryField
+                                key={album.key}
+                                label={album.label}
+                                scope={config.id}
+                                value={albums[album.key] ?? []}
+                                onChange={(urls) => setAlbum(album.key, urls)}
+                              />
+                            ))}
+                          </div>
+                        </ModuleLock>
+                      </div>
+                    </fieldset>
 
                     <TextareaField
                       label="Your love story"
@@ -663,88 +805,92 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                         Plays softly while guests browse. Use the play button to hear a track.
                       </p>
 
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {[{ id: NO_MUSIC_ID, label: "No music" }, { id: CUSTOM_TRACK_ID, label: "My own MP3 link" }].map(({ id, label }) => {
-                          const selected = config.musicTrackId === id || (!config.musicTrackId && id === NO_MUSIC_ID);
-                          return (
-                            <button
-                              key={id}
-                              type="button"
-                              aria-pressed={selected}
-                              onClick={() => { stopPreview(); update({ musicTrackId: id }); }}
-                              className="min-h-[40px] px-4 text-sm transition-colors duration-150"
-                              style={{ ...optionStyle(selected), borderRadius: "var(--radius-full)", color: "var(--color-on-surface)" }}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
+                      <div className="mt-4">
+                        <ModuleLock config={config} module="music" onUpgrade={handleUpgrade}>
+                          <div className="flex flex-wrap gap-2">
+                            {[{ id: NO_MUSIC_ID, label: "No music" }, { id: CUSTOM_TRACK_ID, label: "My own MP3 link" }].map(({ id, label }) => {
+                              const selected = config.musicTrackId === id || (!config.musicTrackId && id === NO_MUSIC_ID);
+                              return (
+                                <button
+                                  key={id}
+                                  type="button"
+                                  aria-pressed={selected}
+                                  onClick={() => { stopPreview(); update({ musicTrackId: id }); }}
+                                  className="min-h-[40px] px-4 text-sm transition-colors duration-150"
+                                  style={{ ...optionStyle(selected), borderRadius: "var(--radius-full)", color: "var(--color-on-surface)" }}
+                                >
+                                  {label}
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          <ul className="mt-4 grid grid-cols-1 gap-2.5 @2xl:grid-cols-2">
+                            {musicTracks.map((track) => {
+                              const selected = config.musicTrackId === track.id;
+                              const previewing = previewingId === track.id;
+                              return (
+                                <li key={track.id} className="flex items-center gap-3 p-3 transition-colors duration-150" style={optionStyle(selected)}>
+                                  <button
+                                    type="button"
+                                    onClick={() => togglePreview(track.id, track.src)}
+                                    aria-label={previewing ? `Pause ${track.name}` : `Play ${track.name}`}
+                                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors duration-150"
+                                    style={{
+                                      background: previewing ? "var(--color-primary)" : "var(--color-surface-container-high)",
+                                      color: previewing ? "#fff" : "var(--color-on-surface)",
+                                    }}
+                                  >
+                                    {previewing ? <Pause size={14} aria-hidden /> : <Play size={14} aria-hidden />}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    aria-pressed={selected}
+                                    onClick={() => update({ musicTrackId: track.id })}
+                                    className="flex min-h-[44px] min-w-0 flex-1 items-center gap-3 text-left"
+                                  >
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
+                                        {track.name}
+                                        <span className="font-normal" style={{ color: "var(--color-on-surface-variant)" }}> · {track.mood}</span>
+                                      </span>
+                                      <span className="mt-0.5 block truncate text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+                                        {track.description}
+                                      </span>
+                                    </span>
+                                    {selected && <Check size={16} aria-hidden style={{ color: "var(--color-primary)" }} />}
+                                  </button>
+                                </li>
+                              );
+                            })}
+                          </ul>
+
+                          {config.musicTrackId === CUSTOM_TRACK_ID && (
+                            <div className="mt-6">
+                              <InputField
+                                label="MP3 link"
+                                id="musicUrl"
+                                type="url"
+                                placeholder="https://your-host.com/your-track.mp3"
+                                value={config.musicCustomUrl ?? ""}
+                                onChange={(e) => update({ musicCustomUrl: e.target.value })}
+                              />
+                              <p className="mt-2 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+                                Use a public MP3 link that allows cross-origin requests (CORS).
+                              </p>
+                            </div>
+                          )}
+
+                          {config.musicTrackId && config.musicTrackId !== NO_MUSIC_ID && config.musicTrackId !== CUSTOM_TRACK_ID && (
+                            <p className="mt-3 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+                              Music by{" "}
+                              <a href="https://www.bensound.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                                Bensound.com
+                              </a>
+                            </p>
+                          )}
+                        </ModuleLock>
                       </div>
-
-                      <ul className="mt-4 grid grid-cols-1 gap-2.5 @2xl:grid-cols-2">
-                        {musicTracks.map((track) => {
-                          const selected = config.musicTrackId === track.id;
-                          const previewing = previewingId === track.id;
-                          return (
-                            <li key={track.id} className="flex items-center gap-3 p-3 transition-colors duration-150" style={optionStyle(selected)}>
-                              <button
-                                type="button"
-                                onClick={() => togglePreview(track.id, track.src)}
-                                aria-label={previewing ? `Pause ${track.name}` : `Play ${track.name}`}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors duration-150"
-                                style={{
-                                  background: previewing ? "var(--color-primary)" : "var(--color-surface-container-high)",
-                                  color: previewing ? "#fff" : "var(--color-on-surface)",
-                                }}
-                              >
-                                {previewing ? <Pause size={14} aria-hidden /> : <Play size={14} aria-hidden />}
-                              </button>
-                              <button
-                                type="button"
-                                aria-pressed={selected}
-                                onClick={() => update({ musicTrackId: track.id })}
-                                className="flex min-h-[44px] min-w-0 flex-1 items-center gap-3 text-left"
-                              >
-                                <span className="min-w-0 flex-1">
-                                  <span className="block text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
-                                    {track.name}
-                                    <span className="font-normal" style={{ color: "var(--color-on-surface-variant)" }}> · {track.mood}</span>
-                                  </span>
-                                  <span className="mt-0.5 block truncate text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
-                                    {track.description}
-                                  </span>
-                                </span>
-                                {selected && <Check size={16} aria-hidden style={{ color: "var(--color-primary)" }} />}
-                              </button>
-                            </li>
-                          );
-                        })}
-                      </ul>
-
-                      {config.musicTrackId === CUSTOM_TRACK_ID && (
-                        <div className="mt-6">
-                          <InputField
-                            label="MP3 link"
-                            id="musicUrl"
-                            type="url"
-                            placeholder="https://your-host.com/your-track.mp3"
-                            value={config.musicCustomUrl ?? ""}
-                            onChange={(e) => update({ musicCustomUrl: e.target.value })}
-                          />
-                          <p className="mt-2 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
-                            Use a public MP3 link that allows cross-origin requests (CORS).
-                          </p>
-                        </div>
-                      )}
-
-                      {config.musicTrackId && config.musicTrackId !== NO_MUSIC_ID && config.musicTrackId !== CUSTOM_TRACK_ID && (
-                        <p className="mt-3 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
-                          Music by{" "}
-                          <a href="https://www.bensound.com" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
-                            Bensound.com
-                          </a>
-                        </p>
-                      )}
                     </fieldset>
                   </div>
                 )}
@@ -806,43 +952,29 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                       </form>
                     </fieldset>
 
-                    <div className="flex items-start justify-between gap-6 py-5" style={{ borderTop: HAIRLINE, borderBottom: HAIRLINE }}>
-                      <div>
-                        <p id="plus-one-label" className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
-                          Allow plus-ones
-                        </p>
-                        <p id="plus-one-hint" className="mt-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
-                          Every guest can bring one extra person when they RSVP.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={config.allowPlusOne}
-                        aria-labelledby="plus-one-label"
-                        aria-describedby="plus-one-hint"
-                        onClick={() => update({ allowPlusOne: !config.allowPlusOne })}
-                        className="mt-0.5 flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200"
-                        style={{ background: config.allowPlusOne ? "var(--color-primary)" : "var(--color-surface-container-highest)" }}
-                      >
-                        <span
-                          className="h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-out"
-                          style={{ transform: config.allowPlusOne ? "translateX(20px)" : "translateX(0)" }}
-                        />
-                      </button>
+                    <div className="py-5" style={{ borderTop: HAIRLINE, borderBottom: HAIRLINE }}>
+                      <ToggleRow
+                        id="plus-one"
+                        label="Allow plus-ones"
+                        hint="Every guest can bring one extra person when they RSVP."
+                        checked={config.allowPlusOne}
+                        onChange={(on) => update({ allowPlusOne: on })}
+                      />
                     </div>
                   </div>
                 )}
 
                 {s.id === "entourage" && (
-                  <EntourageEditor
-                    config={config}
-                    update={update}
-                    shownOnSite={audienceSectionsFor(config.templateId).some((x) => x.key === "weddingParty")}
-                  />
+                  <ModuleLock config={config} module="entourage" onUpgrade={handleUpgrade}>
+                    <EntourageEditor
+                      config={config}
+                      update={update}
+                      shownOnSite={audienceSectionsFor(config.templateId).some((x) => x.key === "weddingParty")}
+                    />
+                  </ModuleLock>
                 )}
 
-                {s.id === "sections" && <SectionsEditor config={config} update={update} />}
+                {s.id === "sections" && <SectionsEditor config={config} update={update} onUpgrade={handleUpgrade} />}
 
                 {s.id === "guests" && (
                   <div className="space-y-6">
@@ -853,14 +985,15 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                       weddingId={config.id}
                       coupleLabel={coupleLabel}
                       personalized={personalized}
+                      upgradeCents={upgradePrice(tier, "premium")}
                       siteSlug={config.slug || config.id}
-                      onUpgrade={handleUpgrade}
+                      onUpgrade={() => handleUpgrade()}
                     />
                   </div>
                 )}
 
                 {s.id === "personalize" && (
-                  <PersonalizationEditor config={config} onUpgrade={handleUpgrade} onOpenGuests={() => goTo("guests")} />
+                  <PersonalizationEditor config={config} onUpgrade={() => handleUpgrade()} onOpenGuests={() => goTo("guests")} />
                 )}
 
                 {s.id === "publish" && (
@@ -1017,14 +1150,14 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
 }
 
 /** Checkbox-style completion mark on each accordion step. */
-function StepMark({ done, locked }: { done: boolean; locked: boolean }) {
+function StepMark({ done, locked }: { done: boolean; locked: Tier | null }) {
   const base = "flex h-[18px] w-[18px] shrink-0 items-center justify-center transition-colors duration-200";
   const shape: CSSProperties = { borderRadius: 5 };
   if (locked) {
     return (
       <span className={base} style={{ ...shape, border: `1px solid ${RING}`, color: "var(--color-on-surface-variant)" }}>
         <Lock size={10} aria-hidden />
-        <span className="sr-only">(needs Personalized)</span>
+        <span className="sr-only">(needs {TIER_INFO[locked].label})</span>
       </span>
     );
   }
@@ -1050,6 +1183,68 @@ function Swatch({ color, size }: { color: string; size: number }) {
         boxShadow: "0 0 0 2px var(--color-surface-container-lowest), inset 0 0 0 1px rgb(47 30 38 / 0.12)",
       }}
     />
+  );
+}
+
+interface ToggleRowProps {
+  id: string;
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}
+
+/** A labelled on/off switch. */
+function ToggleRow({ id, label, hint, checked, onChange }: ToggleRowProps) {
+  return (
+    <div className="flex items-start justify-between gap-6">
+      <div>
+        <p id={`${id}-label`} className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
+          {label}
+        </p>
+        <p id={`${id}-hint`} className="mt-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+          {hint}
+        </p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-labelledby={`${id}-label`}
+        aria-describedby={`${id}-hint`}
+        onClick={() => onChange(!checked)}
+        className="mt-0.5 flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors duration-200"
+        style={{ background: checked ? "var(--color-primary)" : "var(--color-surface-container-highest)" }}
+      >
+        <span
+          className="h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ease-out"
+          style={{ transform: checked ? "translateX(20px)" : "translateX(0)" }}
+        />
+      </button>
+    </div>
+  );
+}
+
+/** Optional pasted Google Maps link. Without one, the map is found from the venue name and address. */
+function MapLinkField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (value: string) => void }) {
+  return (
+    <div>
+      <InputField
+        label={label}
+        id={id}
+        type="url"
+        inputMode="url"
+        autoComplete="off"
+        placeholder="https://maps.app.goo.gl/…"
+        aria-describedby={`${id}-hint`}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <p id={`${id}-hint`} className="mt-2 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+        Paste the Share link from Google Maps to pin the exact spot. Without one, guests get a map found from the name
+        and address above.
+      </p>
+    </div>
   );
 }
 
@@ -1128,7 +1323,28 @@ function ReviewStep({ config, templatePalette, guestCount, groupCount, done, pub
       value: config.partner1Name && config.partner2Name ? `${config.partner1Name} & ${config.partner2Name}` : null,
     },
     { label: "Wedding date", step: "couple", value: formatDate(config.weddingDate) || null },
-    { label: "Venue", step: "couple", value: [config.venueName, config.venueCity].filter(Boolean).join(", ") || null },
+    {
+      label: "Ceremony",
+      step: "couple",
+      value: [[config.venueName, config.venueCity].filter(Boolean).join(", "), config.ceremonyTime?.trim()]
+        .filter(Boolean)
+        .join(" · ") || null,
+    },
+    {
+      label: "Reception",
+      step: "couple",
+      value: (() => {
+        const r = config.reception;
+        const time = r?.time?.trim();
+        if (!r || r.sameAsCeremony) return ["Same venue", time].filter(Boolean).join(" · ");
+        return [[r.name, r.city].filter(Boolean).join(", "), time].filter(Boolean).join(" · ") || null;
+      })(),
+    },
+    {
+      label: "Hashtag & dress code",
+      step: "details",
+      value: [hashtagOf(config), dressCodeOf(config)?.title].filter(Boolean).join(" · ") || "None added",
+    },
     {
       label: "Colors",
       step: "look",
@@ -1168,6 +1384,7 @@ function ReviewStep({ config, templatePalette, guestCount, groupCount, done, pub
       label: "Entourage",
       step: "entourage",
       value: (() => {
+        if (!hasModule(config, "entourage")) return `Comes with ${TIER_INFO[tierFor("entourage")].label}`;
         const n = config.weddingParty?.filter(isNamed).length ?? 0;
         return n ? `${n} ${n === 1 ? "person" : "people"}` : "None listed";
       })(),

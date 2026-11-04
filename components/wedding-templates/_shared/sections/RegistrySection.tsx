@@ -1,6 +1,7 @@
 "use client";
 
 import { Gift, ArrowUpRight } from "lucide-react";
+import { safeUrl } from "@/lib/weddingDetails";
 import type { WeddingConfig } from "@/types/wedding";
 
 interface Props {
@@ -15,7 +16,10 @@ interface Props {
  * Styled for light templates via surface tokens + the couple's palette.
  */
 export default function RegistrySection({ config, primary, accent }: Props) {
-  const links = config.registryLinks ?? [];
+  const links = (config.registryLinks ?? []).flatMap((l) => {
+    const url = safeUrl(l.url);
+    return url ? [{ ...l, url }] : [];
+  });
   if (links.length === 0) return null;
 
   return (

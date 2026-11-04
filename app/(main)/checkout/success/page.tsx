@@ -58,7 +58,7 @@ function SuccessContent() {
         Your payment via {methodLabel} went through.
         {ids.length > 0 && ` ${ids.length} wedding ${ids.length === 1 ? "website is" : "websites are"} now yours.`}
         {upgrades > 0 &&
-          ` Personalized Invitations ${upgrades === 1 ? "is" : "are"} now unlocked. Open your guest list to send personal invite links.`}
+          ` Your ${upgrades === 1 ? "upgrade is" : "upgrades are"} unlocked and ready in your dashboard.`}
       </p>
 
       {/* Email confirmation notice */}

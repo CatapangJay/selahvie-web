@@ -1,7 +1,8 @@
-import { Calendar, MailOpen, MapPin } from "lucide-react";
+import { Calendar, Clock, MailOpen, MapPin, Shirt, Wine } from "lucide-react";
 import type { ReactNode } from "react";
 import type { WeddingConfig } from "@/types/wedding";
 import Reveal from "@/components/ui/Reveal";
+import { ceremonyVenue, dressCodeOf, hashtagOf, receptionTimeAtCeremony, receptionVenue, type VenueView } from "@/lib/weddingDetails";
 import type { DateParts, Palette } from "../theme";
 import { SCRIPT, SECTION_PAD, SERIF, feltStyle, paperStyle } from "../theme";
 import SectionHeading from "./SectionHeading";
@@ -47,14 +48,46 @@ function Card({ p, icon, label, children }: { p: Palette; icon: ReactNode; label
   );
 }
 
+const LINK =
+  "inline-block underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#2b1018]";
+
+function VenueBody({ p, venue, time }: { p: Palette; venue: VenueView; time: string }) {
+  const address = [venue.address, venue.city].filter(Boolean).join(", ");
+  return (
+    <>
+      {time && (
+        <p className="inline-flex items-center gap-2" style={{ ...small, color: p.goldInk, fontWeight: 600, marginBottom: "0.5rem" }}>
+          <Clock size={16} strokeWidth={1.6} aria-hidden />
+          {time}
+        </p>
+      )}
+      {venue.name && <p style={big(p)}>{venue.name}</p>}
+      {address && <p style={{ ...small, marginTop: "0.25rem" }}>{address}</p>}
+      <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1">
+        {venue.mapUrl && (
+          <a href={venue.mapUrl} target="_blank" rel="noopener noreferrer" className={LINK} style={{ ...small, fontStyle: "italic", color: p.raspberry }}>
+            Open in Maps
+          </a>
+        )}
+        {venue.directionsUrl && (
+          <a href={venue.directionsUrl} target="_blank" rel="noopener noreferrer" className={LINK} style={{ ...small, fontStyle: "italic", color: p.raspberry }}>
+            Get directions
+          </a>
+        )}
+      </p>
+    </>
+  );
+}
+
 const big = (p: Palette) => ({ fontFamily: SCRIPT, fontSize: "clamp(2rem, 4vw, 2.5rem)", lineHeight: 1.15, color: p.raspberryDeep });
 const small = { fontFamily: SERIF, fontSize: "1.2rem", lineHeight: 1.5 } as const;
 
 export default function DetailsSection({ config, palette: p, date, rsvpDeadline, showRsvp }: Props) {
-  const address = [config.venueAddress, config.venueCity].filter(Boolean).join(", ");
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    [config.venueName, config.venueAddress, config.venueCity].filter(Boolean).join(" ")
-  )}`;
+  const ceremony = ceremonyVenue(config);
+  const reception = receptionVenue(config);
+  const receptionTime = receptionTimeAtCeremony(config);
+  const dress = dressCodeOf(config);
+  const hashtag = hashtagOf(config);
   const deadlineText = rsvpDeadline.date ? `${rsvpDeadline.monthDay}, ${rsvpDeadline.year}` : rsvpDeadline.long;
 
   return (
@@ -74,18 +107,8 @@ export default function DetailsSection({ config, palette: p, date, rsvpDeadline,
           </Reveal>
 
           <Reveal index={1} className="h-full">
-            <Card p={p} icon={<MapPin size={26} strokeWidth={1.4} />} label="Where">
-              <p style={big(p)}>{config.venueName}</p>
-              {address && <p style={{ ...small, marginTop: "0.25rem" }}>{address}</p>}
-              <a
-                href={mapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 inline-block underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#2b1018]"
-                style={{ ...small, fontStyle: "italic", color: p.raspberry }}
-              >
-                Open in Maps
-              </a>
+            <Card p={p} icon={<MapPin size={26} strokeWidth={1.4} />} label="Ceremony">
+              <VenueBody p={p} venue={ceremony} time={ceremony.time} />
             </Card>
           </Reveal>
 
@@ -104,6 +127,57 @@ export default function DetailsSection({ config, palette: p, date, rsvpDeadline,
             </Card>
           </Reveal>
         </div>
+
+        {(reception || receptionTime || dress) && (
+          <div className="mx-auto grid md:grid-cols-2" style={{ gap: "clamp(1.25rem, 3vw, 2rem)", marginTop: "clamp(1.25rem, 3vw, 2rem)", maxWidth: reception && dress ? undefined : "32rem" }}>
+            {reception ? (
+              <Reveal index={0} className="h-full">
+                <Card p={p} icon={<Wine size={26} strokeWidth={1.4} />} label="Reception">
+                  <VenueBody p={p} venue={reception} time={reception.time} />
+                </Card>
+              </Reveal>
+            ) : (
+              receptionTime && (
+                <Reveal index={0} className="h-full">
+                  <Card p={p} icon={<Wine size={26} strokeWidth={1.4} />} label="Reception">
+                    <p style={big(p)}>{receptionTime}</p>
+                    <p style={{ ...small, marginTop: "0.25rem" }}>At the same venue, following the ceremony</p>
+                  </Card>
+                </Reveal>
+              )
+            )}
+            {dress && (
+              <Reveal index={1} className="h-full">
+                <Card p={p} icon={<Shirt size={26} strokeWidth={1.4} />} label="Dress Code">
+                  {dress.title && <p style={big(p)}>{dress.title}</p>}
+                  {dress.description && <p style={{ ...small, marginTop: "0.25rem" }}>{dress.description}</p>}
+                  {dress.palette.length > 0 && (
+                    <ul className="mt-4 flex flex-wrap items-center justify-center gap-3" aria-label="Suggested colour palette">
+                      {dress.palette.map((hex) => (
+                        <li
+                          key={hex}
+                          role="img"
+                          aria-label={`Palette colour ${hex}`}
+                          title={hex}
+                          style={{ width: "2rem", height: "2rem", borderRadius: "50%", background: hex, boxShadow: `0 0 0 2px ${p.cream}, 0 0 0 3px ${p.gold}` }}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              </Reveal>
+            )}
+          </div>
+        )}
+
+        {hashtag && (
+          <Reveal index={0} className="text-center" style={{ marginTop: "clamp(2.5rem, 6vw, 3.5rem)" }}>
+            <p style={{ fontFamily: SERIF, fontWeight: 600, fontSize: "0.82rem", letterSpacing: "0.32em", textTransform: "uppercase", color: p.goldLight }}>
+              Share the day
+            </p>
+            <p style={{ fontFamily: SCRIPT, fontSize: "clamp(2rem, 6vw, 3rem)", lineHeight: 1.2, color: p.cream, marginTop: "0.25rem" }}>{hashtag}</p>
+          </Reveal>
+        )}
 
         {date.date && (
           <Reveal index={0} style={{ marginTop: "clamp(3.5rem, 8vw, 5rem)" }}>

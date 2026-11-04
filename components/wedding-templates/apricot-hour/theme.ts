@@ -50,11 +50,6 @@ export function cssImage(url?: string): string | undefined {
   }
 }
 
-export function mapsUrl(config: Pick<WeddingConfig, "venueName" | "venueAddress" | "venueCity">): string | null {
-  const query = [config.venueName, config.venueAddress, config.venueCity].filter(Boolean).join(", ");
-  return query ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}` : null;
-}
-
 /** ISO dates are read as local calendar days (no timezone shift); other strings fall back to Date parsing. */
 export function parseWeddingDate(raw?: string): Date | null {
   if (!raw) return null;

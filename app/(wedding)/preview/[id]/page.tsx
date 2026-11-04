@@ -10,9 +10,10 @@ import { getDemoConfig } from "@/data/demoConfigs";
 import { samplePersonalization } from "@/data/demoPersonalization";
 import PersonalizedTemplate from "@/components/wedding-templates/_shared/PersonalizedTemplate";
 import ViewAsSelect from "@/components/wedding-templates/_shared/ViewAsSelect";
+import LivePreview from "@/components/customize/LivePreview";
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/lib/utils";
-import { TIER_INFO, resolveTier, tierPrice } from "@/lib/tiers";
+import { TIERS, TIER_INFO, resolveTier, tierHasModule, tierPrice } from "@/lib/tiers";
 import { findInviteeByCode } from "@/lib/invitations";
 import type { Tier } from "@/types/wedding";
 
@@ -27,7 +28,7 @@ export default function TemplatePreviewPage(props: Props) {
   const reduceMotion = useReducedMotion();
   const { addItem, isInCart, openCart } = useCartStore();
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
-  const [pickedTier, setTier] = useState<Tier>("personalized");
+  const [pickedTier, setTier] = useState<Tier>("premium");
 
   const template = templates.find((t) => t.id === id);
   const tier = template ? resolveTier(template, pickedTier) : pickedTier;
@@ -58,9 +59,10 @@ export default function TemplatePreviewPage(props: Props) {
   }
 
   const inCart = isInCart(template.id);
-  const personalized = tier === "personalized";
+  const personalized = tierHasModule(tier, "personalization");
   const viewCode = viewAs ?? sample.defaultCode;
-  const previewConfig = personalized ? sample.config : config;
+  // The demo is shown as the picked package would render it, locked modules hidden.
+  const previewConfig = { ...(personalized ? sample.config : config), tier };
   const invitee = personalized ? findInviteeByCode(viewCode, sample.guests, sample.groups) : null;
 
   const handleCart = () => {
@@ -87,7 +89,7 @@ export default function TemplatePreviewPage(props: Props) {
       role="radiogroup"
       aria-label="Preview plan"
     >
-      {(["base", "personalized"] as const).map((t) => {
+      {TIERS.map((t) => {
         const active = tier === t;
         return (
           <button
@@ -163,22 +165,21 @@ export default function TemplatePreviewPage(props: Props) {
 
   return (
     <div className="relative" style={{ ...chrome, paddingBottom: "var(--preview-chrome-bottom)" }}>
-      {/* Live template render — no marketplace chrome. Mobile wraps it in a
-          phone-width frame on a muted backdrop; desktop is full-bleed. */}
+      {/* Live template render — no marketplace chrome. Mobile renders it in an
+          iframe at phone width, so full-screen intros, fixed bars and breakpoints
+          stay inside the phone frame; desktop is full-bleed. */}
       {isMobile ? (
-        <div className="flex justify-center px-4 py-10" style={{ background: "var(--color-surface-container-low)", minHeight: "100vh" }}>
-          <div
-            className="w-full overflow-hidden"
-            style={{
-              maxWidth: 400,
-              borderRadius: "var(--radius-xl)",
-              border: "1px solid var(--color-outline)",
-              boxShadow: "0 12px 40px rgba(47,30,38,0.12)",
-              background: "var(--color-surface)",
-            }}
-          >
-            {rendered}
-          </div>
+        <div
+          className="flex flex-col"
+          style={{ background: "var(--color-surface-container-low)", height: "calc(100dvh - var(--preview-chrome-bottom))" }}
+        >
+          <LivePreview
+            config={previewConfig}
+            guests={personalized ? sample.guests : []}
+            groups={personalized ? sample.groups : []}
+            inviteCode={invitee?.code ?? ""}
+            device="mobile"
+          />
         </div>
       ) : (
         rendered

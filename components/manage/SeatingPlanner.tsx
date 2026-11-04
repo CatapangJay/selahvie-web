@@ -7,7 +7,7 @@ import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import EmptyState from "@/components/ui/EmptyState";
 import Select, { type SelectOption } from "@/components/ui/Select";
-import { PERSONALIZED_ADDON_CENTS } from "@/lib/tiers";
+import { configTier, hasModule, upgradePrice } from "@/lib/tiers";
 import { downloadFile, formatPrice, toCsv } from "@/lib/utils";
 import {
   MAX_SEATS,
@@ -53,7 +53,7 @@ const newId = () => `tb-${Date.now().toString(36)}-${Math.random().toString(36).
 const isGuestDrag = (e: DragEvent) => e.dataTransfer.types.includes(GUEST_MIME);
 
 export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenGuests }: Props) {
-  const personalized = config.tier === "personalized";
+  const personalized = hasModule(config, "seating");
   const updateConfig = useWeddingStore((s) => s.updateConfig);
   const updateGuest = useWeddingStore((s) => s.updateGuest);
   const allGuests = useWeddingStore((s) => s.guests);
@@ -173,7 +173,7 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
           <div>
             <p className="flex items-center gap-1.5 text-xs font-medium" style={{ color: "var(--color-primary)" }}>
               <Lock size={12} aria-hidden />
-              Personalized Invitations add-on
+              Premium plan
             </p>
             <h2 className="headline-sm mt-2" style={{ fontSize: "1.35rem" }}>Plan your reception seating</h2>
             <p className="mt-2 max-w-md text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
@@ -183,10 +183,10 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
           </div>
           <div className="shrink-0">
             <ButtonPrimary size="lg" onClick={onUpgrade}>
-              Unlock for {formatPrice(PERSONALIZED_ADDON_CENTS)}
+              Upgrade for {formatPrice(upgradePrice(configTier(config), "premium"))}
             </ButtonPrimary>
             <p className="mt-2 text-center text-xs" style={{ color: "var(--color-on-surface-muted)" }}>
-              One-time add-on for this website
+              One-time upgrade for this website
             </p>
           </div>
         </div>

@@ -9,7 +9,6 @@ import EmptyState from "@/components/ui/EmptyState";
 import Select from "@/components/ui/Select";
 import { toCsv, downloadFile, parseCsv, formatPrice } from "@/lib/utils";
 import { formatCode, inviteUrl } from "@/lib/invitations";
-import { PERSONALIZED_ADDON_CENTS } from "@/lib/tiers";
 import { SIDE_COLOR, asSide, parseSide, sideLabel, sideOptions } from "@/lib/guestSides";
 import type { GuestGroup, GuestListEntry, WeddingConfig } from "@/types/wedding";
 import { Trash2, Download, Plus, Search, Upload, Link2, Lock, ChevronDown, Check, Pencil, X } from "lucide-react";
@@ -17,8 +16,10 @@ import { Trash2, Download, Plus, Search, Upload, Link2, Lock, ChevronDown, Check
 interface Props {
   weddingId: string;
   coupleLabel: string; // used in the export filename
-  /** Personalized tier unlocks per-guest and per-group invite links. */
+  /** Premium unlocks per-guest and per-group invite links. */
   personalized: boolean;
+  /** What moving this website to Premium costs, in cents. */
+  upgradeCents: number;
   /** Slug (or id) of the public site, for building invite links. */
   siteSlug: string;
   onUpgrade: () => void;
@@ -37,12 +38,13 @@ const statusStyle: Record<GuestListEntry["status"], { bg: string; color: string 
 const MAX_IMPORT_BYTES = 1024 * 1024;
 const MAX_IMPORT_ROWS = 2000;
 
-type Column = "name" | "email" | "party" | "groups" | "note" | "status" | "side";
+type Column = "name" | "email" | "phone" | "party" | "groups" | "note" | "status" | "side";
 
 /** Accepted header spellings, compared lowercase with non-letters removed. */
 const HEADER_ALIASES: Record<Column, string[]> = {
   name: ["name", "guest", "guestname", "fullname"],
   email: ["email", "emailaddress"],
+  phone: ["phone", "mobile", "mobilenumber", "phonenumber", "cellphone", "cell", "contactnumber", "number"],
   party: ["partysize", "party", "size", "headcount", "count", "seats"],
   groups: ["group", "groups", "tag", "tags"],
   note: ["note", "notes"],
@@ -67,6 +69,7 @@ function rowsFromCsv(text: string, config: WeddingConfig | undefined): { rows: I
   const idx: Record<Column, number> = {
     name: col("name"),
     email: col("email"),
+    phone: col("phone"),
     party: col("party"),
     groups: col("groups"),
     note: col("note"),
@@ -90,6 +93,7 @@ function rowsFromCsv(text: string, config: WeddingConfig | undefined): { rows: I
       {
         name,
         email: get(idx.email).slice(0, 200) || undefined,
+        phone: get(idx.phone).slice(0, 40) || undefined,
         partySize: parseInt(get(idx.party), 10) || 1,
         status: STATUSES.includes(status) ? status : undefined,
         side: parseSide(get(idx.side), config),
@@ -104,7 +108,7 @@ function rowsFromCsv(text: string, config: WeddingConfig | undefined): { rows: I
   return { rows, truncated: table.length - 1 > MAX_IMPORT_ROWS };
 }
 
-export default function GuestListManager({ weddingId, coupleLabel, personalized, siteSlug, onUpgrade }: Props) {
+export default function GuestListManager({ weddingId, coupleLabel, personalized, upgradeCents, siteSlug, onUpgrade }: Props) {
   const guests = useWeddingStore((s) => s.guests).filter((g) => g.weddingId === weddingId);
   const groups = useWeddingStore((s) => s.groups).filter((g) => g.weddingId === weddingId);
   const addGuest = useWeddingStore((s) => s.addGuest);
@@ -116,6 +120,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [partySize, setPartySize] = useState("1");
   const [newGuestSide, setNewGuestSide] = useState("");
   const [newGuestGroup, setNewGuestGroup] = useState("");
@@ -139,7 +144,9 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
         groupFilter === "all" ? true : groupFilter === "none" ? g.groupIds.length === 0 : g.groupIds.includes(groupFilter)
       )
       .filter((g) => (sideFilter === "all" ? true : (g.side ?? "none") === sideFilter))
-      .filter((g) => (q ? g.name.toLowerCase().includes(q) || (g.email ?? "").toLowerCase().includes(q) : true))
+      .filter((g) =>
+        q ? g.name.toLowerCase().includes(q) || (g.email ?? "").toLowerCase().includes(q) || (g.phone ?? "").includes(q) : true
+      )
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [guests, query, filter, groupFilter, sideFilter]);
 
@@ -152,6 +159,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
       weddingId,
       name: name.trim(),
       email: email.trim() || undefined,
+      phone: phone.trim() || undefined,
       partySize: Math.min(20, Math.max(1, parseInt(partySize, 10) || 1)),
       status: "invited",
       side: asSide(newGuestSide),
@@ -159,6 +167,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
     });
     setName("");
     setEmail("");
+    setPhone("");
     setPartySize("1");
   };
 
@@ -214,13 +223,14 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
   };
 
   const handleExport = () => {
-    const header = ["Name", "Email", "Party size", "Status", "Side", "Groups", "Note"];
+    const header = ["Name", "Email", "Mobile", "Party size", "Status", "Side", "Groups", "Note"];
     if (personalized) header.push("Invite code", "Invite link");
     const origin = window.location.origin;
     const rows = guests.map((g) => {
       const row: (string | number)[] = [
         g.name,
         g.email ?? "",
+        g.phone ?? "",
         g.partySize,
         g.status,
         sideLabel(config, g.side, ""),
@@ -267,6 +277,18 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
             onChange={(e) => setEmail(e.target.value)}
           />
         </div>
+        <div className="flex-1">
+          <InputField
+            label="Mobile (optional)"
+            id="guest-phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            placeholder="0917 123 4567"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+          />
+        </div>
         <div className="w-full sm:w-24">
           <InputField
             label="Party size"
@@ -309,7 +331,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)", maxWidth: "60ch" }}>
           Have a spreadsheet? Import a CSV with a <strong style={{ fontWeight: 500 }}>Name</strong> column, plus optional Email,
-          Party size, Side (a partner&rsquo;s first name), Group (separate several with ;), Status and Note.
+          Mobile, Party size, Side (a partner&rsquo;s first name), Group (separate several with ;), Status and Note.
         </p>
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="sr-only" tabIndex={-1} onChange={handleImport} aria-hidden />
         <ButtonSecondary size="sm" onClick={() => fileRef.current?.click()}>
@@ -337,10 +359,10 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="flex items-start gap-2.5 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
             <Lock size={14} className="mt-0.5 shrink-0" style={{ color: "var(--color-primary)" }} aria-hidden />
-            Personal invite links for each guest and group come with Personalized Invitations.
+            Personal invite links for each guest and group come with the Premium plan.
           </p>
           <ButtonSecondary size="sm" onClick={onUpgrade}>
-            Unlock for {formatPrice(PERSONALIZED_ADDON_CENTS)}
+            Upgrade for {formatPrice(upgradeCents)}
           </ButtonSecondary>
         </div>
       )}
@@ -449,9 +471,9 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
                         <span className="font-light" style={{ color: "var(--color-on-surface-muted)" }}> · party of {g.partySize}</span>
                       )}
                     </p>
-                    {(g.email || groupLabels.length > 0) && (
+                    {(g.email || g.phone || groupLabels.length > 0) && (
                       <p className="truncate text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
-                        {[g.email, groupLabels.join(", ")].filter(Boolean).join(" · ")}
+                        {[g.email, g.phone, groupLabels.join(", ")].filter(Boolean).join(" · ")}
                       </p>
                     )}
                   </div>
@@ -495,7 +517,7 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
                     style={{ color: "var(--color-on-surface-variant)" }}
                     aria-expanded={expanded}
                     aria-controls={panelId}
-                    aria-label={`${expanded ? "Hide" : "Show"} groups and invite for ${g.name}`}
+                    aria-label={`${expanded ? "Hide" : "Show"} details for ${g.name}`}
                   >
                     <ChevronDown size={16} style={{ transform: expanded ? "rotate(180deg)" : undefined, transition: "transform 0.2s ease-out" }} />
                   </button>
@@ -534,6 +556,11 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
                           </div>
                         )}
                       </fieldset>
+                      <ContactField
+                        key={`${g.id}-${g.phone ?? ""}`}
+                        guest={g}
+                        onCommit={(value) => updateGuest(g.id, { phone: value || undefined })}
+                      />
                       <PartySizeField
                         key={`${g.id}-${g.partySize}`}
                         guest={g}
@@ -564,13 +591,41 @@ export default function GuestListManager({ weddingId, coupleLabel, personalized,
   );
 }
 
+/** The guest's mobile number, saved when the field loses focus. Used for text invitations. */
+function ContactField({ guest, onCommit }: { guest: GuestListEntry; onCommit: (value: string) => void }) {
+  const [value, setValue] = useState(guest.phone ?? "");
+  const id = `guest-${guest.id}-phone`;
+  const commit = () => {
+    const next = value.trim().slice(0, 40);
+    if (next !== (guest.phone ?? "")) onCommit(next);
+  };
+  return (
+    <div className="w-full sm:w-48">
+      <InputField
+        label="Mobile"
+        id={id}
+        type="tel"
+        inputMode="tel"
+        autoComplete="off"
+        placeholder="0917 123 4567"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit();
+        }}
+      />
+    </div>
+  );
+}
+
 interface PartySizeFieldProps {
   guest: GuestListEntry;
   personalized: boolean;
   onCommit: (partySize: number) => void;
 }
 
-/** Seats for one invitation. On Personalized sites, seats beyond the guest are plus-ones they can name on their RSVP. */
+/** Seats for one invitation. On Premium sites, seats beyond the guest are plus-ones they can name on their RSVP. */
 function PartySizeField({ guest, personalized, onCommit }: PartySizeFieldProps) {
   const id = useId();
   const [draft, setDraft] = useState(String(guest.partySize));
@@ -583,7 +638,7 @@ function PartySizeField({ guest, personalized, onCommit }: PartySizeFieldProps) 
   };
 
   const hint = !personalized
-    ? "Counts toward your head count. Letting chosen guests bring several people comes with Personalized Invitations."
+    ? "Counts toward your head count. Letting chosen guests bring several people comes with the Premium plan."
     : extras > 0
       ? `${guest.name} can name up to ${extras} additional ${extras === 1 ? "guest" : "guests"} when they RSVP.`
       : "Just this guest. Raise it to let them bring friends or family.";

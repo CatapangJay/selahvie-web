@@ -33,7 +33,7 @@ export function demoBundles(): WeddingBundle[] {
   });
 
   const published: WeddingConfig = {
-    ...defaultWeddingConfig(publishedId, "t8", "personalized"),
+    ...defaultWeddingConfig(publishedId, "t8", "premium"),
     slug: "alex-and-sam",
     status: "published",
     partner1Name: "Alex",

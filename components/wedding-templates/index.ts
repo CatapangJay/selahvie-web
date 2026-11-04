@@ -80,18 +80,18 @@ const CORE_AUDIENCE_SECTIONS: { key: AudienceSectionKey; label: string }[] = [
 ];
 
 /**
- * Sections each template can restrict to an audience (Personalized tier).
+ * Sections each template can restrict to an audience (Premium).
  * Must mirror the `isSectionVisible` gates inside each template.
  */
 const AUDIENCE_SECTIONS_BY_TEMPLATE: Record<string, AudienceSectionKey[]> = {
   t1: ["story", "gallery", "rsvp", "schedule", "weddingParty", "travel", "registry", "faq", "guestbook"],
   t6: ["story", "gallery", "rsvp"],
   t7: ["story", "gallery", "rsvp"],
-  t8: ["story", "gallery", "rsvp"],
-  t9: ["gallery"],
-  t10: ["story", "gallery"],
-  t11: ["story", "gallery"],
-  t12: ["story", "gallery", "schedule", "weddingParty", "rsvp"],
+  t8: ["story", "gallery", "weddingParty", "faq", "rsvp"],
+  t9: ["gallery", "weddingParty", "faq", "guestbook"],
+  t10: ["story", "gallery", "weddingParty", "faq"],
+  t11: ["story", "gallery", "weddingParty", "faq", "guestbook"],
+  t12: ["story", "gallery", "schedule", "weddingParty", "faq", "rsvp"],
   t13: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
   t14: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
   t15: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],

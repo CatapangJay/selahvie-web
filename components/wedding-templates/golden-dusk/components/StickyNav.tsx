@@ -8,6 +8,8 @@ interface Props {
   partner1Name: string;
   partner2Name: string;
   accent: string;
+  /** Hrefs of sections that are hidden on this site (package or couple choice). */
+  hidden?: string[];
 }
 
 const LINKS = [
@@ -24,7 +26,8 @@ function scrollTo(id: string) {
   if (el) el.scrollIntoView({ behavior: "smooth" });
 }
 
-export default function StickyNav({ partner1Name, partner2Name, accent }: Props) {
+export default function StickyNav({ partner1Name, partner2Name, accent, hidden = [] }: Props) {
+  const links = LINKS.filter((l) => !hidden.includes(l.href));
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen]         = useState(false);
 
@@ -67,7 +70,7 @@ export default function StickyNav({ partner1Name, partner2Name, accent }: Props)
 
         {/* Desktop links */}
         <div className="hidden md:flex items-center gap-8">
-          {LINKS.map(l => (
+          {links.map(l => (
             <button
               key={l.href}
               onClick={() => scrollTo(l.href)}
@@ -103,7 +106,7 @@ export default function StickyNav({ partner1Name, partner2Name, accent }: Props)
             className="fixed top-12 inset-x-0 z-40 flex flex-col py-4"
             style={{ background: "rgba(255,255,255,0.98)", backdropFilter: "blur(12px)" }}
           >
-            {LINKS.map(l => (
+            {links.map(l => (
               <button
                 key={l.href}
                 onClick={() => { scrollTo(l.href); setOpen(false); }}

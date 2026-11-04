@@ -1,8 +1,16 @@
 "use client";
 
 import { motion, type Variants } from "framer-motion";
-import { Calendar, MapPin, Clock } from "lucide-react";
+import { Calendar, MapPin, Clock, GlassWater } from "lucide-react";
 import type { WeddingConfig } from "@/types/wedding";
+import {
+  ceremonyVenue,
+  receptionVenue,
+  receptionTimeAtCeremony,
+  hashtagOf,
+  dressCodeOf,
+  type VenueView,
+} from "@/lib/weddingDetails";
 import Divider from "./Divider";
 
 interface Props {
@@ -22,20 +30,37 @@ const container: Variants = {
   show:   { transition: { staggerChildren: 0.15, delayChildren: 0.1 } },
 };
 
-const cards = [
-  { icon: Calendar, label: "Date",  key: "date" as const },
-  { icon: MapPin,   label: "Venue", key: "venue" as const },
-  { icon: Clock,    label: "Time",  key: "time" as const },
-];
+interface Card {
+  icon: typeof Calendar;
+  label: string;
+  value?: string;
+  time?: string;
+  venue?: VenueView;
+  note?: string;
+}
 
 export default function DetailsSection({ config, accent, gold, weddingDateFormatted }: Props) {
-  const values = {
-    date:  weddingDateFormatted || "Date to be announced",
-    venue: config.venueName
-      ? `${config.venueName}${config.venueCity ? `, ${config.venueCity}` : ""}`
-      : "Venue to be announced",
-    time: weddingDateFormatted ? "Details to follow" : "Time to be announced",
-  };
+  const ceremony = ceremonyVenue(config);
+  const reception = receptionVenue(config);
+  const receptionTime = receptionTimeAtCeremony(config);
+  const hashtag = hashtagOf(config);
+  const dressCode = dressCodeOf(config);
+
+  const hasCeremonyPlace = Boolean(ceremony.name || ceremony.address || ceremony.city);
+  const cards: Card[] = [
+    { icon: Calendar, label: "Date", value: weddingDateFormatted || "Date to be announced" },
+    {
+      icon: hasCeremonyPlace ? MapPin : Clock,
+      label: "Ceremony",
+      time: ceremony.time,
+      venue: hasCeremonyPlace ? ceremony : undefined,
+      note: receptionTime ? `Reception follows at ${receptionTime}` : undefined,
+      value: hasCeremonyPlace || ceremony.time ? undefined : "Venue to be announced",
+    },
+  ];
+  if (reception) cards.push({ icon: GlassWater, label: "Reception", time: reception.time, venue: reception });
+
+  const linkClass = "uppercase tracking-widest text-xs underline underline-offset-4 decoration-1 transition-opacity hover:opacity-70";
 
   return (
     <section
@@ -51,7 +76,7 @@ export default function DetailsSection({ config, accent, gold, weddingDateFormat
           transition={{ duration: 0.7, ease: "easeOut" as const }}
           className="text-center mb-14"
         >
-          <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}60`, fontFamily: "var(--font-sans)" }}>
+          <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}b0`, fontFamily: "var(--font-sans)" }}>
             Wedding Details
           </p>
           <h2
@@ -72,11 +97,11 @@ export default function DetailsSection({ config, accent, gold, weddingDateFormat
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
-          className="grid grid-cols-1 md:grid-cols-3 gap-6"
+          className={`grid grid-cols-1 gap-6 ${cards.length === 3 ? "md:grid-cols-3" : "md:grid-cols-2"}`}
         >
-          {cards.map(({ icon: Icon, label, key }) => (
+          {cards.map(({ icon: Icon, label, value, time, venue, note }) => (
             <motion.div
-              key={key}
+              key={label}
               variants={cardVariant}
               whileHover={{ y: -6, scale: 1.02 }}
               transition={{ duration: 0.25 }}
@@ -102,41 +127,107 @@ export default function DetailsSection({ config, accent, gold, weddingDateFormat
                 className="inline-flex items-center justify-center w-12 h-12 rounded-xl mb-4"
                 style={{ background: `${gold}10`, border: `1px solid ${gold}30` }}
               >
-                <Icon size={20} style={{ color: gold }} />
+                <Icon size={20} style={{ color: gold }} aria-hidden />
               </div>
 
               <p
                 className="uppercase tracking-widest text-xs mb-2"
-                style={{ color: `${accent}60`, fontFamily: "var(--font-sans)" }}
+                style={{ color: `${accent}b0`, fontFamily: "var(--font-sans)" }}
               >
                 {label}
               </p>
-              <p
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontSize: "1.05rem",
-                  color: "#f0ecf8",
-                  lineHeight: 1.5,
-                }}
-              >
-                {values[key]}
-              </p>
+              {value && (
+                <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.05rem", color: "#f0ecf8", lineHeight: 1.5 }}>
+                  {value}
+                </p>
+              )}
+              {time && (
+                <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.25rem", color: gold, lineHeight: 1.5 }}>
+                  {time}
+                </p>
+              )}
+              {venue && (
+                <div className="mt-1" style={{ fontFamily: "var(--font-serif)", lineHeight: 1.5 }}>
+                  {venue.name && <p style={{ fontSize: "1.05rem", color: "#f0ecf8" }}>{venue.name}</p>}
+                  {(venue.address || venue.city) && (
+                    <p className="text-sm" style={{ color: `${accent}cc`, fontFamily: "var(--font-sans)", letterSpacing: "0.04em" }}>
+                      {[venue.address, venue.city].filter(Boolean).join(", ")}
+                    </p>
+                  )}
+                </div>
+              )}
+              {note && (
+                <p className="mt-2 text-sm italic" style={{ color: `${accent}cc`, fontFamily: "var(--font-serif)" }}>
+                  {note}
+                </p>
+              )}
+              {venue && (venue.mapUrl || venue.directionsUrl) && (
+                <p className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1" style={{ fontFamily: "var(--font-sans)" }}>
+                  {venue.mapUrl && (
+                    <a href={venue.mapUrl} target="_blank" rel="noopener noreferrer" className={linkClass} style={{ color: gold }}>
+                      View map<span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  )}
+                  {venue.directionsUrl && (
+                    <a href={venue.directionsUrl} target="_blank" rel="noopener noreferrer" className={linkClass} style={{ color: gold }}>
+                      Get directions<span className="sr-only"> (opens in a new tab)</span>
+                    </a>
+                  )}
+                </p>
+              )}
             </motion.div>
           ))}
         </motion.div>
 
-        {/* Venue address */}
-        {config.venueAddress && (
-          <motion.p
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" as const }}
-            className="text-center mt-6 text-sm"
-            style={{ color: `${accent}50`, letterSpacing: "0.06em" }}
+        {(dressCode || hashtag) && (
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.7, ease: "easeOut" as const }}
+            className="mx-auto mt-16 flex max-w-2xl flex-col items-center gap-12 text-center"
           >
-            {config.venueAddress}
-          </motion.p>
+            {dressCode && (
+              <div>
+                <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}b0`, fontFamily: "var(--font-sans)" }}>
+                  Dress Code
+                </p>
+                {dressCode.title && (
+                  <p className="mb-3" style={{ fontFamily: "var(--font-serif)", fontSize: "1.6rem", color: "#f0ecf8" }}>
+                    {dressCode.title}
+                  </p>
+                )}
+                {dressCode.description && (
+                  <p className="text-sm leading-relaxed" style={{ color: `${accent}cc` }}>
+                    {dressCode.description}
+                  </p>
+                )}
+                {dressCode.palette.length > 0 && (
+                  <ul aria-label="Suggested colours" className="mt-6 flex flex-wrap items-center justify-center gap-4">
+                    {dressCode.palette.map((hex) => (
+                      <li key={hex}>
+                        <span
+                          className="block h-10 w-10 rounded-full"
+                          style={{ background: hex, border: `1px solid ${gold}70`, boxShadow: `0 0 14px ${hex}55` }}
+                        />
+                        <span className="sr-only">{hex}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            {hashtag && (
+              <div>
+                <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}b0`, fontFamily: "var(--font-sans)" }}>
+                  Share your moments
+                </p>
+                <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.8rem", color: gold, textShadow: `0 0 18px ${gold}50` }}>
+                  {hashtag}
+                </p>
+              </div>
+            )}
+          </motion.div>
         )}
       </div>
     </section>

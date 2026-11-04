@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
+import { galleryAlbumsOf, galleryHasAlbums } from "@/lib/weddingDetails";
 import Divider from "./Divider";
 
 interface Props {
@@ -32,9 +33,13 @@ const COL_SPANS = [
 ];
 
 export default function GallerySection({ config, accent, gold }: Props) {
-  const images = (config.galleryImageUrls ?? []).filter(Boolean).slice(0, 6);
+  const grouped = galleryHasAlbums(config);
+  /* Ungrouped sites keep the original six-photo showcase; albums show every photo. */
+  const albums = galleryAlbumsOf(config)
+    .map((a) => ({ ...a, urls: a.urls.filter(Boolean).slice(0, grouped ? undefined : 6) }))
+    .filter((a) => a.urls.length > 0);
 
-  if (!images.length) return null;
+  if (!albums.length) return null;
 
   return (
     <section
@@ -50,7 +55,7 @@ export default function GallerySection({ config, accent, gold }: Props) {
           transition={{ duration: 0.7, ease: "easeOut" as const }}
           className="text-center mb-14"
         >
-          <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}60`, fontFamily: "var(--font-sans)" }}>
+          <p className="uppercase tracking-[0.25em] text-xs mb-3" style={{ color: `${accent}b0`, fontFamily: "var(--font-sans)" }}>
             Moments
           </p>
           <h2
@@ -65,49 +70,70 @@ export default function GallerySection({ config, accent, gold }: Props) {
           <Divider accent={accent} gold={gold} />
         </motion.div>
 
-        {/* Masonry-ish grid */}
-        <motion.div
-          variants={container}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.1 }}
-          className="grid grid-cols-3 gap-3"
-        >
-          {images.map((src, i) => (
-            <motion.div
-              key={i}
-              variants={imgVar}
-              whileHover={{ scale: 1.02, zIndex: 2 }}
-              transition={{ duration: 0.3 }}
-              className={`relative overflow-hidden rounded-xl group ${COL_SPANS[i % 6]} ${ASPECT_CLASSES[i % 6]}`}
-            >
-              <Image
-                src={src}
-                alt={`Gallery ${i + 1}`}
-                fill
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
-              />
-              {/* Dark overlay lifts on hover */}
-              <div
-                className="absolute inset-0 transition-opacity duration-400 group-hover:opacity-0"
-                style={{ background: "rgba(12,13,26,0.25)" }}
-              />
-              {/* Gold sparkle border on hover */}
-              <div
-                className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
-                style={{ border: `1px solid ${gold}50`, boxShadow: `inset 0 0 20px ${gold}10` }}
-              />
-              {/* Tiny sparkle icon on hover */}
-              <div
-                className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        <div className="space-y-16">
+          {albums.map((album) => (
+            <div key={album.key}>
+              {grouped && (
+                <h3
+                  className="mb-6 flex items-center justify-center gap-3 text-center"
+                  style={{ fontFamily: "var(--font-serif)", fontSize: "1.4rem", color: gold }}
+                >
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill={gold} aria-hidden>
+                    <path d="M6 0 L7 4.5 L12 6 L7 7.5 L6 12 L5 7.5 L0 6 L5 4.5 Z" />
+                  </svg>
+                  {album.label}
+                  <svg width="10" height="10" viewBox="0 0 12 12" fill={gold} aria-hidden>
+                    <path d="M6 0 L7 4.5 L12 6 L7 7.5 L6 12 L5 7.5 L0 6 L5 4.5 Z" />
+                  </svg>
+                </h3>
+              )}
+
+              {/* Masonry-ish grid */}
+              <motion.div
+                variants={container}
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, amount: 0.1 }}
+                className="grid grid-cols-3 gap-3"
               >
-                <svg width="12" height="12" viewBox="0 0 12 12" fill={gold} aria-hidden>
-                  <path d="M6 0 L7 4.5 L12 6 L7 7.5 L6 12 L5 7.5 L0 6 L5 4.5 Z" />
-                </svg>
-              </div>
-            </motion.div>
+                {album.urls.map((src, i) => (
+                  <motion.div
+                    key={`${src}-${i}`}
+                    variants={imgVar}
+                    whileHover={{ scale: 1.02, zIndex: 2 }}
+                    transition={{ duration: 0.3 }}
+                    className={`relative overflow-hidden rounded-xl group ${COL_SPANS[i % 6]} ${ASPECT_CLASSES[i % 6]}`}
+                  >
+                    <Image
+                      src={src}
+                      alt={grouped ? `${album.label} photo ${i + 1}` : `Gallery ${i + 1}`}
+                      fill
+                      className="object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                    {/* Dark overlay lifts on hover */}
+                    <div
+                      className="absolute inset-0 transition-opacity duration-400 group-hover:opacity-0"
+                      style={{ background: "rgba(12,13,26,0.25)" }}
+                    />
+                    {/* Gold sparkle border on hover */}
+                    <div
+                      className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
+                      style={{ border: `1px solid ${gold}50`, boxShadow: `inset 0 0 20px ${gold}10` }}
+                    />
+                    {/* Tiny sparkle icon on hover */}
+                    <div
+                      className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill={gold} aria-hidden>
+                        <path d="M6 0 L7 4.5 L12 6 L7 7.5 L6 12 L5 7.5 L0 6 L5 4.5 Z" />
+                      </svg>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

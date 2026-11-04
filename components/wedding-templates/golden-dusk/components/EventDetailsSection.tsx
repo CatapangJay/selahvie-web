@@ -2,8 +2,16 @@
 
 import Image from "next/image";
 import { motion, type Variants } from "framer-motion";
-import { Calendar, Clock, MapPin } from "lucide-react";
+import { Calendar, Clock, MapPin, Navigation, Shirt } from "lucide-react";
 import type { WeddingConfig } from "@/types/wedding";
+import {
+  ceremonyVenue,
+  receptionVenue,
+  receptionTimeAtCeremony,
+  dressCodeOf,
+  hashtagOf,
+  type VenueView,
+} from "@/lib/weddingDetails";
 
 interface Props {
   config: WeddingConfig;
@@ -22,21 +30,25 @@ const cont: Variants = {
 interface EventCardProps {
   title: string;
   subtitle: string;
-  date: string;
-  time: string;
-  venue: string;
+  date?: string;
+  time?: string;
+  venue?: string[];
+  note?: string;
+  dress?: { title: string; description: string; palette: string[] };
+  links?: VenueView;
   accent: string;
-  index: number;
 }
 
-function EventCard({ title, subtitle, date, time, venue, accent, index }: EventCardProps) {
+function EventCard({ title, subtitle, date, time, venue, note, dress, links, accent }: EventCardProps) {
+  const rowText = { color: "rgba(44,24,16,0.75)", fontFamily: "var(--font-sans)" };
+  const linkClass = "inline-flex items-center gap-1.5 py-1.5 text-xs underline underline-offset-4";
   return (
     <motion.div
       variants={rise}
       whileHover={{ y: -6, scale: 1.02, transition: { duration: 0.25 } }}
       className="flex-shrink-0 rounded-2xl overflow-hidden"
       style={{
-        width: "200px",
+        width: "240px",
         background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(12px)",
         boxShadow: "0 8px 32px rgba(0,0,0,0.2)",
@@ -49,7 +61,7 @@ function EventCard({ title, subtitle, date, time, venue, accent, index }: EventC
         <div>
           <p
             className="text-xs uppercase tracking-[0.18em] mb-0.5"
-            style={{ color: accent, fontFamily: "var(--font-sans)" }}
+            style={{ color: "#8a4a14", fontFamily: "var(--font-sans)" }}
           >
             {subtitle}
           </p>
@@ -69,45 +81,98 @@ function EventCard({ title, subtitle, date, time, venue, accent, index }: EventC
         <div className="h-px" style={{ background: "rgba(44,24,16,0.1)" }} />
 
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <Calendar size={11} style={{ color: accent, flexShrink: 0 }} />
-            <span className="text-xs" style={{ color: "rgba(44,24,16,0.65)", fontFamily: "var(--font-sans)" }}>{date}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock size={11} style={{ color: accent, flexShrink: 0 }} />
-            <span className="text-xs" style={{ color: "rgba(44,24,16,0.65)", fontFamily: "var(--font-sans)" }}>{time}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <MapPin size={11} style={{ color: accent, flexShrink: 0 }} />
-            <span className="text-xs" style={{ color: "rgba(44,24,16,0.65)", fontFamily: "var(--font-sans)" }}>{venue}</span>
-          </div>
+          {date && (
+            <div className="flex items-start gap-2">
+              <Calendar size={12} style={{ color: accent, flexShrink: 0, marginTop: 2 }} />
+              <span className="text-xs" style={rowText}>{date}</span>
+            </div>
+          )}
+          {time && (
+            <div className="flex items-start gap-2">
+              <Clock size={12} style={{ color: accent, flexShrink: 0, marginTop: 2 }} />
+              <span className="text-xs" style={rowText}>{time}</span>
+            </div>
+          )}
+          {venue && venue.length > 0 && (
+            <div className="flex items-start gap-2">
+              <MapPin size={12} style={{ color: accent, flexShrink: 0, marginTop: 2 }} />
+              <span className="text-xs" style={{ ...rowText, lineHeight: 1.6 }}>
+                {venue.map((line, i) => (
+                  <span key={i} className="block">{line}</span>
+                ))}
+              </span>
+            </div>
+          )}
+          {note && <p className="text-xs italic" style={rowText}>{note}</p>}
+          {dress && (
+            <div className="flex items-start gap-2">
+              <Shirt size={12} style={{ color: accent, flexShrink: 0, marginTop: 2 }} />
+              <div className="flex flex-col gap-2">
+                {dress.description && <span className="text-xs" style={{ ...rowText, lineHeight: 1.6 }}>{dress.description}</span>}
+                {dress.palette.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5" aria-label="Colour palette">
+                    {dress.palette.map((hex) => (
+                      <li
+                        key={hex}
+                        role="img"
+                        aria-label={`Palette colour ${hex}`}
+                        className="w-5 h-5 rounded-full"
+                        style={{ background: hex, border: "1px solid rgba(44,24,16,0.2)" }}
+                      />
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {links && (links.mapUrl || links.directionsUrl) && (
+          <div className="flex flex-wrap gap-x-4" style={{ color: "#8a4a14", fontFamily: "var(--font-sans)" }}>
+            {links.mapUrl && (
+              <a href={links.mapUrl} target="_blank" rel="noopener" className={linkClass}>
+                <MapPin size={11} aria-hidden /> View map
+              </a>
+            )}
+            {links.directionsUrl && (
+              <a href={links.directionsUrl} target="_blank" rel="noopener" className={linkClass}>
+                <Navigation size={11} aria-hidden /> Get directions
+              </a>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );
 }
 
-function buildEvents(config: WeddingConfig) {
-  const d = config.weddingDate ? new Date(config.weddingDate) : new Date("2027-01-01");
-  const fmt = (offset: number) => {
-    const dt = new Date(d.getTime() + offset * 86400000);
-    return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  };
-  const venue = config.venueName || "Main Venue";
-  const city  = config.venueCity || "";
-  const loc   = city ? `${venue}, ${city}` : venue;
+function buildEvents(config: WeddingConfig): Omit<EventCardProps, "accent">[] {
+  const date = config.weddingDate
+    ? new Date(config.weddingDate).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })
+    : undefined;
+  const lines = (v: VenueView) => [v.name, v.address, v.city].filter(Boolean);
+  const ceremony = ceremonyVenue(config);
+  const reception = receptionVenue(config);
+  const receptionTime = receptionTimeAtCeremony(config);
+  const dress = dressCodeOf(config);
 
-  return [
-    { title: "Ring Ceremony",       subtitle: "Event 01", date: fmt(-3), time: "10:00 AM",  venue: loc },
-    { title: "Engagement Special",  subtitle: "Event 02", date: fmt(-2), time: "06:00 PM",  venue: loc },
-    { title: "Mehndi Night",        subtitle: "Event 03", date: fmt(-1), time: "07:00 PM",  venue: loc },
-    { title: "Wedding Ceremony",    subtitle: "Event 04", date: fmt(0),  time: "09:00 AM",  venue: loc },
-    { title: "Haldi Celebration",   subtitle: "Event 05", date: fmt(-1), time: "10:00 AM",  venue: loc },
+  const events: Omit<EventCardProps, "accent">[] = [
+    { title: "Wedding Ceremony", subtitle: "Ceremony", date, time: ceremony.time || undefined, venue: lines(ceremony), links: ceremony },
   ];
+  if (reception) {
+    events.push({ title: "Reception", subtitle: "Celebration", date, time: reception.time || undefined, venue: lines(reception), links: reception });
+  } else if (receptionTime) {
+    events.push({ title: "Reception", subtitle: "Celebration", date, time: receptionTime, note: "At the ceremony venue" });
+  }
+  if (dress) {
+    events.push({ title: dress.title || "Dress Code", subtitle: "Attire", dress });
+  }
+  return events;
 }
 
 export default function EventDetailsSection({ config, accent }: Props) {
   const events = buildEvents(config);
+  const hashtag = hashtagOf(config);
   const bgUrl  = config.heroImageUrl
     ? config.heroImageUrl
     : `https://picsum.photos/seed/gd-event-bg/1600/800`;
@@ -165,19 +230,19 @@ export default function EventDetailsSection({ config, accent }: Props) {
             style={{ scrollbarWidth: "none" }}
           >
             {events.map((ev, i) => (
-              <EventCard key={i} {...ev} accent={accent} index={i} />
+              <EventCard key={i} {...ev} accent={accent} />
             ))}
           </motion.div>
 
-          {/* View All */}
-          <motion.div variants={rise} className="flex justify-center mt-10">
-            <button
-              className="px-7 py-2.5 rounded-full text-xs uppercase tracking-[0.15em] transition-all hover:opacity-80"
-              style={{ background: accent, color: "#ffffff", fontFamily: "var(--font-sans)" }}
+          {hashtag && (
+            <motion.p
+              variants={rise}
+              className="text-center mt-10"
+              style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: "1.4rem", color: "#ffffff" }}
             >
-              View All
-            </button>
-          </motion.div>
+              {hashtag}
+            </motion.p>
+          )}
         </motion.div>
       </div>
     </section>

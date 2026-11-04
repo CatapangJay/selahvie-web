@@ -2,6 +2,8 @@
 
 import { motion } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
+import InvitationDownloadLink from "@/components/wedding-templates/_shared/InvitationDownloadLink";
+import { contactOf, hashtagOf, socialLinksOf } from "@/lib/weddingDetails";
 
 interface Props {
   config: WeddingConfig;
@@ -13,6 +15,12 @@ interface Props {
 
 export default function TemplateFooter({ config, accent, gold, weddingDateFormatted, show }: Props) {
   const hasNames = config.partner1Name && config.partner2Name;
+  const contact = contactOf(config);
+  const socials = socialLinksOf(config);
+  const hashtag = hashtagOf(config);
+  const linkClass = "uppercase text-xs underline-offset-4 hover:underline";
+  const linkStyle = { color: gold, letterSpacing: "0.16em", fontFamily: "var(--font-sans)" };
+
   return (
     <footer
       className="relative py-16 px-6 text-center overflow-hidden"
@@ -58,9 +66,18 @@ export default function TemplateFooter({ config, accent, gold, weddingDateFormat
         {weddingDateFormatted && (
           <p
             className="mt-2 text-sm tracking-widest uppercase"
-            style={{ color: `${accent}50`, letterSpacing: "0.16em", fontFamily: "var(--font-sans)" }}
+            style={{ color: `${accent}b0`, letterSpacing: "0.16em", fontFamily: "var(--font-sans)" }}
           >
             {weddingDateFormatted}
+          </p>
+        )}
+
+        {hashtag && (
+          <p
+            className="mt-5"
+            style={{ fontFamily: "var(--font-serif)", fontSize: "1.4rem", color: gold, textShadow: `0 0 16px ${gold}50` }}
+          >
+            {hashtag}
           </p>
         )}
 
@@ -71,8 +88,51 @@ export default function TemplateFooter({ config, accent, gold, weddingDateFormat
           <div className="h-px w-16" style={{ background: `linear-gradient(to left, transparent, ${accent}40)` }} />
         </div>
 
+        {contact && (
+          <p
+            className="mb-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-sm"
+            style={{ color: `${accent}cc`, fontFamily: "var(--font-serif)" }}
+          >
+            {contact.name && <span>Questions? Reach {contact.name}</span>}
+            {contact.emailHref && (
+              <a href={contact.emailHref} className={linkClass} style={linkStyle}>
+                {contact.email}
+              </a>
+            )}
+            {contact.phoneHref && (
+              <a href={contact.phoneHref} className={linkClass} style={linkStyle}>
+                {contact.phone}
+              </a>
+            )}
+          </p>
+        )}
+
+        {socials.length > 0 && (
+          <ul aria-label="Follow along" className="mb-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-1">
+            {socials.map((s) => (
+              <li key={s.id}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className={linkClass} style={linkStyle}>
+                  {s.label}
+                  <span className="sr-only"> (opens in a new tab)</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <InvitationDownloadLink
+          config={config}
+          className="mb-5 inline-block rounded-xl px-6 py-2.5 text-xs uppercase transition-opacity hover:opacity-80"
+          style={{
+            ...linkStyle,
+            border: `1px solid ${gold}60`,
+            background: `linear-gradient(135deg, ${accent}15, ${gold}15)`,
+            letterSpacing: "0.18em",
+          }}
+        />
+
         {show && (
-          <p className="text-xs" style={{ color: `${accent}30`, letterSpacing: "0.12em" }}>
+          <p className="text-xs" style={{ color: `${accent}80`, letterSpacing: "0.12em" }}>
             Created with{" "}
             <span style={{ color: gold }}>Selah Vie</span>
           </p>

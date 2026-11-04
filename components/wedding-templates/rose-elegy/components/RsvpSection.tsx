@@ -27,6 +27,8 @@ export default function RsvpSection({ config, primary, accent }: Props) {
     const sent = await submit({
       guestName: rsvp.guestName ?? "",
       email: rsvp.email,
+      phone: rsvp.phone?.trim() || undefined,
+      dietaryRestrictions: rsvp.attending ? rsvp.dietaryRestrictions?.trim() || undefined : undefined,
       attending: rsvp.attending ?? true,
       mealChoice: rsvp.mealChoice,
       plusOne: Boolean(rsvp.plusOneName?.trim()),
@@ -156,6 +158,17 @@ export default function RsvpSection({ config, primary, accent }: Props) {
               </div>
             </div>
 
+            {/* Phone */}
+            <InputField
+              label="Phone Number (optional)"
+              id="guestPhone"
+              type="tel"
+              autoComplete="tel"
+              placeholder="+1 555 123 4567"
+              value={rsvp.phone ?? ""}
+              onChange={(e) => setRsvp({ ...rsvp, phone: e.target.value })}
+            />
+
             {/* Meal preference */}
             {rsvp.attending && config.mealOptions?.length > 0 && (
               <div>
@@ -180,6 +193,17 @@ export default function RsvpSection({ config, primary, accent }: Props) {
                   ))}
                 </div>
               </div>
+            )}
+
+            {/* Dietary restrictions */}
+            {rsvp.attending && (
+              <InputField
+                label="Dietary Restrictions (optional)"
+                id="dietaryRestrictions"
+                placeholder="Allergies or foods you avoid"
+                value={rsvp.dietaryRestrictions ?? ""}
+                onChange={(e) => setRsvp({ ...rsvp, dietaryRestrictions: e.target.value })}
+              />
             )}
 
             {/* Plus one(s) */}
