@@ -141,19 +141,59 @@ export type GuestSide = "partner1" | "partner2";
 export interface SeatingTable {
   id: string;
   name: string;
-  shape: "round" | "rect";
+  /** "arc" is a half-moon table (chairs on the curve only); "curve" is a bent serpentine banquet table. */
+  shape: "round" | "rect" | "arc" | "curve";
   seats: number;
   /** Long tables only: which sides have chairs. 1 = one long side (head table), 4 = ends too. Default 2. */
   seatSides?: 1 | 2 | 4;
   /** Four-sided long tables: chairs at each end (the long sides get the rest, split evenly). */
   endSeats?: number;
+  /** Curved tables: how far each bend turns, in degrees (30–180). Default 90. */
+  sweep?: number;
+  /** Curved tables: bend one way then back, like an S. Default false (a single arc). */
+  sBend?: boolean;
+  /** Short label shown on the table ("Family", "Kids", "VIP"). */
+  tag?: string;
+  /** Degrees clockwise. Default 0. */
+  rotation?: number;
   /** Centre of the table, as a percentage of the floor plan's width and height. */
   x: number;
   y: number;
 }
 
+/** Room features that aren't seated: stage, dance floor, grazing table, custom shapes… */
+export type VenueElementKind =
+  | "stage"
+  | "danceFloor"
+  | "grazing"
+  | "photobooth"
+  | "bar"
+  | "cake"
+  | "music"
+  | "buffet"
+  | "gifts"
+  | "entrance"
+  | "custom";
+
+export interface VenueElement {
+  id: string;
+  kind: VenueElementKind;
+  label: string;
+  shape: "rect" | "ellipse";
+  /** Centre, as a percentage of the floor plan's width and height. */
+  x: number;
+  y: number;
+  /** Size, as a percentage of the floor plan's width (so it scales with tables). */
+  w: number;
+  h: number;
+  /** Degrees clockwise. Default 0. */
+  rotation?: number;
+}
+
 export interface SeatingPlan {
   tables: SeatingTable[];
+  /** Venue features drawn under the tables. Absent on older plans. */
+  elements?: VenueElement[];
   /** Guest list entry id → table id. A guest's whole party sits together. */
   assignments: Record<string, string>;
   /** Guest list entry id → side. Legacy: sides now live on the guest (`GuestListEntry.side`). */

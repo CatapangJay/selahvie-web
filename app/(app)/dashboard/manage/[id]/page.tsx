@@ -3,7 +3,7 @@
 import { useEffect, useState, use, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
-import { Users, MailCheck, Sparkles, Lock, Armchair, ExternalLink, Pencil, QrCode } from "lucide-react";
+import { Users, MailCheck, Sparkles, Lock, Armchair, ExternalLink, Pencil, QrCode, CalendarDays, MapPin, EyeOff } from "lucide-react";
 import { useWeddingStore } from "@/store/weddingStore";
 import { useCartStore } from "@/store/cartStore";
 import { useOwnedConfig } from "@/lib/useOwnedConfig";
@@ -78,7 +78,7 @@ export default function ManageWeddingPage(props: Props) {
   if (status === "error") return null;
   if (status !== "ready") {
     return (
-      <div className="mx-auto max-w-6xl px-6 pb-24 pt-10 sm:pt-14">
+      <div className="mx-auto max-w-7xl px-6 pb-20 pt-6 sm:pt-8">
         <Skeleton className="mb-10 h-16 w-full max-w-md" rounded="md" />
         <Skeleton className="h-96 w-full" rounded="md" />
       </div>
@@ -108,22 +108,18 @@ export default function ManageWeddingPage(props: Props) {
   ];
 
   const published = config.status === "published";
-  const meta = [
-    config.weddingDate ? formatWeddingDate(config.weddingDate) : null,
-    config.venueName?.trim() || null,
-  ].filter(Boolean);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pb-24 pt-10 sm:pt-14">
-      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div className="min-w-0">
-          <h1
-            className="text-[1.75rem] leading-tight sm:text-[2.125rem]"
-            style={{ fontFamily: "var(--font-serif)", fontWeight: 400, color: "var(--color-on-surface)", textWrap: "balance" }}
-          >
-            {coupleLabel}
-          </h1>
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+    <div className="mx-auto max-w-7xl px-6 pb-20 pt-6 sm:pt-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <h1
+              className="text-[1.625rem] leading-tight sm:text-[1.875rem]"
+              style={{ fontFamily: "var(--font-serif)", fontWeight: 400, color: "var(--color-on-surface)", textWrap: "balance" }}
+            >
+              {coupleLabel}
+            </h1>
             <span
               className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium"
               style={{
@@ -132,19 +128,36 @@ export default function ManageWeddingPage(props: Props) {
                 color: published ? "var(--color-success)" : "var(--color-on-surface-variant)",
               }}
             >
-              <span
-                aria-hidden
-                className="h-1.5 w-1.5"
-                style={{ borderRadius: "var(--radius-full)", background: "currentColor" }}
-              />
+              <span aria-hidden className="h-1.5 w-1.5" style={{ borderRadius: "var(--radius-full)", background: "currentColor" }} />
               {published ? "Published" : "Draft"}
             </span>
-            {meta.map((m) => (
-              <span key={m} className="inline-flex items-center gap-2">
-                <span aria-hidden style={{ color: "var(--color-outline)" }}>·</span>
-                {m}
+          </div>
+          <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+            {config.weddingDate && (
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarDays size={14} aria-hidden />
+                {formatWeddingDate(config.weddingDate)}
               </span>
-            ))}
+            )}
+            {config.venueName?.trim() && (
+              <span className="inline-flex min-w-0 items-center gap-1.5">
+                <MapPin size={14} aria-hidden />
+                <span className="truncate">{config.venueName.trim()}</span>
+              </span>
+            )}
+            {!published && (
+              <span className="inline-flex items-center gap-1.5">
+                <EyeOff size={14} aria-hidden />
+                Guests can&apos;t see it yet.
+                <Link
+                  href={`/dashboard/customize/${config.id}?step=publish`}
+                  className="font-medium underline underline-offset-4 hover:text-[var(--color-primary)]"
+                  style={{ color: "var(--color-primary-dim)" }}
+                >
+                  Review and publish
+                </Link>
+              </span>
+            )}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -170,30 +183,9 @@ export default function ManageWeddingPage(props: Props) {
         </div>
       </header>
 
-      {!published && (
-        <p
-          className="mt-6 px-4 py-3 text-sm"
-          style={{
-            background: "var(--color-surface-container-low)",
-            border: "1px solid var(--color-outline)",
-            borderRadius: "var(--radius-md)",
-            color: "var(--color-on-surface-variant)",
-          }}
-        >
-          Guests can&apos;t find this website or RSVP until it&apos;s published.{" "}
-          <Link
-            href={`/dashboard/customize/${config.id}?step=publish`}
-            className="font-medium underline underline-offset-4 hover:text-[var(--color-primary)]"
-            style={{ color: "var(--color-primary-dim)" }}
-          >
-            Review and publish
-          </Link>
-        </p>
-      )}
-
       {/* Tabs */}
       <div
-        className="mt-8 mb-10 flex gap-1 overflow-x-auto"
+        className="mt-6 mb-8 flex gap-1 overflow-x-auto"
         style={{ borderBottom: "1px solid var(--color-outline)" }}
         role="tablist"
         aria-label="Manage guests"

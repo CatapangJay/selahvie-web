@@ -16,8 +16,8 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
-    // Headed by default so the flow is visible while it runs. E2E_HEADLESS=1 for CI or unattended runs.
-    headless: process.env.E2E_HEADLESS === "1",
+    // Headless by default. E2E_HEADED=1 opens the browser so the flow can be watched.
+    headless: process.env.E2E_HEADED !== "1",
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },

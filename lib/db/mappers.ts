@@ -201,6 +201,7 @@ export function fromWeddingRow(row: WeddingRow, ownerEmail?: string): WeddingCon
     openInviteMatching: row.open_invite_matching,
     seatingPlan: {
       tables: row.seating_plan?.tables ?? [],
+      elements: row.seating_plan?.elements ?? [],
       assignments: row.seating_plan?.assignments ?? {},
       sides: row.seating_plan?.sides ?? {},
     },
