@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Popover from "@/components/ui/Popover";
 import { useWeddingStore } from "@/store/weddingStore";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
@@ -33,10 +34,12 @@ import {
 import { partnerNames, sideOptions as buildSideOptions } from "@/lib/guestSides";
 import type { GuestListEntry, SeatingPlan, GuestSide, SeatingTable, WeddingConfig } from "@/types/wedding";
 import { Lock } from "lucide-react";
-import FloorCanvas, { clampZoom } from "./seating/FloorCanvas";
+import FloorCanvas, { clampZoom, stepZoom } from "./seating/FloorCanvas";
+import { GuestDetails, TableCard } from "./seating/GuestCard";
 import type { Selection } from "./seating/FloorSurface";
 import GuestRail from "./seating/GuestRail";
-import { ElementEditor, GuestRow, TableEditor } from "./seating/Editors";
+import { GuestRow, TableEditor } from "./seating/Editors";
+import { ElementRibbon, TableRibbon } from "./seating/SelectionRibbon";
 import SeatingPrint from "./seating/SeatingPrint";
 import Toolbar, { type PrintJob } from "./seating/Toolbar";
 import { SEAT_FILL, newId, plural } from "./seating/shared";
@@ -107,6 +110,11 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
   const [locked, setLocked] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [printJob, setPrintJob] = useState<PrintJob | null>(null);
+  /** Guest details opened from the side panel, anchored to their row. */
+  const [guestPop, setGuestPop] = useState<{ id: string; anchor: HTMLElement } | null>(null);
+  const guestPopRef = useMemo(() => ({ current: guestPop?.anchor ?? null }), [guestPop?.anchor]);
+  /** Guest shown in the pinned table card, if one was clicked there. */
+  const [cardGuest, setCardGuest] = useState<{ tableId: string; guestId: string } | null>(null);
   const setZoom = useCallback((z: number) => setZoomState(clampZoom(z)), []);
   const endPrint = useCallback(() => setPrintJob(null), []);
 
@@ -139,7 +147,8 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
   useEffect(() => {
     const onKey = (e: globalThis.KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (pickedId) setPickedId(null);
+        if (guestPop) setGuestPop(null);
+        else if (pickedId) setPickedId(null);
         else if (expanded && !document.querySelector(".popover-in")) setExpanded(false);
         return;
       }
@@ -194,6 +203,13 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
     if (selection?.id === id) setSelection(null);
   };
 
+  const duplicateSelected = () => {
+    if (!selection) return;
+    const id = newId(selection.type === "table" ? "tb" : "el");
+    save(selection.type === "table" ? duplicateTable(plan, selection.id, id) : duplicateElement(plan, selection.id, id));
+    setSelection({ type: selection.type, id });
+  };
+
   const deleteSelected = () => {
     if (!selection) return;
     if (selection.type === "table") deleteTable(selection.id);
@@ -242,6 +258,34 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
     />
   );
 
+  const guestDetails = (g: GuestListEntry, nav: { onSwitch: (id: string) => void; onBack?: () => void; onClose: () => void }) => (
+    <GuestDetails
+      key={g.id}
+      guest={g}
+      table={tableOf(g)}
+      tables={plan.tables}
+      byTable={byTable}
+      sideOf={sideOf}
+      sideName={sideName}
+      onGuest={nav.onSwitch}
+      onSeat={(tableId) => {
+        save(assign(plan, g.id, tableId));
+        // Follow the guest to their new table when moved from a pinned table card.
+        if (tableId && cardGuest?.guestId === g.id) {
+          setSelection({ type: "table", id: tableId });
+          setCardGuest({ tableId, guestId: g.id });
+        }
+      }}
+      onPlace={() => {
+        setPickedId(g.id);
+        nav.onClose();
+        setView("plan");
+      }}
+      onBack={nav.onBack}
+      onClose={nav.onClose}
+    />
+  );
+
   if (personalized && guests.length === 0) {
     return (
       <EmptyState
@@ -256,11 +300,90 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
 
   const homeTableId = picked ? plan.assignments[picked.id] ?? null : null;
 
+  const summary = (
+    <div className="space-y-2">
+      <p className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+        <span className="text-lg font-medium tabular-nums" style={{ color: "var(--color-on-surface)" }}>{seatedHeads}</span> of{" "}
+        {plural(totalHeads, "guest")} seated
+        {plan.tables.length > 0 && (
+          <span className="block text-xs">
+            {plural(plan.tables.length, "table")}, {capacity} seats
+            {shortBy > 0 ? (
+              <>
+                <Dot />
+                <span style={{ color: "var(--color-error)" }}>{shortBy} more {shortBy === 1 ? "seat" : "seats"} needed</span>
+              </>
+            ) : openSeats > 0 ? (
+              <>, {openSeats} open</>
+            ) : null}
+          </span>
+        )}
+      </p>
+      <SeatingProgress
+        total={totalHeads}
+        p1={heads(seatable.filter((g) => tableOf(g) && sideOf(g) === "partner1"))}
+        p2={heads(seatable.filter((g) => tableOf(g) && sideOf(g) === "partner2"))}
+        seated={seatedHeads}
+      />
+      <p className="flex flex-wrap gap-x-3 gap-y-0.5 text-[0.6875rem]" style={{ color: "var(--color-on-surface-variant)" }}>
+        <SideKey color={SEAT_FILL.partner1} label={p1} count={sideHeads("partner1")} />
+        <SideKey color={SEAT_FILL.partner2} label={p2} count={sideHeads("partner2")} />
+        <SideKey color={SEAT_FILL.none} label="Not set" count={totalHeads - sideHeads("partner1") - sideHeads("partner2")} />
+        {unseatedHeads > 0 && <SideKey hollow label="Unseated" count={unseatedHeads} />}
+      </p>
+    </div>
+  );
+
+  const status = picked ? (
+    <>
+      Pick a table for <span className="font-medium">{picked.name}</span>
+      {homeTableId && tableById.get(homeTableId) ? <> (now at {tableById.get(homeTableId)!.name}, outlined)</> : null}. Esc cancels.
+    </>
+  ) : locked ? (
+    "Layout locked. Tables and features stay put while you seat guests."
+  ) : null;
+
+  const context = selectedTable
+    ? {
+        key: `t:${selectedTable.id}`,
+        label: "Table",
+        content: (
+          <TableRibbon
+            key={selectedTable.id}
+            table={selectedTable}
+            seated={byTable.get(selectedTable.id) ?? []}
+            unseated={unseated}
+            tags={tags}
+            canDuplicate={plan.tables.length < MAX_TABLES}
+            onPatch={(data, key) => save(patchTable(plan, selectedTable.id, data), key)}
+            onSeat={seatGuest}
+            onDuplicate={duplicateSelected}
+            onDelete={() => deleteTable(selectedTable.id)}
+          />
+        ),
+      }
+    : selectedElement
+      ? {
+          key: `e:${selectedElement.id}`,
+          label: "Feature",
+          content: (
+            <ElementRibbon
+              key={selectedElement.id}
+              element={selectedElement}
+              canDuplicate={!elementsFull}
+              onPatch={(data, key) => save(patchElement(plan, selectedElement.id, data), key)}
+              onDuplicate={duplicateSelected}
+              onDelete={deleteSelected}
+            />
+          ),
+        }
+      : undefined;
+
   return (
-    <div className="space-y-8">
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
       {!personalized && (
         <div
-          className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
+          className="flex shrink-0 flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
           style={{ background: "var(--color-primary-container)", borderRadius: "var(--radius-lg)", border: "1px solid var(--color-outline)" }}
         >
           <div>
@@ -268,8 +391,8 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
               <Lock size={12} aria-hidden />
               Premium plan
             </p>
-            <h2 className="headline-sm mt-2" style={{ fontSize: "1.35rem" }}>Plan your reception seating</h2>
-            <p className="mt-2 max-w-md text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+            <h2 className="headline-sm mt-1.5" style={{ fontSize: "1.25rem" }}>Plan your reception seating</h2>
+            <p className="mt-1.5 max-w-xl text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
               Lay out tables, the stage and dance floor on a floor plan, drag guests into seats, balance both sides of the
               family and print the chart for your venue.
             </p>
@@ -287,7 +410,7 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
 
       <div
         inert={!personalized}
-        className={expanded ? "fixed inset-0 overflow-y-auto p-4 sm:p-6" : undefined}
+        className={expanded ? "fade-in fixed inset-0 flex flex-col p-3 sm:p-4" : "flex min-h-0 flex-1 flex-col"}
         role={expanded ? "dialog" : undefined}
         aria-modal={expanded || undefined}
         aria-label={expanded ? "Seating plan, focus view" : undefined}
@@ -296,44 +419,7 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
           ...(expanded ? { zIndex: "var(--z-modal)", background: "var(--color-surface)" } : {}),
         }}
       >
-        <div className={expanded ? "mx-auto max-w-[1600px] space-y-4" : "space-y-5"}>
-          {/* Summary */}
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
-            <div className="min-w-0 flex-1 space-y-2.5">
-              <p className="text-[0.9375rem]" style={{ color: "var(--color-on-surface-variant)" }}>
-                <span className="text-xl font-medium tabular-nums" style={{ color: "var(--color-on-surface)" }}>
-                  {seatedHeads}
-                </span>{" "}
-                of {plural(totalHeads, "guest")} seated
-                {plan.tables.length > 0 && (
-                  <>
-                    <Dot />
-                    {plural(plan.tables.length, "table")}, {capacity} seats
-                    {shortBy === 0 && openSeats > 0 && <>, {openSeats} open</>}
-                  </>
-                )}
-                {shortBy > 0 && plan.tables.length > 0 && (
-                  <>
-                    <Dot />
-                    <span style={{ color: "var(--color-error)" }}>{shortBy} more {shortBy === 1 ? "seat" : "seats"} needed</span>
-                  </>
-                )}
-              </p>
-              <SeatingProgress
-                total={totalHeads}
-                p1={heads(seatable.filter((g) => tableOf(g) && sideOf(g) === "partner1"))}
-                p2={heads(seatable.filter((g) => tableOf(g) && sideOf(g) === "partner2"))}
-                seated={seatedHeads}
-              />
-            </div>
-            <p className="flex flex-wrap gap-x-5 gap-y-1 text-xs lg:justify-end" style={{ color: "var(--color-on-surface-variant)" }}>
-              <SideKey color={SEAT_FILL.partner1} label={`${p1}'s side`} count={sideHeads("partner1")} />
-              <SideKey color={SEAT_FILL.partner2} label={`${p2}'s side`} count={sideHeads("partner2")} />
-              <SideKey color={SEAT_FILL.none} label="Side not set" count={totalHeads - sideHeads("partner1") - sideHeads("partner2")} />
-              {unseatedHeads > 0 && <SideKey hollow label="Not seated" count={unseatedHeads} />}
-            </p>
-          </div>
-
+        <div className="flex min-h-0 flex-1 flex-col gap-3">
           <Toolbar
             view={view}
             onView={setView}
@@ -343,16 +429,25 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
             canRedo={history.future.length > 0}
             onUndo={undo}
             onRedo={redo}
+            zoom={zoom}
+            onZoomIn={() => setZoom(stepZoom(zoom, 1))}
+            onZoomOut={() => setZoom(stepZoom(zoom, -1))}
+            onZoomReset={() => setZoom(1)}
+            locked={locked}
+            onLocked={setLocked}
+            expanded={expanded}
+            onExpanded={setExpanded}
             onAddTable={add}
             onAddTables={addMany}
             onAddElement={addFeature}
             onExportCsv={exportCsv}
             onPrint={setPrintJob}
+            context={context}
           />
 
           {view === "plan" ? (
-            <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_19rem]">
-              <div className="min-w-0 space-y-3">
+            <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_20rem] 2xl:grid-cols-[minmax(0,1fr)_22rem]">
+              <div className="relative h-[70vh] min-h-0 min-w-0 lg:h-auto">
                 <FloorCanvas
                   plan={plan}
                   byTable={byTable}
@@ -370,68 +465,72 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
                   onQuery={setTableQuery}
                   onSelect={setSelection}
                   onTableClick={(id) => (pickedId ? seatGuest(pickedId, id) : setSelection({ type: "table", id }))}
-                  onMoveTable={(id, x, y) => save(patchTable(plan, id, { x, y }))}
+                  onMoveTable={(id, x, y, rotation) =>
+                    save(patchTable(plan, id, rotation === undefined ? { x, y } : { x, y, rotation: rotation || undefined }))
+                  }
+                  renderTableCard={(t) => {
+                    const g = cardGuest?.tableId === t.id ? guests.find((x) => x.id === cardGuest.guestId) : undefined;
+                    return g ? (
+                      guestDetails(g, {
+                        onSwitch: (id) => setCardGuest({ tableId: t.id, guestId: id }),
+                        onBack: () => setCardGuest(null),
+                        onClose: () => setCardGuest(null),
+                      })
+                    ) : (
+                      <div className="w-64">
+                        <TableCard
+                          table={t}
+                          seated={byTable.get(t.id) ?? []}
+                          sideOf={sideOf}
+                          onGuest={(id) => setCardGuest({ tableId: t.id, guestId: id })}
+                          onClose={() => setSelection(null)}
+                        />
+                      </div>
+                    );
+                  }}
                   onPatchElement={(id, data) => save(patchElement(plan, id, data))}
                   onDropGuest={seatGuest}
                   onDeleteSelected={deleteSelected}
                   emptyState={<FirstTable onAdd={add} />}
                 />
-
                 <p
-                  className="min-h-5 text-xs"
                   role="status"
-                  style={{ color: picked ? "var(--color-primary-dim)" : "var(--color-on-surface-variant)" }}
+                  className="pointer-events-none absolute bottom-3 left-3 max-w-[calc(100%-1.5rem)] px-3 py-1.5 text-xs transition-opacity duration-150"
+                  style={{
+                    opacity: status ? 1 : 0,
+                    color: picked ? "var(--color-primary-dim)" : "var(--color-on-surface-variant)",
+                    background: "var(--color-surface-container-lowest)",
+                    border: `1px solid ${picked ? "var(--color-primary)" : "var(--color-outline)"}`,
+                    borderRadius: "var(--radius-full)",
+                    boxShadow: "0 1px 2px rgb(47 30 38 / 0.06)",
+                  }}
                 >
-                  {picked ? (
-                    <>
-                      Pick a table for <span className="font-medium">{picked.name}</span>
-                      {homeTableId && tableById.get(homeTableId) ? <> (now at {tableById.get(homeTableId)!.name}, outlined)</> : null}. Press Esc to cancel.
-                    </>
-                  ) : locked ? (
-                    "Layout locked. Tables and features stay put while you seat guests."
-                  ) : plan.tables.length > 0 ? (
-                    "Drag tables and room features to match your venue, then drag guests onto tables. Arrow keys nudge the focused item; Delete removes it."
-                  ) : null}
+                  {status}
                 </p>
-
-                {selectedTable && tableEditor(selectedTable, () => setSelection(null))}
-                {selectedElement && (
-                  <ElementEditor
-                    key={selectedElement.id}
-                    element={selectedElement}
-                    canDuplicate={!elementsFull}
-                    onPatch={(data, key) => save(patchElement(plan, selectedElement.id, data), key)}
-                    onDuplicate={() => {
-                      const id = newId("el");
-                      save(duplicateElement(plan, selectedElement.id, id));
-                      setSelection({ type: "element", id });
-                    }}
-                    onDelete={deleteSelected}
-                    onClose={() => setSelection(null)}
-                  />
-                )}
               </div>
 
               <GuestRail
+                summary={summary}
                 guests={seatable}
                 tableOf={tableOf}
                 sideOf={sideOf}
                 pickedId={pickedId}
-                onPick={(id) => setPickedId((cur) => (cur === id ? null : id))}
+                openId={guestPop?.id ?? null}
+                onOpen={(id, anchor) => setGuestPop((cur) => (cur?.id === id ? null : { id, anchor }))}
                 onUnseat={(id) => seatGuest(id, null)}
               />
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="min-h-0 flex-1 space-y-6 overflow-y-auto pr-1">
               {plan.tables.length === 0 ? (
                 <EmptyState
                   title="No tables yet"
                   body="Add a round, long or half-moon table above, then seat guests from the list below. Switch to the floor plan any time to arrange the room."
                 />
               ) : (
-                <div className="grid gap-4 xl:grid-cols-2">{plan.tables.map((t) => tableEditor(t))}</div>
+                <div className="grid gap-4 xl:grid-cols-2 2xl:grid-cols-3">{plan.tables.map((t) => tableEditor(t))}</div>
               )}
-              <section aria-labelledby="unseated-heading" className="pt-2">
+              <section aria-labelledby="unseated-heading" className="pb-4 pt-2">
                 <h3 id="unseated-heading" className="mb-3 flex items-center gap-2 text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
                   Not seated
                   <CountBadge n={unseated.length} />
@@ -460,6 +559,15 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
           )}
         </div>
       </div>
+
+      {guestPop && guests.some((g) => g.id === guestPop.id) && (
+        <Popover anchorRef={guestPopRef} onDismiss={() => setGuestPop(null)} role="dialog" aria-label="Guest details" className="p-0">
+          {guestDetails(guests.find((g) => g.id === guestPop.id)!, {
+            onSwitch: (id) => setGuestPop({ id, anchor: guestPop.anchor }),
+            onClose: () => setGuestPop(null),
+          })}
+        </Popover>
+      )}
 
       {printJob && (
         <SeatingPrint

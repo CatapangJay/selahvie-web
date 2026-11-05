@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { clampElementSize, clampPos, elementsOf, fourSideCounts, initials, needsSeat, seatsFor, seatsTaken } from "@/lib/seating";
+import { clampElementSize, clampPos, clampRotation, elementsOf, fourSideCounts, initials, needsSeat, seatsFor, seatsTaken } from "@/lib/seating";
 import type { GuestListEntry, GuestSide, SeatingPlan, SeatingTable, VenueElement } from "@/types/wedding";
 import { ELEMENT_ICON, GUEST_MIME, SEAT_FILL, isGuestDrag, plural } from "./shared";
 
@@ -24,6 +24,8 @@ interface CurveGeometry {
   d: string;
   seats: { x: number; y: number }[];
   label: { x: number; y: number };
+  /** The two open ends, with the heading pointing out of the table (radians). */
+  ends: { x: number; y: number; out: number }[];
 }
 
 /**
@@ -82,6 +84,60 @@ export function curveGeometry(t: SeatingTable): CurveGeometry {
       ...Array.from({ length: back }, (_, i) => shift(at(((back - i - 0.5) / back) * length, reach))),
     ],
     label: shift(at(length / 2, 0)),
+    ends: [
+      { ...shift(line[0]), out: line[0].a + Math.PI },
+      { ...shift(line[CURVE_STEPS]), out: line[CURVE_STEPS].a },
+    ],
+  };
+}
+
+// ─── Snapping curved tables end to end ───────────────────────────────────────
+
+/** Plan height ÷ width (the plan is 16:10); converts y% into width units. */
+const ASPECT = 10 / 16;
+const SNAP_DISTANCE = 3; // width units between ends before they pull together
+
+type End = { x: number; y: number; out: number };
+
+/** A curved table's ends on the plan, in width units, for a given centre and rotation. */
+function curveEnds(t: SeatingTable, x: number, y: number, rotation: number): End[] {
+  const g = curveGeometry(t);
+  const r = (rotation * Math.PI) / 180;
+  return g.ends.map((e) => {
+    const dx = e.x - g.w / 2;
+    const dy = e.y - g.h / 2;
+    return { x: x + dx * Math.cos(r) - dy * Math.sin(r), y: y * ASPECT + dx * Math.sin(r) + dy * Math.cos(r), out: e.out + r };
+  });
+}
+
+/**
+ * While a curved table is dragged near the open end of another, line them up:
+ * rotate it so the bands continue into each other and move it so the ends meet.
+ * Chaining curves this way builds a long serpentine.
+ */
+export function snapCurve(t: SeatingTable, x: number, y: number, tables: SeatingTable[]): { x: number; y: number; rotation: number } | null {
+  const mine = curveEnds(t, x, y, t.rotation ?? 0);
+  let best: { d: number; i: number; to: End } | null = null;
+  for (const o of tables) {
+    if (o.id === t.id || o.shape !== "curve") continue;
+    for (const to of curveEnds(o, o.x, o.y, o.rotation ?? 0)) {
+      for (let i = 0; i < mine.length; i++) {
+        const d = Math.hypot(mine[i].x - to.x, mine[i].y - to.y);
+        if (d < SNAP_DISTANCE && (!best || d < best.d)) best = { d, i, to };
+      }
+    }
+  }
+  if (!best) return null;
+  const g = curveGeometry(t);
+  const end = g.ends[best.i];
+  const rotation = clampRotation(((best.to.out + Math.PI - end.out) * 180) / Math.PI);
+  const r = (rotation * Math.PI) / 180;
+  const dx = end.x - g.w / 2;
+  const dy = end.y - g.h / 2;
+  return {
+    x: clampPos(best.to.x - (dx * Math.cos(r) - dy * Math.sin(r))),
+    y: clampPos((best.to.y - (dx * Math.sin(r) + dy * Math.cos(r))) / ASPECT),
+    rotation,
   };
 }
 
@@ -188,13 +244,15 @@ interface Props {
   emptyState?: ReactNode;
   onSelect?: (sel: Selection | null) => void;
   onTableClick?: (id: string) => void;
-  onMoveTable?: (id: string, x: number, y: number) => void;
+  onMoveTable?: (id: string, x: number, y: number, rotation?: number) => void;
+  /** Content pinned beside the selected table (who's there, guest details). */
+  renderTableCard?: (t: SeatingTable) => ReactNode;
   onPatchElement?: (id: string, data: Partial<VenueElement>) => void;
   onDropGuest?: (guestId: string, tableId: string) => void;
   onDeleteSelected?: () => void;
 }
 
-type Draft = { id: string; x: number; y: number; w?: number; h?: number };
+type Draft = { id: string; x: number; y: number; w?: number; h?: number; rotation?: number; snapped?: boolean };
 type DragState = {
   kind: "table" | "element";
   mode: "move" | "resize";
@@ -213,7 +271,7 @@ const NUDGE: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight
 
 const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
   {
-    plan, byTable, sideOf, readOnly, selection, picking, homeTableId, query = "", locked, style, emptyState,
+    plan, byTable, sideOf, readOnly, selection, picking, homeTableId, query = "", locked, style, emptyState, renderTableCard,
     onSelect, onTableClick, onMoveTable, onPatchElement, onDropGuest, onDeleteSelected,
   },
   ref
@@ -248,7 +306,11 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
     d.moved = true;
     setHoverId(null);
     if (d.mode === "move") {
-      setDraft({ id: d.id, x: clampPos(d.x0 + (dx / rect.width) * 100), y: clampPos(d.y0 + (dy / rect.height) * 100) });
+      const x = clampPos(d.x0 + (dx / rect.width) * 100);
+      const y = clampPos(d.y0 + (dy / rect.height) * 100);
+      const t = d.kind === "table" ? plan.tables.find((tt) => tt.id === d.id) : undefined;
+      const snap = t?.shape === "curve" ? snapCurve(t, x, y, plan.tables) : null;
+      setDraft(snap ? { id: d.id, ...snap, snapped: true } : { id: d.id, x, y });
       return;
     }
     // Resize from the corner with the centre fixed, measured along the shape's own axes.
@@ -267,7 +329,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
   const onPointerUp = () => {
     const d = dragRef.current;
     if (d?.moved && draft) {
-      if (d.kind === "table") onMoveTable?.(d.id, draft.x, draft.y);
+      if (d.kind === "table") onMoveTable?.(d.id, draft.x, draft.y, draft.rotation);
       else if (d.mode === "move") onPatchElement?.(d.id, { x: draft.x, y: draft.y });
       else onPatchElement?.(d.id, { w: draft.w, h: draft.h });
     }
@@ -297,7 +359,8 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
   };
 
   const isSel = (type: Selection["type"], id: string) => selection?.type === type && selection.id === id;
-  const hovered = !draft && hoverId ? plan.tables.find((t) => t.id === hoverId) : undefined;
+  const hovered = !draft && hoverId && !isSel("table", hoverId) ? plan.tables.find((t) => t.id === hoverId) : undefined;
+  const pinned = !draft && renderTableCard && selection?.type === "table" ? plan.tables.find((t) => t.id === selection.id) : undefined;
   const interactive = !readOnly;
 
   return (
@@ -415,7 +478,8 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
         const taken = seatsTaken(seated);
         const over = taken > t.seats;
         const { w, h } = tableSize(t);
-        const rot = t.rotation ?? 0;
+        const snapping = draft?.id === t.id && draft.snapped;
+        const rot = (draft?.id === t.id ? draft.rotation : undefined) ?? t.rotation ?? 0;
         const perSeat = seated.filter(needsSeat).flatMap((g) => Array<GuestListEntry>(seatsFor(g)).fill(g));
         const selected = isSel("table", t.id);
         const isDrop = dropId === t.id;
@@ -425,7 +489,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
         const matches = !q || name.toLowerCase().includes(q) || (t.tag ?? "").toLowerCase().includes(q);
         const curve = t.shape === "curve" ? curveGeometry(t) : null;
         const lw = curve ? 11 : labelWidth(w, h, rot);
-        const ring = selected || isDrop || isHome ? "var(--color-primary)" : over ? "var(--color-error)" : "var(--color-outline)";
+        const ring = selected || isDrop || isHome || snapping ? "var(--color-primary)" : over ? "var(--color-error)" : "var(--color-outline)";
         const fill = isDrop ? "var(--color-primary-container-strong)" : "var(--color-surface-container-lowest)";
 
         return (
@@ -475,6 +539,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
                     fontSize: g ? "max(6px, 0.82cqw)" : "max(5px, 0.7cqw)",
                     fontWeight: g ? 600 : 400,
                     letterSpacing: "0.01em",
+                    transition: "background-color 200ms ease-out, border-color 200ms ease-out, color 200ms ease-out",
                     printColorAdjust: "exact",
                     WebkitPrintColorAdjust: "exact",
                   }}
@@ -575,36 +640,54 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
       })}
 
       {hovered && <HoverCard table={hovered} seated={byTable.get(hovered.id) ?? []} sideOf={sideOf} />}
+      {pinned && renderTableCard && (
+        <CardFrame table={pinned} interactive>
+          {renderTableCard(pinned)}
+        </CardFrame>
+      )}
     </div>
   );
 });
 
 export default FloorSurface;
 
-/** Who's at a table, shown beside it on hover or keyboard focus. */
-function HoverCard({ table, seated, sideOf }: { table: SeatingTable; seated: GuestListEntry[]; sideOf: (g: GuestListEntry) => GuestSide | undefined }) {
+/** A floating card beside a table, flipped to whichever side has room. */
+function CardFrame({ table, interactive, children }: { table: SeatingTable; interactive?: boolean; children: ReactNode }) {
   const reach = tableReach(table) + 1;
-  const flip = table.x > 62;
+  const flip = table.x > 60;
   const ty = table.y < 22 ? "-12%" : table.y > 78 ? "-88%" : "-50%";
-  const list = seated.filter(needsSeat);
-  const shown = list.slice(0, 10);
-  const taken = seatsTaken(seated);
-
   return (
     <div
-      aria-hidden
-      className="popover-in pointer-events-none absolute w-56 p-3"
+      aria-hidden={interactive ? undefined : true}
+      role={interactive ? "dialog" : undefined}
+      aria-label={interactive ? `${table.name || "Table"} guests` : undefined}
+      className={`popover-in absolute ${interactive ? "" : "pointer-events-none"}`}
+      onPointerDown={(e) => e.stopPropagation()}
       style={{
         left: flip ? `calc(${table.x}% - ${reach}cqw)` : `calc(${table.x}% + ${reach}cqw)`,
         top: `${table.y}%`,
         transform: `translate(${flip ? "-100%" : "0"}, ${ty})`,
-        zIndex: 6,
+        zIndex: interactive ? 7 : 6,
         background: "var(--color-surface-container-lowest)",
         border: "1px solid var(--color-outline)",
         borderRadius: "var(--radius-md)",
         boxShadow: "0 16px 40px -12px rgb(47 30 38 / 0.22), 0 2px 6px rgb(47 30 38 / 0.06)",
       }}
     >
+      {children}
+    </div>
+  );
+}
+
+/** Who's at a table, shown beside it on hover or keyboard focus. */
+function HoverCard({ table, seated, sideOf }: { table: SeatingTable; seated: GuestListEntry[]; sideOf: (g: GuestListEntry) => GuestSide | undefined }) {
+  const list = seated.filter(needsSeat);
+  const shown = list.slice(0, 10);
+  const taken = seatsTaken(seated);
+
+  return (
+    <CardFrame table={table}>
+    <div className="w-56 p-3">
       <p className="flex items-baseline justify-between gap-2 text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
         <span className="truncate">{table.name || "Untitled"}</span>
         <span className="shrink-0 text-xs font-normal tabular-nums" style={{ color: taken > table.seats ? "var(--color-error)" : "var(--color-on-surface-variant)" }}>
@@ -629,6 +712,7 @@ function HoverCard({ table, seated, sideOf }: { table: SeatingTable; seated: Gue
         </ul>
       )}
     </div>
+    </CardFrame>
   );
 }
 

@@ -52,6 +52,8 @@ export default function AppHeader() {
   ).toUpperCase();
 
   const onOverview = pathname === "/dashboard";
+  // The manage page is a full-width dashboard with a sidebar; the bar spans it too.
+  const wide = pathname.startsWith("/dashboard/manage/");
 
   const handleLogout = async () => {
     setOpen(false);
@@ -68,7 +70,7 @@ export default function AppHeader() {
         borderBottom: "1px solid var(--color-outline)",
       }}
     >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-6">
+      <div className={`mx-auto flex h-16 items-center justify-between gap-4 ${wide ? "px-4 sm:px-6 lg:px-5" : "max-w-7xl px-6"}`}>
         <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/"

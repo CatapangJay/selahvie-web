@@ -446,8 +446,10 @@ function RotationControl({ value, onChange }: { value: number; onChange: (deg: n
   );
 }
 
-export function Stepper({ value, noun, min, max, step = 1, format, onChange }: {
+export function Stepper({ value, noun, min, max, step = 1, format, size, onChange }: {
   value: number;
+  /** "sm" fits a ribbon row. */
+  size?: "sm";
   noun: string;
   min: number;
   max: number;
@@ -457,25 +459,25 @@ export function Stepper({ value, noun, min, max, step = 1, format, onChange }: {
 }) {
   return (
     <div className="flex items-center gap-1">
-      <StepButton label={`Remove ${step === 1 ? "a" : ""} ${noun}`.replace(/\s+/g, " ")} disabled={value <= min} onClick={() => onChange(value - step)}>
+      <StepButton size={size} label={`Remove ${step === 1 ? "a" : ""} ${noun}`.replace(/\s+/g, " ")} disabled={value <= min} onClick={() => onChange(value - step)}>
         <Minus size={14} />
       </StepButton>
-      <span className="min-w-8 text-center text-sm tabular-nums" aria-live="polite">{format ? format(value) : value}</span>
-      <StepButton label={`Add ${step === 1 ? "a" : ""} ${noun}`.replace(/\s+/g, " ")} disabled={value >= max} onClick={() => onChange(value + step)}>
+      <span className={`text-center tabular-nums ${size ? "min-w-7 text-xs" : "min-w-8 text-sm"}`} aria-live="polite">{format ? format(value) : value}</span>
+      <StepButton size={size} label={`Add ${step === 1 ? "a" : ""} ${noun}`.replace(/\s+/g, " ")} disabled={value >= max} onClick={() => onChange(value + step)}>
         <Plus size={14} />
       </StepButton>
     </div>
   );
 }
 
-function StepButton({ label, disabled, onClick, children }: { label: string; disabled: boolean; onClick: () => void; children: ReactNode }) {
+function StepButton({ label, disabled, size, onClick, children }: { label: string; disabled: boolean; size?: "sm"; onClick: () => void; children: ReactNode }) {
   return (
     <button
       type="button"
       aria-label={label}
       disabled={disabled}
       onClick={onClick}
-      className="inline-flex h-9 w-9 items-center justify-center transition-colors hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-40"
+      className={`inline-flex items-center justify-center transition-colors hover:bg-[var(--color-surface-container-high)] disabled:cursor-not-allowed disabled:opacity-40 ${size ? "h-[22px] w-[22px] [&_svg]:h-3 [&_svg]:w-3" : "h-9 w-9"}`}
       style={{ borderRadius: "var(--radius-full)", border: "1px solid var(--color-outline)", color: "var(--color-on-surface-variant)" }}
     >
       {children}

@@ -8,7 +8,7 @@ export const ZOOM_MIN = 0.5;
 export const ZOOM_MAX = 2;
 const ZOOM_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.5, 1.75, 2];
 export const clampZoom = (z: number) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(z * 100) / 100));
-const stepZoom = (z: number, dir: 1 | -1) =>
+export const stepZoom = (z: number, dir: 1 | -1) =>
   dir > 0 ? ZOOM_STEPS.find((s) => s > z + 0.001) ?? ZOOM_MAX : [...ZOOM_STEPS].reverse().find((s) => s < z - 0.001) ?? ZOOM_MIN;
 
 /** Narrowest the plan renders at 100%, so seats stay legible on small screens (it scrolls instead). */
@@ -44,7 +44,7 @@ export default function FloorCanvas({ zoom, onZoom, onLocked, expanded, onExpand
 
   return (
     <div
-      className="relative"
+      className="relative h-full"
       style={{
         background: "var(--color-surface-container-low)",
         border: "1px solid var(--color-outline)",
@@ -54,11 +54,7 @@ export default function FloorCanvas({ zoom, onZoom, onLocked, expanded, onExpand
       <div
         ref={scrollRef}
         className="overflow-auto overscroll-contain"
-        style={
-          expanded
-            ? { height: "calc(100dvh - 15rem)", minHeight: 360 }
-            : { aspectRatio: "16 / 10", minHeight: 420, maxHeight: "76vh" }
-        }
+        style={{ height: "100%", borderRadius: "inherit" }}
       >
         <FloorSurface
           {...surface}

@@ -161,6 +161,21 @@ body::before {
   animation: accordion-body-in 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ─── Seating ribbon ─── */
+/* A tab's tools settle in when you switch tabs; things that appear (contextual tab, focus view) fade in. */
+@keyframes ribbon-swap {
+  from { opacity: 0.35; transform: translateY(3px); }
+}
+.ribbon-swap {
+  animation: ribbon-swap 200ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+.fade-in {
+  animation: fade-in 180ms ease-out;
+}
+
 /* ─── Reduced motion ─── */
 /* Honors the OS "reduce motion" setting: neutralizes CSS transitions/animations
    and framer-motion is separately gated via useReducedMotion(). */

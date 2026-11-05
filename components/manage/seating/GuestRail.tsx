@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import { Check, Search, X } from "lucide-react";
 import { tableShortLabel } from "@/lib/seating";
 import type { GuestListEntry, GuestSide, SeatingTable } from "@/types/wedding";
@@ -11,19 +11,23 @@ type SeatFilter = "unseated" | "seated" | "all";
 type ReplyFilter = "any" | "going" | "waiting";
 
 interface Props {
+  /** Seating progress, shown at the top of the panel. */
+  summary?: ReactNode;
   /** Everyone who needs a seat (declined guests excluded). */
   guests: GuestListEntry[];
   tableOf: (g: GuestListEntry) => SeatingTable | undefined;
   sideOf: (g: GuestListEntry) => GuestSide | undefined;
   pickedId: string | null;
-  onPick: (id: string) => void;
+  /** The guest whose details are open. */
+  openId: string | null;
+  onOpen: (id: string, anchor: HTMLElement) => void;
   /** A guest dropped on the panel goes back to unseated. */
   onUnseat: (id: string) => void;
 }
 
 const isWaiting = (g: GuestListEntry) => g.status === "invited" || g.status === "pending";
 
-export default function GuestRail({ guests, tableOf, sideOf, pickedId, onPick, onUnseat }: Props) {
+export default function GuestRail({ summary, guests, tableOf, sideOf, pickedId, openId, onOpen, onUnseat }: Props) {
   const searchId = useId();
   const [query, setQuery] = useState("");
   const [seatFilter, setSeatFilter] = useState<SeatFilter>("unseated");
@@ -47,7 +51,7 @@ export default function GuestRail({ guests, tableOf, sideOf, pickedId, onPick, o
   return (
     <section
       aria-labelledby={`${searchId}-heading`}
-      className="flex min-h-0 flex-col transition-colors lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)] lg:self-start"
+      className="flex max-h-[70vh] min-h-0 flex-col transition-colors lg:h-full lg:max-h-none"
       onDragOver={(e) => {
         if (!isGuestDrag(e)) return;
         e.preventDefault();
@@ -67,6 +71,11 @@ export default function GuestRail({ guests, tableOf, sideOf, pickedId, onPick, o
         border: `1px ${over ? "dashed var(--color-primary)" : "solid var(--color-outline)"}`,
       }}
     >
+      {summary && (
+        <div className="px-3 pb-3 pt-3" style={{ borderBottom: "1px solid var(--color-outline)" }}>
+          {summary}
+        </div>
+      )}
       <div className="space-y-3 p-3" style={{ borderBottom: "1px solid var(--color-outline)" }}>
         <h3 id={`${searchId}-heading`} className="sr-only">Guests</h3>
         <label htmlFor={searchId} className="sr-only">Find a guest</label>
@@ -139,7 +148,7 @@ export default function GuestRail({ guests, tableOf, sideOf, pickedId, onPick, o
           </li>
         ) : (
           shown.map((g) => {
-            const active = g.id === pickedId;
+            const active = g.id === pickedId || g.id === openId;
             const table = tableOf(g);
             return (
               <li key={g.id}>
@@ -150,8 +159,9 @@ export default function GuestRail({ guests, tableOf, sideOf, pickedId, onPick, o
                     e.dataTransfer.setData(GUEST_MIME, g.id);
                     e.dataTransfer.effectAllowed = "move";
                   }}
-                  onClick={() => onPick(g.id)}
-                  aria-pressed={active}
+                  onClick={(e) => onOpen(g.id, e.currentTarget)}
+                  aria-haspopup="dialog"
+                  aria-expanded={g.id === openId}
                   aria-label={`${g.name}${g.partySize > 1 ? `, party of ${g.partySize}` : ""}${table ? `, at ${table.name}` : ", not seated"}`}
                   className="flex min-h-[44px] w-full cursor-grab items-center gap-2.5 px-2 py-1.5 text-left text-sm transition-colors hover:bg-[var(--color-surface-container-low)] active:cursor-grabbing"
                   style={{
