@@ -30,6 +30,8 @@ import ApricotHourTemplate         from "./apricot-hour";
 import NarraKapisTemplate          from "./narra-kapis";
 import ShutterStripTemplate        from "./shutter-strip";
 import WizardingVowsTemplate       from "./wizarding-vows";
+import EucalyptusFolioTemplate     from "./eucalyptus-folio";
+import MezzanineTemplate           from "./mezzanine";
 
 /**
  * Map of template ID → renderer component.
@@ -49,6 +51,8 @@ export const templateRegistry: Record<string, ComponentType<TemplateComponentPro
   t15: NarraKapisTemplate,
   t16: ShutterStripTemplate,
   t17: WizardingVowsTemplate,
+  t18: EucalyptusFolioTemplate,
+  t19: MezzanineTemplate,
   // t2: SageAndThistleTemplate,  ← add future templates here
 };
 
@@ -67,7 +71,7 @@ export function resolveTemplate(templateId: string): ComponentType<TemplateCompo
  * into the template's own design (intro card, hero caption, place card…) rather than relying on the
  * generic floating pill from `_shared/InviteeGreeting`, which is only a fallback for older templates.
  */
-const OWN_GREETING_TEMPLATES = new Set(["t12", "t13", "t14", "t15", "t16", "t17"]);
+const OWN_GREETING_TEMPLATES = new Set(["t12", "t13", "t14", "t15", "t16", "t17", "t18", "t19"]);
 
 export function rendersOwnGreeting(templateId: string): boolean {
   return OWN_GREETING_TEMPLATES.has(templateId);
@@ -97,6 +101,8 @@ const AUDIENCE_SECTIONS_BY_TEMPLATE: Record<string, AudienceSectionKey[]> = {
   t15: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
   t16: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
   t17: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp"],
+  t18: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp", "guestbook"],
+  t19: ["story", "gallery", "schedule", "weddingParty", "travel", "registry", "faq", "rsvp", "guestbook"],
 };
 
 export function audienceSectionsFor(templateId: string): { key: AudienceSectionKey; label: string }[] {
