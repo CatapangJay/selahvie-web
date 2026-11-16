@@ -22,6 +22,7 @@ import EntourageSection from "./components/EntourageSection";
 import RsvpSection from "./components/RsvpSection";
 import RegistrySection from "./components/RegistrySection";
 import FaqSection from "./components/FaqSection";
+import GuestbookSection from "./components/GuestbookSection";
 import TemplateFooter from "./components/TemplateFooter";
 import { FRAME_COUNTER, Reveal } from "./components/Motion";
 
@@ -129,6 +130,11 @@ export default function ShutterStripTemplate({ config, showBranding = true }: Pr
         {showFaq && (
           <Reveal>
             <FaqSection items={faq.filter((f) => f !== dressCodeFaq)} palette={palette} />
+          </Reveal>
+        )}
+        {isSectionVisible(config, "guestbook") && (
+          <Reveal>
+            <GuestbookSection config={config} palette={palette} />
           </Reveal>
         )}
         <div style={paperStyle(palette)}>

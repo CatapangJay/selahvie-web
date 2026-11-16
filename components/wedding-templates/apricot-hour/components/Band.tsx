@@ -1,7 +1,6 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import type { CSSProperties } from "react";
 import type { Palette } from "../theme";
 import { DISPLAY, SANS } from "../theme";
 import { Sprig } from "./Ornaments";
@@ -35,22 +34,6 @@ export function tones(band: Band, p: Palette) {
     : { text: p.ink, soft: `color-mix(in srgb, ${p.ink} 78%, transparent)`, accent: p.apricotDeep, rule: `color-mix(in srgb, ${p.ink} 18%, transparent)`, card: p.morning };
 }
 
-const EASE = [0.22, 1, 0.36, 1] as const;
-
-export function Reveal({ children }: { children: ReactNode }) {
-  const reduce = useReducedMotion();
-  return (
-    <motion.div
-      initial={reduce ? false : { opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.15 }}
-      transition={{ duration: 0.9, ease: EASE }}
-    >
-      {children}
-    </motion.div>
-  );
-}
-
 interface TitleProps {
   id: string;
   eyebrow: string;
@@ -58,17 +41,20 @@ interface TitleProps {
   band: Band;
   palette: Palette;
   style?: CSSProperties;
+  /** "start" sets the title flush left from the lg breakpoint up, for two-column sections. */
+  align?: "center" | "start";
 }
 
 /** Sprig, small-caps eyebrow, then a soft serif title with an italic final word. */
-export function SectionTitle({ id, eyebrow, title, band, palette: p, style }: TitleProps) {
+export function SectionTitle({ id, eyebrow, title, band, palette: p, style, align = "center" }: TitleProps) {
+  const start = align === "start";
   const t = tones(band, p);
   const words = title.split(" ");
   const last = words.pop();
   return (
-    <div style={{ textAlign: "center", marginBottom: "2.5rem", ...style }}>
-      <Sprig color={band.dark ? p.butter : p.dusk} bloom={band.dark ? p.golden : p.apricot} style={{ width: "2.75rem", margin: "0 auto 0.75rem", display: "block" }} />
-      <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 500, letterSpacing: "0.3em", paddingLeft: "0.3em", textTransform: "uppercase", color: t.accent, margin: 0 }}>{eyebrow}</p>
+    <div className={start ? "text-center lg:text-left" : "text-center"} style={{ marginBottom: "2.5rem", ...style }}>
+      <Sprig color={band.dark ? p.butter : p.dusk} bloom={band.dark ? p.golden : p.apricot} className={start ? "mx-auto lg:ml-0" : "mx-auto"} style={{ width: "2.75rem", marginBottom: "0.75rem", display: "block" }} />
+      <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 500, letterSpacing: "0.3em", paddingLeft: "0.3em", textTransform: "uppercase", color: t.accent, margin: 0 }} className={start ? "lg:pl-0!" : undefined}>{eyebrow}</p>
       <h2 id={id} style={{ fontFamily: DISPLAY, fontWeight: 300, fontSize: "clamp(2.3rem, 9vw, 3.6rem)", lineHeight: 1.08, color: t.text, margin: "0.6rem 0 0", textWrap: "balance" }}>
         {words.join(" ")} {last && <em style={{ fontStyle: "italic", fontWeight: 400 }}>{last}</em>}
       </h2>

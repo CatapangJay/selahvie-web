@@ -18,9 +18,9 @@ export default function FaqSection({ config, palette: p, band }: Props) {
 
   return (
     <section id="faq" aria-labelledby="ah-faq-title" style={{ background: band.bg, padding: SECTION_PAD }}>
-      <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <div className={items.length >= 4 ? "mx-auto max-w-[600px] lg:max-w-[64rem]" : "mx-auto max-w-[680px]"}>
         <SectionTitle id="ah-faq-title" eyebrow="Little questions" title="You might wonder" band={band} palette={p} />
-        <div style={{ display: "grid", gap: "0.6rem" }}>
+        <div className={items.length >= 4 ? "grid items-start gap-[0.6rem] lg:grid-cols-2 lg:gap-x-5 lg:gap-y-3" : "grid gap-[0.6rem]"}>
           {items.map((item) => (
             <details key={item.id} className="group" style={{ background: t.card, borderRadius: "1.25rem", boxShadow: band.dark ? `inset 0 0 0 1px ${t.rule}` : undefined }}>
               <summary

@@ -1,11 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Heart } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { fromGuestbookRow, type GuestbookRow } from "@/lib/db/mappers";
-import { isDemoConfig } from "@/components/wedding-templates/_shared/useRsvpSubmit";
-import type { GuestbookEntry, WeddingConfig } from "@/types/wedding";
+import { useGuestbook } from "@/components/wedding-templates/_shared/useGuestbook";
+import type { WeddingConfig } from "@/types/wedding";
 
 interface Props {
   config: WeddingConfig;
@@ -21,57 +18,9 @@ interface Props {
  * doesn't save. Always renders (it's an interactive prompt, not empty-gated).
  */
 export default function GuestbookSection({ config, primary, accent, enabled = true }: Props) {
-  const demo = isDemoConfig(config);
-  const [entries, setEntries] = useState<GuestbookEntry[]>([]);
-  const [name, setName] = useState("");
-  const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (demo || !enabled) return;
-    let cancelled = false;
-    createClient()
-      .from("guestbook_entries")
-      .select("*")
-      .eq("wedding_id", config.id)
-      .order("created_at", { ascending: false })
-      .limit(200)
-      .then(({ data }) => {
-        if (!cancelled && data) setEntries((data as GuestbookRow[]).map(fromGuestbookRow));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [config.id, demo, enabled]);
+  const { entries, name, setName, message, setMessage, sending, error, submit: handleSubmit } = useGuestbook(config, enabled);
 
   if (!enabled) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const wish = { name: name.trim().slice(0, 200), message: message.trim().slice(0, 2000) };
-    if (!wish.name || !wish.message || sending) return;
-    setError("");
-
-    if (demo) {
-      setEntries((prev) => [{ id: `${Date.now()}`, weddingId: config.id, createdAt: new Date().toISOString(), ...wish }, ...prev]);
-    } else {
-      setSending(true);
-      const { data, error: insertError } = await createClient()
-        .from("guestbook_entries")
-        .insert({ wedding_id: config.id, ...wish })
-        .select()
-        .single();
-      setSending(false);
-      if (insertError || !data) {
-        setError("We couldn't add your note. Please try again.");
-        return;
-      }
-      setEntries((prev) => [fromGuestbookRow(data as GuestbookRow), ...prev]);
-    }
-    setName("");
-    setMessage("");
-  };
 
   const shown = entries;
 

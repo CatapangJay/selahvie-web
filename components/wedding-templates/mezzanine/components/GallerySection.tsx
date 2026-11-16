@@ -1,22 +1,19 @@
 "use client";
 
-import { useCallback, useContext, useEffect, useId, useRef, useState, type CSSProperties } from "react";
-import { createPortal } from "react-dom";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useId, useState, type CSSProperties } from "react";
+import GalleryLightbox, { type LightboxPhoto } from "@/components/wedding-templates/_shared/GalleryLightbox";
 import type { WeddingConfig } from "@/types/wedding";
 import { galleryAlbumsOf, galleryHasAlbums } from "@/lib/weddingDetails";
 import type { Palette } from "../theme";
 import { ENGRAVED, SANS, cssImage } from "../theme";
-import { Floor, FloorHeading, PortalTarget } from "./Motion";
+import { Floor, FloorHeading } from "./Motion";
 
 /**
  * Photographs hung like a hotel corridor: the first in a white mount with a
  * thin bronze frame, the rest in two staggered columns. Any photo opens
- * enlarged, with previous / next and Escape. Sorted albums get tabs.
+ * in the shared viewer to zoom and step through. Sorted albums get tabs.
  */
 export default function GallerySection({ config, floor, palette: p }: { config: WeddingConfig; floor: number; palette: Palette }) {
-  const reduce = useReducedMotion();
-  const portal = useContext(PortalTarget);
   const uid = useId();
   const albums = (galleryHasAlbums(config) ? galleryAlbumsOf(config) : [{ key: "all", label: "", urls: config.galleryImageUrls ?? [] }])
     .map((a) => ({ ...a, images: a.urls.map((u) => ({ url: u, css: cssImage(u) })).filter((x): x is { url: string; css: string } => Boolean(x.css)) }))
@@ -24,55 +21,10 @@ export default function GallerySection({ config, floor, palette: p }: { config: 
 
   const [albumIdx, setAlbumIdx] = useState(0);
   const [open, setOpen] = useState<number | null>(null);
-  const dialog = useRef<HTMLDivElement>(null);
-  const opener = useRef<HTMLButtonElement | null>(null);
 
   const album = albums[Math.min(albumIdx, albums.length - 1)];
   const images = album?.images ?? [];
   const count = images.length;
-  const step = useCallback((d: number) => setOpen((i) => (i === null ? i : (i + d + count) % count)), [count]);
-  const close = useCallback(() => {
-    setOpen(null);
-    opener.current?.focus();
-  }, []);
-
-  const isOpen = open !== null;
-
-  // Move focus into the viewer when it opens (not on every photo change).
-  useEffect(() => {
-    if (isOpen) dialog.current?.focus();
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") close();
-      else if (e.key === "ArrowRight") step(1);
-      else if (e.key === "ArrowLeft") step(-1);
-      else if (e.key === "Tab" && dialog.current) {
-        // Keep Tab inside the viewer: the page behind it is covered.
-        const items = [...dialog.current.querySelectorAll<HTMLElement>("button")];
-        if (items.length === 0) return;
-        const first = items[0];
-        const last = items[items.length - 1];
-        const active = document.activeElement;
-        if (e.shiftKey && (active === first || active === dialog.current)) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && (active === last || !dialog.current.contains(active))) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", onKey);
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [isOpen, close, step]);
 
   if (!album) return null;
   const [lead, ...rest] = images;
@@ -83,10 +35,8 @@ export default function GallerySection({ config, floor, palette: p }: { config: 
       key={`${album.key}-${i}`}
       type="button"
       aria-label={`Enlarge photo ${i + 1} of ${count}`}
-      onClick={(e) => {
-        opener.current = e.currentTarget;
-        setOpen(i);
-      }}
+      onClick={() => setOpen(i)}
+      aria-haspopup="dialog"
       className="group block w-full overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-4"
       style={{ padding: 0, border: 0, background: `color-mix(in srgb, ${p.bronze} 25%, ${p.linen})`, cursor: "zoom-in", outlineColor: p.oxblood, ...style }}
     >
@@ -96,7 +46,7 @@ export default function GallerySection({ config, floor, palette: p }: { config: 
     </button>
   );
 
-  const ctrl: CSSProperties = { minWidth: 48, minHeight: 48, borderRadius: 999, border: `1px solid color-mix(in srgb, ${p.linenOn} 45%, transparent)`, background: "transparent", color: p.linenOn, fontFamily: SANS, fontSize: 15, cursor: "pointer", outlineColor: p.linenOn, padding: "0 1rem" };
+  const photos: LightboxPhoto[] = images.map((img, i) => ({ src: img.url, album: album.label, alt: `${names}, photo ${i + 1} of ${count}` }));
 
   return (
     <Floor id="gallery" labelledBy="mz-gallery-title" background={p.linen} maxWidth={680}>
@@ -137,41 +87,29 @@ export default function GallerySection({ config, floor, palette: p }: { config: 
         )}
       </div>
 
-      {portal && createPortal(
-      <AnimatePresence>
-        {open !== null && images[open] && (
-          <motion.div
-            ref={dialog}
-            key="lightbox"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`Photo ${open + 1} of ${count}`}
-            tabIndex={-1}
-            initial={reduce ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            onClick={close}
-            style={{ position: "fixed", inset: 0, bottom: "var(--preview-chrome-bottom, 0px)", zIndex: "var(--z-modal, 80)" as unknown as number, background: `color-mix(in srgb, ${p.oxbloodDeep} 94%, transparent)`, display: "flex", flexDirection: "column", outline: "none" }}
-          >
-            <div style={{ flex: 1, minHeight: 0, padding: "1.25rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {/* Couples paste photos from any host, which next/image remote patterns cannot cover. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={images[open].url} alt={`${names}, photo ${open + 1} of ${count}`} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }} />
+      <GalleryLightbox
+        photos={photos}
+        index={open}
+        onIndex={setOpen}
+        theme={{ backdrop: `color-mix(in srgb, ${p.oxbloodDeep} 96%, transparent)`, text: p.linenOn, accent: p.bronzeLight, font: ENGRAVED }}
+        windowStyle={{ background: `color-mix(in srgb, ${p.bronze} 25%, ${p.linen})` }}
+        reserve={{ x: "5rem", y: "16rem" }}
+        renderFrame={(photo, { index: i, count: total }) => (
+          <>
+            {/* Off the corridor wall: the white mount and thin bronze frame of the lead photograph. */}
+            <div style={{ background: "#FFFFFF", padding: "clamp(0.9rem, 2.4vw, 1.6rem)", border: `1px solid ${p.bronze}`, boxShadow: `0 0 0 5px ${p.oxbloodDeep}, 0 0 0 6px color-mix(in srgb, ${p.bronzeLight} 55%, transparent), 0 40px 80px -30px rgba(0,0,0,.8)` }}>
+              {photo}
             </div>
-            <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center" style={{ gap: "0.8rem", padding: "0 1rem 1.25rem" }}>
-              <button type="button" onClick={() => step(-1)} aria-label="Previous photo" className="focus-visible:outline-2 focus-visible:outline-offset-2" style={ctrl}>←</button>
-              <span aria-live="polite" style={{ fontFamily: ENGRAVED, fontSize: 13, letterSpacing: "0.14em", color: p.linenOn, minWidth: "4.5rem", textAlign: "center" }}>
-                {open + 1} / {count}
+            <figcaption className="mt-5 text-center" style={{ fontFamily: ENGRAVED, fontSize: 13, letterSpacing: "0.18em", paddingLeft: "0.18em", color: p.linenOn }}>
+              {config.partner1Name} &amp; {config.partner2Name}
+              <span style={{ color: p.bronzeLight }}>
+                {" "}
+                · {album.label ? `${album.label} · ` : ""}No. {i + 1} of {total}
               </span>
-              <button type="button" onClick={() => step(1)} aria-label="Next photo" className="focus-visible:outline-2 focus-visible:outline-offset-2" style={ctrl}>→</button>
-              <button type="button" onClick={close} className="focus-visible:outline-2 focus-visible:outline-offset-2" style={{ ...ctrl, marginLeft: "0.6rem" }}>Close</button>
-            </div>
-          </motion.div>
+            </figcaption>
+          </>
         )}
-      </AnimatePresence>,
-      portal
-      )}
+      />
     </Floor>
   );
 }

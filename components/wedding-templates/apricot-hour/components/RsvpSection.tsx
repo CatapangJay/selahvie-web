@@ -6,7 +6,7 @@ import { useRsvpSubmit } from "@/components/wedding-templates/_shared/useRsvpSub
 import AdditionalGuestsField from "@/components/wedding-templates/_shared/AdditionalGuestsField";
 import OpenInviteNotice from "@/components/wedding-templates/_shared/OpenInviteNotice";
 import type { DateParts, Palette } from "../theme";
-import { DISPLAY, SANS } from "../theme";
+import { DISPLAY, SANS, couplePhotos, dateParts } from "../theme";
 import { SECTION_PAD, SectionTitle, type Band } from "./Band";
 import { Sprig } from "./Ornaments";
 
@@ -80,6 +80,10 @@ export default function RsvpSection({ config, palette: p, band, rsvpDeadline }: 
     outlineColor: p.dusk,
   });
   const deadline = rsvpDeadline.date ? `${rsvpDeadline.monthDay}, ${rsvpDeadline.year}` : rsvpDeadline.long;
+  const photos = couplePhotos(config);
+  const photo = photos[2] ?? photos.at(-1);
+  const weddingDay = dateParts(config.weddingDate).long;
+  const place = [config.venueName, config.venueCity].filter(Boolean).join(", ");
   const card: CSSProperties = {
     position: "relative",
     background: p.morning,
@@ -94,14 +98,52 @@ export default function RsvpSection({ config, palette: p, band, rsvpDeadline }: 
 
   return (
     <section id="rsvp" aria-labelledby="ah-rsvp-title" style={{ background: band.bg, padding: SECTION_PAD }}>
-      <div style={{ maxWidth: 560, margin: "0 auto" }}>
-        <SectionTitle id="ah-rsvp-title" eyebrow="Kindly let us know" title="Will you come?" band={band} palette={p} style={{ marginBottom: "1rem" }} />
-        {deadline && (
-          <p style={{ textAlign: "center", fontFamily: DISPLAY, fontStyle: "italic", fontSize: "1.15rem", color: band.dark ? p.butter : p.apricotDeep, margin: "0 0 2.5rem" }}>
-            Replies by {deadline}, please
-          </p>
-        )}
+      <div className="mx-auto grid max-w-[560px] items-start gap-0 lg:max-w-[66rem] lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-20">
+        {/* On wide screens the invitation's essentials and a photo of the couple sit beside the reply card. */}
+        <div className="lg:sticky lg:top-16">
+          <SectionTitle id="ah-rsvp-title" eyebrow="Kindly let us know" title="Will you come?" band={band} palette={p} align="start" style={{ marginBottom: "1rem" }} />
+          {deadline && (
+            <p className="text-center lg:text-left" style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: "1.15rem", color: band.dark ? p.butter : p.apricotDeep, margin: "0 0 2.5rem" }}>
+              Replies by {deadline}, please
+            </p>
+          )}
+          <div className="hidden lg:block">
+            {photo && (
+              <div
+                role="img"
+                aria-label={`${config.partner1Name} and ${config.partner2Name}`}
+                style={{
+                  width: "min(100%, 17rem)",
+                  aspectRatio: "4 / 5",
+                  borderRadius: "999px 999px 1.25rem 1.25rem",
+                  backgroundColor: p.apricotSoft,
+                  backgroundImage: photo,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  boxShadow: `0 0 0 5px color-mix(in srgb, ${p.morning} 30%, transparent), 0 30px 60px -30px rgba(0,0,0,.6)`,
+                }}
+              />
+            )}
+            {(weddingDay || place) && (
+              <dl style={{ margin: "2rem 0 0", fontFamily: SANS, color: band.dark ? p.morning : p.ink }}>
+                {weddingDay && (
+                  <>
+                    <dt style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.24em", textTransform: "uppercase", color: band.dark ? p.butter : p.apricotDeep }}>When</dt>
+                    <dd style={{ margin: "0.3rem 0 1.25rem", fontFamily: DISPLAY, fontSize: "1.35rem" }}>{weddingDay}</dd>
+                  </>
+                )}
+                {place && (
+                  <>
+                    <dt style={{ fontSize: 12, fontWeight: 500, letterSpacing: "0.24em", textTransform: "uppercase", color: band.dark ? p.butter : p.apricotDeep }}>Where</dt>
+                    <dd style={{ margin: "0.3rem 0 0", fontFamily: DISPLAY, fontSize: "1.35rem" }}>{place}</dd>
+                  </>
+                )}
+              </dl>
+            )}
+          </div>
+        </div>
 
+        <div className="lg:pt-6">
         {submitted ? (
           <div role="status" style={{ ...card, textAlign: "center" }}>
             {ribbon}
@@ -237,6 +279,7 @@ export default function RsvpSection({ config, palette: p, band, rsvpDeadline }: 
             </button>
           </form>
         )}
+        </div>
       </div>
     </section>
   );

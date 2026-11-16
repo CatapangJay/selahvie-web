@@ -156,7 +156,11 @@ export interface SeatingTable {
   tag?: string;
   /** Degrees clockwise. Default 0. */
   rotation?: number;
-  /** Centre of the table, as a percentage of the floor plan's width and height. */
+  /**
+   * Centre of the table. x is in plan units from the left wall (an 8-seat round is
+   * ~10.6 wide); y is in steps of 0.625 units from the top wall. In the original
+   * 16:10 room both read as a percentage of its width and height.
+   */
   x: number;
   y: number;
 }
@@ -180,10 +184,10 @@ export interface VenueElement {
   kind: VenueElementKind;
   label: string;
   shape: "rect" | "ellipse";
-  /** Centre, as a percentage of the floor plan's width and height. */
+  /** Centre, measured like `SeatingTable.x` / `y`. */
   x: number;
   y: number;
-  /** Size, as a percentage of the floor plan's width (so it scales with tables). */
+  /** Size in plan units (the same scale as tables). */
   w: number;
   h: number;
   /** Degrees clockwise. Default 0. */
@@ -198,6 +202,16 @@ export interface SeatingPlan {
   assignments: Record<string, string>;
   /** Guest list entry id → side. Legacy: sides now live on the guest (`GuestListEntry.side`). */
   sides: Record<string, GuestSide>;
+  /**
+   * Room size in plan units (about 15 cm each). Absent = the original 100 × 62.5
+   * (about 15 × 9.4 m). Changing it never moves what's placed.
+   */
+  room?: { w: number; h: number };
+  /**
+   * Day-of "Find your table" page (/wedding/[slug]/seat) is open to guests. Off by
+   * default, so a half-finished chart isn't shown before the couple is ready.
+   */
+  guestFinder?: boolean;
 }
 
 /** Sections that can be restricted to a group/guest audience. */

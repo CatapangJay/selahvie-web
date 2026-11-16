@@ -19,12 +19,12 @@ export default function RegistrySection({ config, palette: p, band }: Props) {
 
   return (
     <section id="registry" aria-labelledby="ah-registry-title" style={{ background: band.bg, padding: SECTION_PAD }}>
-      <div style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
+      <div className="mx-auto max-w-[560px] text-center lg:max-w-[56rem]">
         <SectionTitle id="ah-registry-title" eyebrow="If you'd like" title="Gifts & wishes" band={band} palette={p} style={{ marginBottom: "1rem" }} />
         <p style={{ fontFamily: SANS, fontWeight: 300, fontSize: "1.05rem", lineHeight: 1.7, color: t.soft, margin: "0 auto 2rem", maxWidth: 420 }}>
           Sharing the evening with you is what we&apos;re most excited for. If you&apos;d still like to mark the day, here&apos;s where.
         </p>
-        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "grid", gap: "0.75rem" }}>
+        <ul className={links.length > 1 ? "grid gap-3 lg:grid-cols-2 lg:gap-4" : "mx-auto grid max-w-[560px] gap-3"} style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {links.map((link) => {
             const inner = (
               <>

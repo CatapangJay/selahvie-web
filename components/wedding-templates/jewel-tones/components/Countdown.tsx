@@ -8,6 +8,7 @@ interface Props {
   /** Local midnight of the wedding day. */
   target: Date;
   palette: Palette;
+  className?: string;
 }
 
 const subscribe = (onTick: () => void) => {
@@ -20,8 +21,12 @@ const serverSeconds = () => null;
 
 const DAY = 86_400;
 
-/** Days, hours, minutes and seconds to the wedding, set like engraved numerals between gilt rules. */
-export default function Countdown({ target, palette: p }: Props) {
+/**
+ * Days, hours, minutes and seconds to the wedding, set like engraved numerals
+ * between double gilt rules. Four equal cells with tabular figures, so nothing
+ * shifts as the clock ticks. Sized off the viewport height so it fits the hero's first screen.
+ */
+export default function Countdown({ target, palette: p, className }: Props) {
   const now = useSyncExternalStore(subscribe, nowSeconds, serverSeconds);
   const start = Math.floor(target.getTime() / 1000);
   const left = now === null ? null : start - now;
@@ -29,7 +34,7 @@ export default function Countdown({ target, palette: p }: Props) {
   if (left !== null && left <= 0) {
     const married = left <= -DAY;
     return (
-      <p className="text-center" style={{ fontFamily: SCRIPT, fontSize: "clamp(2rem, 6vw, 2.8rem)", lineHeight: 1.2, color: p.goldLight }}>
+      <p className={className} style={{ fontFamily: SCRIPT, fontSize: "clamp(2rem, 6vw, 2.8rem)", lineHeight: 1.2, color: p.goldLight }}>
         {married ? "Happily married" : "Today is the day"}
       </p>
     );
@@ -45,64 +50,52 @@ export default function Countdown({ target, palette: p }: Props) {
     left === null ? undefined : `${units[0].value} days, ${units[1].value} hours and ${units[2].value} minutes to go`;
 
   return (
-    <div className="text-center">
-      <p style={{ fontFamily: SERIF, fontStyle: "italic", fontSize: "clamp(1.1rem, 2.6vw, 1.3rem)", color: p.goldLight }}>
-        Counting down the days
-      </p>
-
-      <div
-        role="timer"
-        aria-label={spoken}
-        className="mx-auto"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-          alignItems: "start",
-          maxWidth: "34rem",
-          marginTop: "1.1rem",
-          padding: "clamp(1rem, 3vw, 1.4rem) 0",
-          borderBlock: `1px solid ${p.gold}`,
-          boxShadow: `0 -5px 0 -4px ${p.gold}80, 0 5px 0 -4px ${p.gold}80`,
-        }}
-      >
-        {units.map((u, i) => (
-          <div key={u.label} aria-hidden className="relative">
-            {i > 0 && (
-              <span
-                className="absolute"
-                style={{ left: 0, top: "38%", width: 6, height: 6, transform: "translate(-50%, -50%) rotate(45deg)", background: p.gold }}
-              />
-            )}
-            <p
-              style={{
-                fontFamily: SERIF,
-                fontWeight: 500,
-                fontSize: "clamp(2.2rem, 8vw, 3.4rem)",
-                lineHeight: 1,
-                fontVariantNumeric: "lining-nums tabular-nums",
-                color: p.cream,
-                textShadow: "0 2px 12px rgba(0,0,0,.3)",
-              }}
-            >
-              {u.value === null ? "–" : String(u.value).padStart(2, "0")}
-            </p>
-            <p
-              style={{
-                fontFamily: SERIF,
-                fontWeight: 600,
-                fontSize: "clamp(0.62rem, 1.8vw, 0.75rem)",
-                letterSpacing: "0.26em",
-                paddingLeft: "0.26em",
-                textTransform: "uppercase",
-                color: p.goldLight,
-                marginTop: "0.6rem",
-              }}
-            >
-              {u.label}
-            </p>
-          </div>
-        ))}
-      </div>
+    <div
+      role="timer"
+      aria-label={spoken}
+      className={`grid w-full grid-cols-4 items-start py-[clamp(0.6rem,1.6svh,1rem)] ${className ?? ""}`}
+      style={{
+        borderBlock: `1px solid ${p.gold}`,
+        boxShadow: `0 -5px 0 -4px ${p.gold}80, 0 5px 0 -4px ${p.gold}80`,
+      }}
+    >
+      {units.map((u, i) => (
+        <div key={u.label} aria-hidden className="relative text-center">
+          {i > 0 && (
+            <span
+              className="absolute"
+              style={{ left: 0, top: "36%", width: 5, height: 5, transform: "translate(-50%, -50%) rotate(45deg)", background: p.gold }}
+            />
+          )}
+          <p
+            className="text-[clamp(1.6rem,min(8vw,5svh),2.4rem)] lg:text-[clamp(2rem,5.2svh,2.9rem)]"
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 500,
+              lineHeight: 1,
+              fontVariantNumeric: "lining-nums tabular-nums",
+              color: p.cream,
+              textShadow: "0 2px 12px rgba(0,0,0,.3)",
+            }}
+          >
+            {u.value === null ? "–" : String(u.value).padStart(2, "0")}
+          </p>
+          <p
+            style={{
+              fontFamily: SERIF,
+              fontWeight: 600,
+              fontSize: "0.68rem",
+              letterSpacing: "0.24em",
+              paddingLeft: "0.24em",
+              textTransform: "uppercase",
+              color: p.goldLight,
+              marginTop: "0.45rem",
+            }}
+          >
+            {u.label}
+          </p>
+        </div>
+      ))}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import EntourageSection from "./components/EntourageSection";
 import RsvpSection from "./components/RsvpSection";
 import RegistrySection from "./components/RegistrySection";
 import FaqSection from "./components/FaqSection";
+import GuestbookSection from "./components/GuestbookSection";
 import TemplateFooter from "./components/TemplateFooter";
 import { Reveal } from "./components/Motion";
 
@@ -138,6 +139,11 @@ export default function WizardingVowsTemplate({ config, showBranding = true }: P
         {showFaq && (
           <Reveal>
             <FaqSection items={faq.filter((f) => f !== dressCodeFaq)} palette={palette} />
+          </Reveal>
+        )}
+        {isSectionVisible(config, "guestbook") && (
+          <Reveal>
+            <GuestbookSection config={config} palette={palette} />
           </Reveal>
         )}
         <div style={parchmentStyle(palette)}>

@@ -272,16 +272,32 @@ export type NameMatch =
  * and never reveals which names exist.
  */
 export function matchGuestByName(query: string, guests: GuestListEntry[]): NameMatch {
+  const match = matchByName(query, guests, (g) => g.name, (g) => g.id);
+  return match.status === "match" ? { status: "match", guest: match.item } : match;
+}
+
+/**
+ * The name matching behind `matchGuestByName`, over any list. Several names can
+ * point at the same person (a guest and the plus-ones they named): `keyOf`
+ * groups them, so they don't count as ambiguous with each other.
+ */
+export function matchByName<T>(
+  query: string,
+  items: T[],
+  nameOf: (item: T) => string,
+  keyOf: (item: T) => string
+): { status: "match"; item: T } | { status: "needs-code" } | { status: "none" } {
   const q = normalizeName(query);
   if (q.length < 3) return { status: "none" };
-  const scored = guests
-    .map((guest) => ({ guest, score: nameScore(q, normalizeName(guest.name)) }))
+  const scored = items
+    .map((item) => ({ item, score: nameScore(q, normalizeName(nameOf(item))) }))
     .filter((x) => x.score >= MATCH_THRESHOLD)
     .sort((a, b) => b.score - a.score);
   if (scored.length === 0) return { status: "none" };
-  const [best, next] = scored;
+  const best = scored[0];
+  const next = scored.find((x) => keyOf(x.item) !== keyOf(best.item));
   if (next && best.score - next.score < AMBIGUITY_MARGIN) return { status: "needs-code" };
-  return { status: "match", guest: best.guest };
+  return { status: "match", item: best.item };
 }
 
 export type FindResult = { status: "found"; code: string } | { status: "needs-code" } | { status: "none" };

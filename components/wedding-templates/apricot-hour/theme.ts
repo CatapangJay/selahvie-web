@@ -50,6 +50,21 @@ export function cssImage(url?: string): string | undefined {
   }
 }
 
+/** The couple's photos other than the hero, as CSS url()s, for the secondary frames around the page. */
+export function couplePhotos(config: Pick<WeddingConfig, "heroImageUrl" | "galleryImageUrls">): string[] {
+  const hero = cssImage(config.heroImageUrl);
+  const seen = new Set<string>(hero ? [hero] : []);
+  const out: string[] = [];
+  for (const url of config.galleryImageUrls ?? []) {
+    const image = cssImage(url);
+    if (image && !seen.has(image)) {
+      seen.add(image);
+      out.push(image);
+    }
+  }
+  return out;
+}
+
 /** ISO dates are read as local calendar days (no timezone shift); other strings fall back to Date parsing. */
 export function parseWeddingDate(raw?: string): Date | null {
   if (!raw) return null;

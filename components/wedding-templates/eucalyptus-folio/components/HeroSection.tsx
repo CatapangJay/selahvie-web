@@ -6,6 +6,7 @@ import type { WeddingConfig } from "@/types/wedding";
 import type { DateParts, Palette } from "../theme";
 import { DISPLAY, MONO, SANS, cssImage, labelText, paperStyle, sheetStyle, tapeStyle } from "../theme";
 import { Sprig } from "./Specimens";
+import Countdown from "./Countdown";
 
 interface Props {
   config: WeddingConfig;
@@ -19,29 +20,46 @@ interface Props {
   showRsvpLink: boolean;
 }
 
-/** Name size that keeps the longer line inside the sheet, in the invitation's own container units. */
-function nameSize(p1: string, p2: string): string {
-  const len = Math.max(5, p1.trim().length, p2.trim().length + 2);
-  return `clamp(2.6rem, min(17cqw, ${(150 / len).toFixed(1)}cqw), 5.6rem)`;
+/**
+ * Name sizes that keep the longer line inside its column, in the invitation's
+ * own container units: one for the phone stack (also capped by viewport height
+ * so the label and countdown stay on the first screen) and one for the label
+ * column beside the photograph on wide screens.
+ */
+function nameSizes(p1: string, p2: string): CSSProperties {
+  const a = p1.trim().length;
+  const b = p2.trim().length;
+  const sm = Math.max(5, a, b + 2);
+  const lg = Math.max(5, a, b + 3);
+  return {
+    "--ef-name": `clamp(2rem, min(15cqw, ${(150 / sm).toFixed(1)}cqw, 7.4svh), 5.6rem)`,
+    "--ef-name-lg": `clamp(2.75rem, min(${(40 / (lg * 0.52)).toFixed(2)}cqw, 12svh), 6rem)`,
+  } as CSSProperties;
 }
 
 /**
- * The first sheet of the folio: a photograph tipped in with linen tape, a
- * pressed sprig laid across its corner, the names set large in a light serif,
- * and a typed label for the date and place in the lower right, the way a
- * collector labels a specimen. Blocks rise in turn, 220ms apart, once the
- * folds begin to open.
+ * The first sheet of the folio. On a phone it stacks: a photograph tipped in
+ * with linen tape and a pressed sprig across its corner, the slip made out to
+ * the guest, the names, then the specimen label with date, locality and the
+ * time left. On a wide screen it is laid out like a herbarium sheet turned
+ * landscape: the photograph and specimen mounted on the left with the guest's
+ * slip glued over its corner, and the names set over a typed label on the
+ * right. Blocks rise in turn once the folds begin to open.
  */
 export default function HeroSection({ config, palette: p, date, started, greeting, showGuestbookLink, showRsvpLink }: Props) {
   const reduce = useReducedMotion();
   const show = started || Boolean(reduce);
   const names = `${config.partner1Name} & ${config.partner2Name}`;
   const photo = cssImage(config.heroImageUrl);
+  const locality = [config.venueName, config.venueCity].filter(Boolean).join(", ");
+  // Labels on the first sheet sit a shade darker than the folio's usual soft ink, to keep 4.5:1 on paper.
+  const lp: Palette = { ...p, inkSoft: `color-mix(in srgb, ${p.ink} 80%, ${p.paper})` };
+  const hair = (pct: number) => `1px solid color-mix(in srgb, ${p.ink} ${pct}%, transparent)`;
 
   const rise = (i: number) => ({
     initial: reduce ? false : { opacity: 0, y: 24 },
     animate: show ? { opacity: 1, y: 0 } : undefined,
-    transition: { duration: 2, delay: 0.35 + i * 0.22, ease: [0.16, 1, 0.3, 1] as const },
+    transition: { duration: 2, delay: 0.35 + i * 0.18, ease: [0.16, 1, 0.3, 1] as const },
   });
 
   const link = (filled: boolean): CSSProperties => ({
@@ -62,85 +80,143 @@ export default function HeroSection({ config, palette: p, date, started, greetin
     outlineColor: p.ink,
   });
 
+  const slip = (wide: boolean) =>
+    greeting && (
+      <div
+        role="note"
+        aria-label={`Invitation for ${greeting.name}`}
+        style={{ ...sheetStyle(p), position: "relative", padding: wide ? "1.1rem 1.15rem 1rem" : "0.7rem 0.95rem 0.75rem", transform: `rotate(${wide ? 2.2 : -0.6}deg)`, outline: hair(18), outlineOffset: -4 }}
+      >
+        <span aria-hidden style={{ ...tapeStyle(p, wide ? -4 : 3), width: 64, height: 18, top: -9, left: "50%", marginLeft: -32 }} />
+        <p style={{ ...labelText(p, 10), color: p.rust, margin: 0 }}>Prepared for</p>
+        <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: wide ? "1.45rem" : "clamp(1.2rem, 5.4cqw, 1.45rem)", lineHeight: 1.2, color: p.ink, margin: "0.15rem 0 0", overflowWrap: "anywhere" }}>{greeting.name}</p>
+        {greeting.message && <p style={{ fontFamily: SANS, fontSize: wide ? 15 : 14, lineHeight: 1.5, color: p.text, margin: "0.2rem 0 0" }}>{greeting.message}</p>}
+      </div>
+    );
+
   return (
-    <header aria-labelledby="ef-hero-title" style={{ ...paperStyle(p), position: "relative", overflow: "hidden", padding: "2.25rem clamp(1.25rem, 6cqw, 2rem) 2rem" }}>
-      <div style={{ position: "relative", maxWidth: 600, margin: "0 auto" }}>
-      <motion.p {...rise(0)} style={{ ...labelText(p, 11), display: "flex", justifyContent: "space-between", margin: 0, paddingBottom: "0.7rem", borderBottom: `1px solid color-mix(in srgb, ${p.ink} 22%, transparent)` }}>
-        <span>Herbarium of a marriage</span>
-        <span aria-hidden>Sheet 01</span>
-      </motion.p>
+    <header
+      aria-labelledby="ef-hero-title"
+      className="relative overflow-hidden px-5 pb-10 pt-5 lg:flex lg:min-h-svh lg:flex-col lg:px-[clamp(2.5rem,5cqw,5rem)] lg:pb-[5.5rem] lg:pt-[clamp(1.5rem,4svh,2.75rem)]"
+      style={paperStyle(p)}
+    >
+      {/* Wide screens: a long sprig tucked behind the label, as if the specimen ran off the sheet. */}
+      <div className="hidden lg:contents">
+        <Sprig which={2} width="min(26cqw, 24rem)" rotate={-152} style={{ right: "-4%", bottom: "-16%", opacity: 0.8 }} />
+      </div>
 
-      {/* Tipped-in photograph */}
-      <motion.div {...rise(1)} style={{ position: "relative", margin: "2.4rem auto 0", width: "min(100%, 30rem)" }}>
-        <div style={{ ...sheetStyle(p), padding: "0.7rem 0.7rem 2.1rem", transform: "rotate(-1.2deg)" }}>
-          <div
-            role={photo ? "img" : undefined}
-            aria-label={photo ? `${names}` : undefined}
-            aria-hidden={photo ? undefined : true}
-            style={{ aspectRatio: "4 / 5", backgroundColor: "#C9C6B4", backgroundImage: photo, backgroundSize: "cover", backgroundPosition: "center 30%" }}
-          />
-          <p aria-hidden style={{ ...labelText(p, 10), margin: "0.65rem 0 0", textAlign: "right" }}>fig. 1 — the two of us</p>
-        </div>
-        <span aria-hidden style={{ ...tapeStyle(p, -38), top: 6, left: -18 }} />
-        <span aria-hidden style={{ ...tapeStyle(p, 34), top: 4, right: -20 }} />
-        <Sprig which={0} width="38cqw" rotate={28} style={{ left: "-11%", bottom: "-9%", zIndex: 1, maxWidth: 220 }} />
-      </motion.div>
-
-      <div style={{ position: "relative", zIndex: 2, marginTop: "2.4rem", textAlign: "left" }}>
-        {greeting && (
-          <motion.div {...rise(2)} role="note" aria-label={`Invitation for ${greeting.name}`} style={{ marginBottom: "1.4rem", paddingLeft: "0.9rem", borderLeft: `2px solid ${p.rust}` }}>
-            <p style={{ ...labelText(p, 10), color: p.rust, margin: 0 }}>Prepared for</p>
-            <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: "clamp(1.3rem, 6cqw, 1.6rem)", lineHeight: 1.25, color: p.ink, margin: "0.15rem 0 0", overflowWrap: "anywhere" }}>{greeting.name}</p>
-            {greeting.message && <p style={{ fontFamily: SANS, fontSize: 15, lineHeight: 1.6, color: p.text, margin: "0.3rem 0 0" }}>{greeting.message}</p>}
-          </motion.div>
-        )}
-
-        <h1 id="ef-hero-title" aria-label={names} style={{ fontFamily: DISPLAY, fontWeight: 300, fontSize: nameSize(config.partner1Name, config.partner2Name), lineHeight: 0.98, letterSpacing: "-0.02em", color: p.ink, margin: 0, overflowWrap: "anywhere" }}>
-          <motion.span {...rise(3)} style={{ display: "block" }}>{config.partner1Name}</motion.span>
-          <motion.span {...rise(4)} style={{ display: "block", paddingLeft: "12cqw" }}>
-            <em aria-hidden style={{ color: p.rust, fontWeight: 300, marginRight: "0.12em" }}>&amp;</em>
-            {config.partner2Name}
-          </motion.span>
-        </h1>
-
-        <motion.p {...rise(5)} style={{ fontFamily: SANS, fontSize: "clamp(15px, 4.2cqw, 17px)", lineHeight: 1.65, color: p.text, margin: "1.4rem 0 0", maxWidth: "32ch" }}>
-          Together with our families, we would be glad to have you beside us as we marry.
+      <div className="relative mx-auto w-full max-w-[600px] lg:flex lg:max-w-[80rem] lg:flex-1 lg:flex-col">
+        <motion.p {...rise(0)} style={{ ...labelText(lp, 11), display: "flex", justifyContent: "space-between", gap: "1rem", margin: 0, paddingBottom: "0.6rem", borderBottom: hair(22) }}>
+          <span>Herbarium of a marriage</span>
+          {date.collected && <span aria-hidden className="hidden lg:inline">Coll. {date.collected}</span>}
+          <span aria-hidden>Sheet 01</span>
         </motion.p>
 
-        {(date.long || config.venueName || config.venueCity) && (
-          <motion.dl {...rise(6)} style={{ margin: "1.8rem 0 0 auto", width: "min(100%, 20rem)", border: `1px solid color-mix(in srgb, ${p.ink} 45%, transparent)`, padding: "0.35rem 0.9rem", background: `color-mix(in srgb, ${p.sheet} 70%, transparent)` }}>
-            {[
-              date.long ? ["Date", date.long] : null,
-              config.venueName || config.venueCity ? ["Locality", [config.venueName, config.venueCity].filter(Boolean).join(", ")] : null,
-            ]
-              .filter((r): r is string[] => Boolean(r))
-              .map(([k, v], i) => (
-                <div key={k} style={{ display: "flex", gap: "0.8rem", padding: "0.55rem 0", borderTop: i ? `1px solid color-mix(in srgb, ${p.ink} 22%, transparent)` : "none" }}>
-                  <dt style={{ ...labelText(p, 10), flex: "0 0 4.6rem", paddingTop: 3 }}>{k}</dt>
-                  <dd style={{ fontFamily: MONO, fontSize: 14, lineHeight: 1.45, color: p.text, margin: 0 }}>{v}</dd>
-                </div>
-              ))}
-          </motion.dl>
-        )}
-
-        {(showRsvpLink || showGuestbookLink) && (
-          <motion.div {...rise(7)} className="flex flex-wrap gap-3" style={{ marginTop: "1.8rem" }}>
-            {showRsvpLink && (
-              <a href="#rsvp" className="transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-4" style={link(true)}>
-                Reply
-              </a>
-            )}
-            {showGuestbookLink && (
-              <a href="#guestbook" className="transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-4" style={link(false)}>
-                Leave a note
-              </a>
+        <div className="lg:mt-[clamp(1rem,3svh,2rem)] lg:grid lg:flex-1 lg:grid-cols-[auto_minmax(0,1fr)] lg:items-center lg:gap-x-[clamp(3rem,6cqw,7rem)]">
+          {/* Tipped-in photograph with the pressed specimen across its corner */}
+          <motion.div {...rise(1)} className="relative mx-auto mt-4 w-full max-w-[30rem] lg:ml-[clamp(0.5rem,2.5cqw,2.5rem)] lg:mt-0 lg:w-auto lg:max-w-none">
+            <div className="p-2 lg:px-[0.55rem] lg:pb-0 lg:pt-[0.55rem]" style={{ ...sheetStyle(p), transform: "rotate(-1.2deg)" }}>
+              <div
+                role={photo ? "img" : undefined}
+                aria-label={photo ? names : undefined}
+                aria-hidden={photo ? undefined : true}
+                className="h-[clamp(9rem,calc(88svh_-_24.25rem),26rem)] w-full lg:h-[var(--ef-photo)] lg:w-[calc(var(--ef-photo)*0.8)]"
+                style={{ "--ef-photo": "clamp(22rem, calc(100svh - 13.5rem), 42rem)", backgroundColor: "#C9C6B4", backgroundImage: photo, backgroundSize: "cover", backgroundPosition: "center 30%" } as CSSProperties}
+              />
+              <p aria-hidden className="hidden lg:block" style={{ ...labelText(lp, 10), margin: 0, padding: "0.45rem 0 0.55rem", textAlign: "right" }}>
+                fig. 1 — the two of us
+              </p>
+            </div>
+            <span aria-hidden style={{ ...tapeStyle(p, -38), top: 4, left: -18 }} />
+            <span aria-hidden style={{ ...tapeStyle(p, 34), top: 2, right: -20 }} />
+            <div className="contents lg:hidden">
+              <Sprig which={0} width="25cqw" rotate={28} style={{ left: "-7%", bottom: "-14%", zIndex: 1, maxWidth: 150 }} />
+            </div>
+            <div className="hidden lg:contents">
+              <Sprig which={0} width="min(21svh, 15rem)" rotate={24} style={{ left: "-14%", bottom: "-8%", zIndex: 1 }} />
+            </div>
+            {greeting && (
+              <motion.div {...rise(5)} className="absolute z-[2] hidden w-[16rem] lg:block" style={{ right: "-2.5rem", bottom: "11%" }}>
+                {slip(true)}
+              </motion.div>
             )}
           </motion.div>
-        )}
+
+          {/* The label column: names over a typed specimen label */}
+          <div className="relative z-[2] flex flex-col lg:max-w-[40rem]">
+            {greeting && (
+              <motion.div {...rise(2)} className="relative z-[3] order-1 -mt-8 ml-auto mr-1 w-[min(86%,17.5rem)] lg:hidden">
+                {slip(false)}
+              </motion.div>
+            )}
+
+            <h1
+              id="ef-hero-title"
+              aria-label={names}
+              className="order-2 mt-[clamp(0.25rem,1.2svh,0.9rem)] text-[length:var(--ef-name)] lg:mt-0 lg:text-[length:var(--ef-name-lg)]"
+              style={{ ...nameSizes(config.partner1Name, config.partner2Name), fontFamily: DISPLAY, fontWeight: 300, lineHeight: 0.98, letterSpacing: "-0.02em", color: p.ink, marginBottom: 0, overflowWrap: "anywhere" }}
+            >
+              <motion.span {...rise(2)} style={{ display: "block" }}>{config.partner1Name}</motion.span>
+              <motion.span {...rise(3)} className="pl-[12cqw] lg:pl-[0.9em]" style={{ display: "block" }}>
+                <em aria-hidden style={{ color: p.rust, fontWeight: 300, marginRight: "0.12em" }}>&amp;</em>
+                {config.partner2Name}
+              </motion.span>
+            </h1>
+
+            <motion.p
+              {...rise(4)}
+              className="order-4 mt-6 lg:order-3 lg:mt-[clamp(1rem,2.6svh,1.6rem)]"
+              style={{ fontFamily: SANS, fontSize: "clamp(15px, 4.2cqw, 17px)", lineHeight: 1.6, color: p.text, marginBottom: 0, maxWidth: "34ch" }}
+            >
+              Together with our families, we would be glad to have you beside us as we marry.
+            </motion.p>
+
+            {(date.long || locality || date.date) && (
+              <motion.div
+                {...rise(4)}
+                className="order-3 mt-[clamp(0.9rem,2.4svh,1.5rem)] lg:order-4 lg:mt-[clamp(1.1rem,3.2svh,2rem)] px-[0.95rem] pb-[0.8rem] pt-[0.35rem] lg:w-[min(100%,31rem)] lg:px-5 lg:pb-4 lg:pt-2"
+                style={{ background: p.sheet, border: hair(45), outline: hair(18), outlineOffset: -5 }}
+              >
+                <dl style={{ margin: 0 }}>
+                  {[date.long ? ["Date", date.long] : null, locality ? ["Locality", locality] : null]
+                    .filter((r): r is string[] => Boolean(r))
+                    .map(([k, v], i) => (
+                      <div key={k} className="py-[0.4rem] lg:py-[0.45rem]" style={{ display: "flex", gap: "0.7rem", borderTop: i ? hair(22) : "none" }}>
+                        <dt style={{ ...labelText(lp, 10), flex: "0 0 3.9rem", paddingTop: 3 }}>{k}</dt>
+                        <dd className="text-[12.5px] lg:text-[14px]" style={{ fontFamily: MONO, lineHeight: 1.45, color: p.text, margin: 0 }}>{v}</dd>
+                      </div>
+                    ))}
+                </dl>
+                {date.date && (
+                  <div style={{ borderTop: hair(22), paddingTop: "0.55rem" }}>
+                    <p className="hidden lg:block" style={{ ...labelText(lp, 10), margin: "0 0 0.55rem" }}>Until we gather</p>
+                    <Countdown target={date.date} palette={lp} />
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {(showRsvpLink || showGuestbookLink) && (
+              <motion.div {...rise(5)} className="order-5 mt-7 flex flex-wrap gap-3 lg:mt-[clamp(1.1rem,3.2svh,2rem)]">
+                {showRsvpLink && (
+                  <a href="#rsvp" className="transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-4" style={link(true)}>
+                    Reply
+                  </a>
+                )}
+                {showGuestbookLink && (
+                  <a href="#guestbook" className="transition-opacity hover:opacity-85 focus-visible:outline-2 focus-visible:outline-offset-4" style={link(false)}>
+                    Leave a note
+                  </a>
+                )}
+              </motion.div>
+            )}
+          </div>
+        </div>
       </div>
 
+      <div className="contents lg:hidden">
+        <Sprig which={1} width="30cqw" rotate={-142} style={{ right: "-12%", top: "58%", maxWidth: 180, opacity: 0.8 }} />
       </div>
-      <Sprig which={1} width="34cqw" rotate={-142} style={{ right: "-11%", top: "56%", maxWidth: 200, opacity: 0.85 }} />
     </header>
   );
 }

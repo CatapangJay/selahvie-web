@@ -9,6 +9,9 @@ import { configTier, hasModule, upgradePrice } from "@/lib/tiers";
 import { downloadFile, formatPrice } from "@/lib/utils";
 import { downloadBlob, fileStem, qrExtent, qrMatrix, qrPath, qrPngBlob, qrSvgMarkup } from "@/lib/qr";
 import { ceremonyVenue, invitationPath, receptionVenue, RSVP_ANCHOR, safeUrl, sitePath } from "@/lib/weddingDetails";
+import { planOf } from "@/lib/seating";
+import { entrancesOf, seatFinderPath } from "@/lib/seatFinder";
+import { useWeddingStore } from "@/store/weddingStore";
 import type { WeddingConfig } from "@/types/wedding";
 
 interface Props {
@@ -121,6 +124,8 @@ export default function ShareKit({ config, onUpgrade }: Props) {
           ))}
         </ul>
 
+        {hasModule(config, "seating") && <TableFinder config={config} origin={origin} stem={stem} />}
+
         {hasModule(config, "invitationDownload") && (
           <p className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
             <Link
@@ -138,6 +143,94 @@ export default function ShareKit({ config, onUpgrade }: Props) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * Day-of "Find your table" codes, one per entrance on the floor plan, so the
+ * route starts at the door the guest walked through.
+ */
+function TableFinder({ config, origin, stem }: { config: WeddingConfig; origin: string; stem: string }) {
+  const updateConfig = useWeddingStore((s) => s.updateConfig);
+  const plan = planOf(config);
+  const on = Boolean(plan.guestFinder);
+  const entrances = entrancesOf(plan);
+  const seated = Object.keys(plan.assignments).length;
+  const codes: ShareCode[] =
+    entrances.length > 0
+      ? entrances.map((e, i) => ({
+          id: entrances.length > 1 ? `table-finder-${i + 1}-${fileStem(e.label)}` : "table-finder",
+          label: entrances.length > 1 ? `Find your table: ${e.label}` : "Find your table",
+          hint: `Print for ${e.label.toLowerCase().startsWith("the ") ? e.label : `the ${e.label.toLowerCase()}`}. Directions start from there.`,
+          url: `${origin}${seatFinderPath(config, e.id)}`,
+        }))
+      : [{ id: "table-finder", label: "Find your table", hint: "Shows the guest's table on the floor plan.", url: `${origin}${seatFinderPath(config)}` }];
+  const titleId = "table-finder-title";
+
+  return (
+    <section aria-labelledby={titleId} className="space-y-5 pt-4" style={{ borderTop: "1px solid var(--color-outline)" }}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="max-w-xl space-y-1.5">
+          <h2 id={titleId} className="text-[1.0625rem] font-medium" style={{ color: "var(--color-on-surface)" }}>
+            Table finder for the day
+          </h2>
+          <p className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+            Guests scan a code at the door and type their name. They see the floor plan with their table
+            highlighted and a walking route from the entrance. Nobody else&apos;s seat is shown.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={on}
+          aria-label="Open the table finder to guests"
+          onClick={() => updateConfig(config.id, { seatingPlan: { ...plan, guestFinder: !on } })}
+          className="inline-flex min-h-[44px] shrink-0 items-center gap-3 text-sm font-medium focus-visible:outline-none [&:focus-visible>span:last-child]:ring-2 [&:focus-visible>span:last-child]:ring-[var(--color-primary)] [&:focus-visible>span:last-child]:ring-offset-2"
+          style={{ color: "var(--color-on-surface)" }}
+        >
+          <span aria-hidden>{on ? "Open to guests" : "Off"}</span>
+          <span aria-hidden className="relative h-6 w-11 shrink-0 transition-colors" style={{ borderRadius: 999, background: on ? "var(--color-primary)" : "var(--color-outline)" }}>
+            <span
+              className="absolute top-0.5 h-5 w-5 transition-[left] duration-200"
+              style={{ left: on ? 22 : 2, borderRadius: 999, background: "#fff", boxShadow: "0 1px 2px rgb(0 0 0 / 0.2)" }}
+            />
+          </span>
+        </button>
+      </div>
+
+      {(entrances.length === 0 || seated === 0) && (
+        <ul className="space-y-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+          {seated === 0 && <li>Seat guests on the Seating tab first, or there&apos;s nothing to find.</li>}
+          {entrances.length === 0 && (
+            <li>Add an Entrance to your floor plan (Seating → room features) so guests get directions, not just the map.</li>
+          )}
+        </ul>
+      )}
+      {!on && (
+        <p className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+          The codes work for you now so you can try them. Guests see the table finder once you switch it on.
+        </p>
+      )}
+
+      <ul className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))" }}>
+        {codes.map((code) => (
+          <QrCard key={code.id} code={code} stem={stem} />
+        ))}
+      </ul>
+      <p className="text-sm">
+        <Link
+          href={seatFinderPath(config, entrances[0]?.id)}
+          target="_blank"
+          rel="noopener"
+          className="inline-flex items-center gap-1.5 font-medium underline underline-offset-4 hover:text-[var(--color-primary)]"
+          style={{ color: "var(--color-primary-dim)" }}
+        >
+          Try the table finder
+          <ExternalLink size={13} aria-hidden />
+          <span className="sr-only"> (opens in a new tab)</span>
+        </Link>
+      </p>
+    </section>
   );
 }
 

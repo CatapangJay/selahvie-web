@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import { needsSeat, seatsTaken } from "@/lib/seating";
+import { needsSeat, roomOf, seatsTaken } from "@/lib/seating";
 import type { GuestListEntry, GuestSide, SeatingPlan, SeatingTable } from "@/types/wedding";
 import FloorSurface from "./FloorSurface";
 import type { PrintJob } from "./Toolbar";
@@ -55,7 +55,8 @@ export default function SeatingPrint({ job, title, plan, byTable, seatable, tabl
 
       {job.view === "plan" && (
         <>
-          <div style={{ border: "1px solid #DFD4D4", borderRadius: 6 }}>
+          {/* Long rooms are capped in height so the plan stays on one page. */}
+          <div style={{ border: "1px solid #DFD4D4", borderRadius: 6, width: `min(100%, calc(165mm * ${(roomOf(plan).w / roomOf(plan).h).toFixed(3)}))`, margin: "0 auto" }}>
             <FloorSurface readOnly plan={plan} byTable={byTable} sideOf={sideOf} />
           </div>
           {job.names && <TableColumns plan={plan} byTable={byTable} style={{ marginTop: "8mm" }} />}

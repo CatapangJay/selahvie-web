@@ -27,7 +27,9 @@ import {
   planTags,
   removeElement,
   removeTable,
+  roomOf,
   seatsFor,
+  setRoom,
   setSide,
   type ElementPreset,
 } from "@/lib/seating";
@@ -36,7 +38,7 @@ import type { GuestListEntry, SeatingPlan, GuestSide, SeatingTable, WeddingConfi
 import { Lock } from "lucide-react";
 import FloorCanvas, { clampZoom, stepZoom } from "./seating/FloorCanvas";
 import { GuestDetails, TableCard } from "./seating/GuestCard";
-import type { Selection } from "./seating/FloorSurface";
+import { keepInside, minRoomFor, type Selection } from "./seating/FloorSurface";
 import GuestRail from "./seating/GuestRail";
 import { GuestRow, TableEditor } from "./seating/Editors";
 import { ElementRibbon, TableRibbon } from "./seating/SelectionRibbon";
@@ -73,7 +75,9 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
     lastKey: null,
   });
 
-  const write = (next: SeatingPlan) => updateConfig(config.id, { seatingPlan: next });
+  // Every save keeps tables and features inside the walls, whatever changed
+  // (more chairs, a turn, a resize), and repairs older plans that spill over.
+  const write = (next: SeatingPlan) => updateConfig(config.id, { seatingPlan: keepInside(next) });
   const save = (next: SeatingPlan, key?: string) => {
     setHistory((h) => ({
       past: key && h.lastKey === key ? h.past : [...h.past, plan].slice(-HISTORY_LIMIT),
@@ -140,6 +144,8 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
   const selectedTable = selection?.type === "table" ? tableById.get(selection.id) : undefined;
   const selectedElement = selection?.type === "element" ? elementsOf(plan).find((e) => e.id === selection.id) : undefined;
   const elementsFull = elementsOf(plan).length >= MAX_ELEMENTS;
+  const room = roomOf(plan);
+  const minRoom = minRoomFor(plan);
   const tags = planTags(plan);
 
   // Escape: cancel a pick, then leave focus view, then clear the selection.
@@ -440,6 +446,9 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
             onAddTable={add}
             onAddTables={addMany}
             onAddElement={addFeature}
+            room={room}
+            minRoom={minRoom}
+            onRoom={(r) => save(setRoom(plan, r), "room")}
             onExportCsv={exportCsv}
             onPrint={setPrintJob}
             context={context}

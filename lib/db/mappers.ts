@@ -204,6 +204,8 @@ export function fromWeddingRow(row: WeddingRow, ownerEmail?: string): WeddingCon
       elements: row.seating_plan?.elements ?? [],
       assignments: row.seating_plan?.assignments ?? {},
       sides: row.seating_plan?.sides ?? {},
+      ...(row.seating_plan?.guestFinder ? { guestFinder: true } : {}),
+      ...(row.seating_plan?.room ? { room: row.seating_plan.room } : {}),
     },
   };
 }

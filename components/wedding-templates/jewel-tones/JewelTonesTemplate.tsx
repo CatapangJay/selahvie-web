@@ -19,6 +19,7 @@ import EntourageSection from "./components/EntourageSection";
 import GallerySection from "./components/GallerySection";
 import FaqSection from "./components/FaqSection";
 import RsvpSection from "./components/RsvpSection";
+import GuestbookSection from "./components/GuestbookSection";
 import TemplateFooter from "./components/TemplateFooter";
 
 interface Props {
@@ -84,6 +85,7 @@ export default function JewelTonesTemplate({ config, showBranding = true }: Prop
         </div>
         {isSectionVisible(config, "faq") && <FaqSection config={config} palette={palette} />}
         {showRsvp && <RsvpSection config={config} palette={palette} rsvpDeadline={rsvpDeadline} />}
+        {isSectionVisible(config, "guestbook") && <GuestbookSection config={config} palette={palette} />}
       </main>
 
       <TemplateFooter config={config} palette={palette} date={date} showBranding={showBranding} />

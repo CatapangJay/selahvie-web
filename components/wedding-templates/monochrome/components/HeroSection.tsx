@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useSyncExternalStore } from "react";
+import { useRef, useSyncExternalStore, type CSSProperties } from "react";
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
 import type { Palette } from "../theme";
@@ -18,16 +18,25 @@ interface Props {
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 
-/** Name size that keeps the longest name on one line within ~88% of the viewport. */
-function nameSize(...names: string[]): string {
+/**
+ * Name sizes that keep the longest name on one line: one for the centred phone
+ * stack (~88% of the viewport) and one for the desktop type column (~36vw of
+ * usable width), which is also capped by height so the countdown stays above the fold.
+ */
+function nameSizes(...names: string[]) {
   const longest = Math.max(4, ...names.map((n) => n.trim().length));
-  const fit = (88 / (longest * 0.56)).toFixed(1);
-  return `clamp(2.6rem, min(17vw, ${fit}vw), 7.5rem)`;
+  return {
+    "--mc-name-sm": `clamp(1.75rem, min(17vw, ${(88 / (longest * 0.62)).toFixed(1)}vw), 6rem)`,
+    "--mc-name-lg": `clamp(2rem, min(${(36 / (longest * 0.64)).toFixed(2)}vw, 13svh), 6rem)`,
+  } as CSSProperties;
 }
 
 /**
- * Black-and-white portrait with everything stacked on the centre line: names,
- * a handwritten ampersand, the date in numerals and a ruled countdown.
+ * Black-and-white portrait. Phones stack everything on the centre line over the
+ * full-bleed photo: names, a handwritten ampersand, the date in numerals and a
+ * ruled countdown. Desktop sets the type flush left on a black column and mounts
+ * the photo beside it as a framed print, with the guest's caption card pinned
+ * across the print's lower edge.
  */
 export default function HeroSection({ config, palette: p, opened, greeting }: Props) {
   const ref = useRef<HTMLElement>(null);
@@ -47,68 +56,67 @@ export default function HeroSection({ config, palette: p, opened, greeting }: Pr
     <header
       ref={ref}
       aria-labelledby="mc-hero-title"
-      style={{
-        position: "relative",
-        minHeight: "100svh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-        padding: "5.5rem 1.25rem 4rem",
-        textAlign: "center",
-        background: p.ink,
-      }}
+      className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden px-5 pb-16 pt-[5.5rem] text-center lg:flex-row lg:justify-start lg:p-0 lg:text-left"
+      style={{ background: p.ink }}
     >
-      <motion.div aria-hidden style={{ position: "absolute", inset: 0, y: reduce ? 0 : imageY, scale: reduce ? 1 : imageScale }}>
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: cssImage(config.heroImageUrl),
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            filter: "grayscale(1) contrast(1.05)",
-          }}
-        />
-      </motion.div>
+      {/* Phones: full-bleed photo. Desktop: a print mounted on the black page, right of the type column. */}
+      <div aria-hidden className="absolute inset-0 overflow-hidden lg:inset-y-6 lg:left-[44%] lg:right-6">
+        <motion.div style={{ position: "absolute", inset: 0, y: reduce ? 0 : imageY, scale: reduce ? 1 : imageScale }}>
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: cssImage(config.heroImageUrl),
+              backgroundSize: "cover",
+              backgroundPosition: "center 35%",
+              filter: "grayscale(1) contrast(1.05)",
+            }}
+          />
+        </motion.div>
+      </div>
+      {/* Scrim keeps the centred type legible over the photo; desktop type sits on solid black instead. */}
       <div
         aria-hidden
+        className="absolute inset-0 lg:hidden"
         style={{
-          position: "absolute",
-          inset: 0,
           background: `radial-gradient(120% 70% at 50% 55%, color-mix(in srgb, ${p.ink} 55%, transparent) 0%, color-mix(in srgb, ${p.ink} 30%, transparent) 60%, color-mix(in srgb, ${p.ink} 75%, transparent) 100%)`,
         }}
       />
-      {/* Film-edge frame inset from the photo */}
-      <div aria-hidden style={{ position: "absolute", inset: "clamp(0.75rem, 3vw, 1.5rem)", border: "1px solid rgba(255,255,255,.25)", pointerEvents: "none" }} />
+      {/* Film-edge frame: inset from the photo on phones, inside the print's border on desktop */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-[clamp(0.75rem,3vw,1.5rem)] lg:inset-y-[2.5rem] lg:left-[calc(44%_+_1rem)] lg:right-[2.5rem]"
+        style={{ border: "1px solid rgba(255,255,255,.25)" }}
+      />
 
-      <div style={{ position: "relative", width: "100%", maxWidth: 680, display: "flex", flexDirection: "column", alignItems: "center" }}>
+      <div className="relative flex w-full max-w-[680px] flex-col items-center lg:w-[44%] lg:max-w-none lg:items-start lg:py-16 lg:pl-[clamp(3rem,6vw,6.5rem)] lg:pr-[clamp(2rem,3.5vw,3.5rem)]">
         <motion.p
           {...fade(0.1)}
-          style={{ fontFamily: BODY, fontSize: 13, fontWeight: 500, letterSpacing: "0.34em", paddingLeft: "0.34em", textTransform: "uppercase", color: "rgba(255,255,255,.75)", margin: 0 }}
+          className="pl-[0.34em] lg:pl-0"
+          style={{ fontFamily: BODY, fontSize: 13, fontWeight: 500, letterSpacing: "0.34em", textTransform: "uppercase", color: "rgba(255,255,255,.75)", margin: 0 }}
         >
           Together with their families
         </motion.p>
 
         <h1
           id="mc-hero-title"
+          className="mt-6 w-full text-[length:var(--mc-name-sm)] lg:mt-7 lg:text-[length:var(--mc-name-lg)]"
           style={{
-            width: "100%",
+            ...nameSizes(config.partner1Name, config.partner2Name),
             fontFamily: HEADING,
-            fontSize: nameSize(config.partner1Name, config.partner2Name),
             fontWeight: 200,
             lineHeight: 1,
             letterSpacing: "0.04em",
             textTransform: "uppercase",
             color: "#fff",
-            margin: "1.5rem 0 0",
+            overflowWrap: "anywhere",
           }}
         >
           <motion.span {...fade(0.25)} style={{ display: "block" }}>{config.partner1Name}</motion.span>
           <motion.span
             {...fade(0.4)}
             aria-label="and"
+            className="lg:pl-[1.1em]"
             style={{ display: "block", fontFamily: ACCENT, textTransform: "none", letterSpacing: 0, fontSize: "0.7em", lineHeight: 0.9, color: "rgba(255,255,255,.8)", margin: "0.05em 0" }}
           >
             &amp;
@@ -120,20 +128,25 @@ export default function HeroSection({ config, palette: p, opened, greeting }: Pr
           <motion.p
             {...fade(0.7)}
             aria-label={longDate(config.weddingDate)}
-            style={{ fontFamily: BODY, fontSize: "clamp(15px, 4.4vw, 19px)", fontWeight: 500, letterSpacing: "0.3em", paddingLeft: "0.3em", color: "#fff", margin: "1.75rem 0 2rem" }}
+            className="mb-8 mt-7 pl-[0.3em] lg:mb-9 lg:mt-9 lg:pl-0"
+            style={{ fontFamily: BODY, fontSize: "clamp(15px, 4.4vw, 19px)", fontWeight: 500, letterSpacing: "0.3em", color: "#fff" }}
           >
             {numeralDate(config.weddingDate)}
           </motion.p>
         ) : (
           config.weddingDate && (
-            <motion.p {...fade(0.7)} style={{ fontFamily: BODY, fontSize: 17, letterSpacing: "0.2em", textTransform: "uppercase", color: "#fff", margin: "1.75rem 0 2rem" }}>
+            <motion.p
+              {...fade(0.7)}
+              className="mb-8 mt-7 lg:mb-9 lg:mt-9"
+              style={{ fontFamily: BODY, fontSize: 17, letterSpacing: "0.2em", textTransform: "uppercase", color: "#fff" }}
+            >
               {config.weddingDate}
             </motion.p>
           )
         )}
 
         {target && (
-          <motion.div {...fade(0.85)} style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+          <motion.div {...fade(0.85)} className="flex w-full justify-center lg:justify-start">
             <Countdown target={target} />
           </motion.div>
         )}
@@ -143,10 +156,11 @@ export default function HeroSection({ config, palette: p, opened, greeting }: Pr
             {...fade(1)}
             role="note"
             aria-label={`Invitation for ${greeting.name}`}
-            style={{ position: "relative", width: "min(100%, 22rem)", marginTop: "2.5rem", padding: "1.1rem 1.25rem 1.2rem", background: "rgba(10,10,10,.35)", backdropFilter: "blur(4px)" }}
+            className="relative mt-10 w-[min(100%,22rem)] lg:absolute lg:bottom-16 lg:left-[calc(100%_-_3rem)] lg:mt-0 lg:w-[21rem] lg:text-left"
+            style={{ padding: "1.1rem 1.25rem 1.2rem", background: `color-mix(in srgb, ${p.ink} 80%, transparent)`, boxShadow: "inset 0 0 0 1px rgba(255,255,255,.18)" }}
           >
             <CornerTicks />
-            <p style={{ fontFamily: BODY, fontSize: 12, fontWeight: 500, letterSpacing: "0.3em", paddingLeft: "0.3em", textTransform: "uppercase", color: "rgba(255,255,255,.65)", margin: 0 }}>
+            <p className="pl-[0.3em] lg:pl-0" style={{ fontFamily: BODY, fontSize: 12, fontWeight: 500, letterSpacing: "0.3em", textTransform: "uppercase", color: "rgba(255,255,255,.7)", margin: 0 }}>
               Dear
             </p>
             <p style={{ fontFamily: ACCENT, fontSize: "clamp(2rem, 9vw, 2.6rem)", lineHeight: 1.05, color: "#fff", margin: "0.2rem 0 0.35rem", overflowWrap: "anywhere" }}>
@@ -196,23 +210,23 @@ function Countdown({ target }: { target: Date }) {
     <div
       role="timer"
       aria-label={spoken}
+      className="w-[min(100%,22rem)] lg:w-[25rem]"
       style={{
         display: "grid",
         gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-        width: "min(100%, 22rem)",
         borderBlock: "1px solid rgba(255,255,255,.35)",
       }}
     >
       {units.map((u, i) => (
-        <div key={u.label} aria-hidden style={{ padding: "0.85rem 0.25rem", borderLeft: i === 0 ? "none" : "1px solid rgba(255,255,255,.2)" }}>
+        <div key={u.label} aria-hidden style={{ padding: "0.85rem 0.25rem", textAlign: "center", borderLeft: i === 0 ? "none" : "1px solid rgba(255,255,255,.2)" }}>
           <span
+            className="text-[length:clamp(22px,6.4vw,28px)] lg:text-[32px]"
             style={{
               position: "relative",
               display: "block",
               overflow: "hidden",
               height: "1.2em",
               fontFamily: HEADING,
-              fontSize: "clamp(22px, 6.4vw, 28px)",
               fontWeight: 200,
               lineHeight: 1.2,
               fontVariantNumeric: "tabular-nums",

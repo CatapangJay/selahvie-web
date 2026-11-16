@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import GalleryLightbox from "@/components/wedding-templates/_shared/GalleryLightbox";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { WeddingConfig } from "@/types/wedding";
 import { galleryAlbumsOf, galleryHasAlbums } from "@/lib/weddingDetails";
 import type { Palette } from "../theme";
-import { MONO, cssImage, labelText, paperStyle, sheetStyle } from "../theme";
+import { MONO, cssImage, labelText, paperStyle, sheetStyle, tapeStyle } from "../theme";
 import { SHEET_PAD, SectionHeading } from "./Motion";
 
 const SLIDE_MS = 5200;
@@ -21,17 +22,18 @@ export default function GallerySection({ config, palette: p }: { config: Wedding
   const uid = useId();
   const hasAlbums = galleryHasAlbums(config);
   const albums = (hasAlbums ? galleryAlbumsOf(config) : [{ key: "all", label: "", urls: config.galleryImageUrls ?? [] }])
-    .map((a) => ({ ...a, images: a.urls.map(cssImage).filter((u): u is string => Boolean(u)) }))
+    .map((a) => ({ ...a, srcs: a.urls.filter((u) => Boolean(cssImage(u))) }))
+    .map((a) => ({ ...a, images: a.srcs.map((u) => cssImage(u) as string) }))
     .filter((a) => a.images.length > 0);
 
   const [albumIdx, setAlbumIdx] = useState(0);
   const [rawIndex, setIndex] = useState(0);
   const [userPaused, setUserPaused] = useState(false);
-  const [enlarged, setEnlarged] = useState(false);
+  // Index of the plate open in the viewer, or null.
+  const [open, setOpen] = useState<number | null>(null);
+  const enlarged = open !== null;
   const [visible, setVisible] = useState(false);
   const root = useRef<HTMLElement>(null);
-  const closeBtn = useRef<HTMLButtonElement>(null);
-  const enlargeBtn = useRef<HTMLButtonElement>(null);
 
   const album = albums[Math.min(albumIdx, albums.length - 1)];
   const count = album?.images.length ?? 0;
@@ -56,24 +58,11 @@ export default function GallerySection({ config, palette: p }: { config: Wedding
     return () => clearTimeout(id);
   }, [playing, rawIndex, go]);
 
-  useEffect(() => {
-    if (!enlarged) return;
-    const opener = enlargeBtn.current;
-    closeBtn.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setEnlarged(false);
-      if (e.key === "ArrowRight") go(1);
-      if (e.key === "ArrowLeft") go(-1);
-    };
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-      opener?.focus({ preventScroll: true });
-    };
-  }, [enlarged, go]);
+  // Stepping in the viewer moves the plate on the card too, so closing lands where the guest left off.
+  const view = useCallback((i: number | null) => {
+    setOpen(i);
+    if (i !== null) setIndex(i);
+  }, []);
 
   if (!album) return null;
   const current = album.images[at];
@@ -108,7 +97,7 @@ export default function GallerySection({ config, palette: p }: { config: Wedding
         )}
 
         <figure id={`${uid}-plate`} style={{ ...sheetStyle(p), margin: 0, padding: "0.8rem 0.8rem 0.9rem", border: `1px solid color-mix(in srgb, ${p.ink} 22%, transparent)` }}>
-          <div style={{ position: "relative", aspectRatio: "4 / 5", overflow: "hidden", background: "#CFCBBA" }}>
+          <div onClick={() => view(at)} style={{ position: "relative", aspectRatio: "4 / 5", overflow: "hidden", background: "#CFCBBA", cursor: "zoom-in" }}>
             <AnimatePresence initial={false}>
               <motion.div
                 key={`${album.key}-${at}`}
@@ -148,7 +137,7 @@ export default function GallerySection({ config, palette: p }: { config: Wedding
                   <button type="button" onClick={() => go(1)} aria-label="Next photo" className="focus-visible:outline-2" style={control}>→</button>
                 </>
               )}
-              <button ref={enlargeBtn} type="button" onClick={() => setEnlarged(true)} aria-label="Enlarge photo" className="focus-visible:outline-2" style={control}>
+              <button type="button" onClick={() => view(at)} aria-haspopup="dialog" aria-label="Enlarge photo" className="focus-visible:outline-2" style={control}>
                 Enlarge
               </button>
             </span>
@@ -173,26 +162,28 @@ export default function GallerySection({ config, palette: p }: { config: Wedding
         )}
       </div>
 
-      <AnimatePresence>
-        {enlarged && (
-          <motion.div
-            role="dialog"
-            aria-modal="true"
-            aria-label={label}
-            initial={reduce ? false : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4 }}
-            onClick={() => setEnlarged(false)}
-            style={{ position: "fixed", inset: 0, bottom: "var(--preview-chrome-bottom, 0px)", zIndex: 70, background: "rgba(18,20,14,.92)", display: "grid", placeItems: "center", padding: "3.5rem 1rem 1.5rem" }}
-          >
-            <div role="img" aria-label={label} onClick={(e) => e.stopPropagation()} style={{ width: "100%", height: "100%", backgroundImage: current, backgroundSize: "contain", backgroundRepeat: "no-repeat", backgroundPosition: "center" }} />
-            <button ref={closeBtn} type="button" onClick={() => setEnlarged(false)} className="focus-visible:outline-2" style={{ ...control, position: "absolute", top: 10, right: 10, color: p.sheet, borderColor: "rgba(247,243,234,.4)", outlineColor: p.sheet }}>
-              Close
-            </button>
-          </motion.div>
+      <GalleryLightbox
+        photos={album.srcs.map((src, i) => ({ src, album: album.label, alt: `${album.label ? `${album.label}, ` : ""}photo ${i + 1} of ${count}, ${config.partner1Name} and ${config.partner2Name}` }))}
+        index={open}
+        onIndex={view}
+        theme={{ backdrop: `color-mix(in srgb, ${p.inkDeep} 96%, transparent)`, text: p.sheet, accent: p.tape, font: MONO }}
+        windowStyle={{ background: "#CFCBBA" }}
+        reserve={{ x: "4.5rem", y: "16rem" }}
+        renderFrame={(photo, { index: i, count: total }) => (
+          // The plate lifted off the folio: mounted on its fibre sheet, held by two strips of linen tape.
+          <div style={{ ...sheetStyle(p), position: "relative", padding: "clamp(10px, 1.6vw, 16px) clamp(10px, 1.6vw, 16px) 0", border: `1px solid color-mix(in srgb, ${p.ink} 22%, transparent)`, boxShadow: "0 40px 80px -30px rgba(0,0,0,.75)" }}>
+            <span aria-hidden style={{ ...tapeStyle(p, -6), top: -11, left: -18, zIndex: 1 }} />
+            <span aria-hidden style={{ ...tapeStyle(p, 5), top: -11, right: -18, zIndex: 1 }} />
+            {photo}
+            <figcaption className="flex items-center justify-between gap-4" style={{ padding: "0.7rem 0 0.8rem" }}>
+              <span style={{ ...labelText(p, 10), color: p.text }}>
+                Plate {String(i + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
+              </span>
+              <span style={{ ...labelText(p, 10), color: p.inkSoft }}>{album.label || `${config.partner1Name} & ${config.partner2Name}`}</span>
+            </figcaption>
+          </div>
         )}
-      </AnimatePresence>
+      />
     </section>
   );
 }

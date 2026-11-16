@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { clampElementSize, clampPos, clampRotation, elementsOf, fourSideCounts, initials, needsSeat, seatsFor, seatsTaken } from "@/lib/seating";
+import { Y_SCALE, clampElementSize, clampRotation, clampX, clampY, elementsOf, fitInside, fourSideCounts, initials, needsSeat, roomOf, roomYMax, seatsFor, seatsTaken, type Room } from "@/lib/seating";
 import type { GuestListEntry, GuestSide, SeatingPlan, SeatingTable, VenueElement } from "@/types/wedding";
 import { ELEMENT_ICON, GUEST_MIME, SEAT_FILL, isGuestDrag, plural } from "./shared";
 
@@ -12,7 +12,7 @@ export type Selection = { type: "table" | "element"; id: string };
 // zooming is just a wider container.
 
 export const SEAT = 2.3; // seat disc diameter
-const SEAT_GAP = 1.75; // table edge → seat centre
+export const SEAT_GAP = 1.75; // table edge → seat centre
 
 const CURVE_DEPTH = 5; // band width of a curved table
 const CURVE_STEPS = 48;
@@ -93,8 +93,8 @@ export function curveGeometry(t: SeatingTable): CurveGeometry {
 
 // ─── Snapping curved tables end to end ───────────────────────────────────────
 
-/** Plan height ÷ width (the plan is 16:10); converts y% into width units. */
-const ASPECT = 10 / 16;
+/** Converts stored y into plan units. */
+const ASPECT = Y_SCALE;
 const SNAP_DISTANCE = 3; // width units between ends before they pull together
 
 type End = { x: number; y: number; out: number };
@@ -115,7 +115,7 @@ function curveEnds(t: SeatingTable, x: number, y: number, rotation: number): End
  * rotate it so the bands continue into each other and move it so the ends meet.
  * Chaining curves this way builds a long serpentine.
  */
-export function snapCurve(t: SeatingTable, x: number, y: number, tables: SeatingTable[]): { x: number; y: number; rotation: number } | null {
+export function snapCurve(t: SeatingTable, x: number, y: number, tables: SeatingTable[], room?: Room): { x: number; y: number; rotation: number } | null {
   const mine = curveEnds(t, x, y, t.rotation ?? 0);
   let best: { d: number; i: number; to: End } | null = null;
   for (const o of tables) {
@@ -135,8 +135,8 @@ export function snapCurve(t: SeatingTable, x: number, y: number, tables: Seating
   const dx = end.x - g.w / 2;
   const dy = end.y - g.h / 2;
   return {
-    x: clampPos(best.to.x - (dx * Math.cos(r) - dy * Math.sin(r))),
-    y: clampPos((best.to.y - (dx * Math.sin(r) + dy * Math.cos(r))) / ASPECT),
+    x: clampX(best.to.x - (dx * Math.cos(r) - dy * Math.sin(r)), room),
+    y: clampY((best.to.y - (dx * Math.sin(r) + dy * Math.cos(r))) / ASPECT, room),
     rotation,
   };
 }
@@ -165,14 +165,15 @@ export const tableReach = (t: SeatingTable) => {
   return Math.max(w, h) / 2 + SEAT_GAP + SEAT / 2;
 };
 
-function seatPositions(t: SeatingTable): { left: string; top: string }[] {
-  if (t.shape === "curve") return curveGeometry(t).seats.map((p) => ({ left: `${p.x.toFixed(2)}cqw`, top: `${p.y.toFixed(2)}cqw` }));
+/** Chair centres in the table's own (unrotated) box, in width units, top-left origin. */
+export function seatPoints(t: SeatingTable): { x: number; y: number }[] {
+  if (t.shape === "curve") return curveGeometry(t).seats;
   const { w, h } = tableSize(t);
   if (t.shape === "round") {
     const r = w / 2 + SEAT_GAP;
     return Array.from({ length: t.seats }, (_, i) => {
       const a = (i / t.seats) * Math.PI * 2 - Math.PI / 2;
-      return { left: `calc(50% + ${(Math.cos(a) * r).toFixed(2)}cqw)`, top: `calc(50% + ${(Math.sin(a) * r).toFixed(2)}cqw)` };
+      return { x: w / 2 + Math.cos(a) * r, y: h / 2 + Math.sin(a) * r };
     });
   }
   if (t.shape === "arc") {
@@ -180,27 +181,102 @@ function seatPositions(t: SeatingTable): { left: string; top: string }[] {
     const r = w / 2 + SEAT_GAP;
     return Array.from({ length: t.seats }, (_, i) => {
       const a = Math.PI + ((i + 0.5) / t.seats) * Math.PI;
-      return { left: `calc(50% + ${(Math.cos(a) * r).toFixed(2)}cqw)`, top: `calc(100% + ${(Math.sin(a) * r).toFixed(2)}cqw)` };
+      return { x: w / 2 + Math.cos(a) * r, y: h + Math.sin(a) * r };
     });
   }
-  const row = (count: number, top: string) =>
-    Array.from({ length: count }, (_, i) => ({ left: `${((i + 0.5) / count) * 100}%`, top }));
-  const column = (count: number, left: string) =>
-    Array.from({ length: count }, (_, i) => ({ left, top: `${((i + 0.5) / count) * 100}%` }));
+  const row = (count: number, y: number) => Array.from({ length: count }, (_, i) => ({ x: ((i + 0.5) / count) * w, y }));
+  const column = (count: number, x: number) => Array.from({ length: count }, (_, i) => ({ x, y: ((i + 0.5) / count) * h }));
 
-  if (t.seatSides === 1) return row(t.seats, `-${SEAT_GAP}cqw`);
-  const bottomTop = `calc(${h}cqw + ${SEAT_GAP}cqw)`;
+  if (t.seatSides === 1) return row(t.seats, -SEAT_GAP);
   if (t.seatSides === 4) {
     const { long, ends } = fourSideCounts(t);
     return [
-      ...row(long, `-${SEAT_GAP}cqw`),
-      ...column(ends, `calc(100% + ${SEAT_GAP}cqw)`),
-      ...row(long, bottomTop).reverse(),
-      ...column(ends, `-${SEAT_GAP}cqw`).reverse(),
+      ...row(long, -SEAT_GAP),
+      ...column(ends, w + SEAT_GAP),
+      ...row(long, h + SEAT_GAP).reverse(),
+      ...column(ends, -SEAT_GAP).reverse(),
     ];
   }
   const top = Math.ceil(t.seats / 2);
-  return [...row(top, `-${SEAT_GAP}cqw`), ...row(t.seats - top, bottomTop).reverse()];
+  return [...row(top, -SEAT_GAP), ...row(t.seats - top, h + SEAT_GAP).reverse()];
+}
+
+// ─── Keeping things inside the walls ──────────────────────────────────────────
+
+/** Half the footprint of a table (top and chairs), along the room's axes, at a rotation. */
+export function tableHalf(t: SeatingTable, rotation = t.rotation ?? 0): { x: number; y: number } {
+  const { w, h } = tableSize(t);
+  const corners = t.shape === "curve" ? curveOutline(t) : [{ x: 0, y: 0 }, { x: w, y: 0 }, { x: 0, y: h }, { x: w, y: h }];
+  const r = (rotation * Math.PI) / 180;
+  const cos = Math.cos(r);
+  const sin = Math.sin(r);
+  let hx = 0;
+  let hy = 0;
+  const reach = (p: { x: number; y: number }, pad: number) => {
+    const dx = p.x - w / 2;
+    const dy = p.y - h / 2;
+    hx = Math.max(hx, Math.abs(dx * cos - dy * sin) + pad);
+    hy = Math.max(hy, Math.abs(dx * sin + dy * cos) + pad);
+  };
+  for (const p of corners) reach(p, 0);
+  for (const p of seatPoints(t)) reach(p, SEAT / 2);
+  return { x: hx, y: hy };
+}
+
+function curveOutline(t: SeatingTable): { x: number; y: number }[] {
+  return curveGeometry(t)
+    .d.replace(/^M|Z$/g, "")
+    .split("L")
+    .map((pair) => {
+      const [x, y] = pair.trim().split(" ").map(Number);
+      return { x, y };
+    });
+}
+
+/** Half the footprint of a venue feature along the room's axes. */
+export function elementHalf(e: Pick<VenueElement, "w" | "h" | "shape" | "rotation">): { x: number; y: number } {
+  const r = ((e.rotation ?? 0) * Math.PI) / 180;
+  const a = e.w / 2;
+  const b = e.h / 2;
+  const cos = Math.abs(Math.cos(r));
+  const sin = Math.abs(Math.sin(r));
+  if (e.shape === "ellipse") return { x: Math.hypot(a * cos, b * sin), y: Math.hypot(a * sin, b * cos) };
+  return { x: a * cos + b * sin, y: a * sin + b * cos };
+}
+
+/**
+ * The plan with every table and feature moved just enough to sit inside the
+ * walls. Returns the same plan when nothing sticks out.
+ */
+export function keepInside(plan: SeatingPlan): SeatingPlan {
+  const room = roomOf(plan);
+  let changed = false;
+  const move = <T extends { x: number; y: number }>(item: T, half: { x: number; y: number }): T => {
+    const p = fitInside(item.x, item.y, half, room);
+    if (p.x === item.x && p.y === item.y) return item;
+    changed = true;
+    return { ...item, ...p };
+  };
+  const tables = plan.tables.map((t) => move(t, tableHalf(t)));
+  const elements = elementsOf(plan).map((e) => move(e, elementHalf(e)));
+  return changed ? { ...plan, tables, ...(plan.elements ? { elements } : {}) } : plan;
+}
+
+/** The smallest room that still holds every table (chairs included) and feature, in plan units. */
+export function minRoomFor(plan: SeatingPlan): Room {
+  let w = 0;
+  let h = 0;
+  const grow = (item: { x: number; y: number }, half: { x: number; y: number }) => {
+    w = Math.max(w, item.x + half.x);
+    h = Math.max(h, item.y * Y_SCALE + half.y);
+  };
+  for (const t of plan.tables) grow(t, tableHalf(t));
+  for (const e of elementsOf(plan)) grow(e, elementHalf(e));
+  return { w, h };
+}
+
+function seatPositions(t: SeatingTable): { left: string; top: string }[] {
+  return seatPoints(t).map((p) => ({ left: `${p.x.toFixed(2)}cqw`, top: `${p.y.toFixed(2)}cqw` }));
 }
 
 function tableRadius(t: SeatingTable, w: number): string {
@@ -282,6 +358,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
   const [dropId, setDropId] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const elements = elementsOf(plan);
+  const room = roomOf(plan);
 
   const setRefs = (node: HTMLDivElement | null) => {
     planRef.current = node;
@@ -305,12 +382,16 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
     if (!d.moved && Math.hypot(dx, dy) < 4) return;
     d.moved = true;
     setHoverId(null);
+    // Pointer pixels → plan units (the floor is room.w units wide at any zoom).
+    const unit = room.w / rect.width;
     if (d.mode === "move") {
-      const x = clampPos(d.x0 + (dx / rect.width) * 100);
-      const y = clampPos(d.y0 + (dy / rect.height) * 100);
       const t = d.kind === "table" ? plan.tables.find((tt) => tt.id === d.id) : undefined;
-      const snap = t?.shape === "curve" ? snapCurve(t, x, y, plan.tables) : null;
-      setDraft(snap ? { id: d.id, ...snap, snapped: true } : { id: d.id, x, y });
+      const el = d.kind === "element" ? elements.find((ee) => ee.id === d.id) : undefined;
+      const half = t ? tableHalf(t) : el ? elementHalf(el) : { x: 0, y: 0 };
+      const { x, y } = fitInside(d.x0 + dx * unit, d.y0 + (dy * unit) / Y_SCALE, half, room);
+      const snap = t?.shape === "curve" ? snapCurve(t, x, y, plan.tables, room) : null;
+      const snapped = snap && t ? { ...snap, ...fitInside(snap.x, snap.y, tableHalf(t, snap.rotation), room) } : null;
+      setDraft(snapped ? { id: d.id, ...snapped, snapped: true } : { id: d.id, x, y });
       return;
     }
     // Resize from the corner with the centre fixed, measured along the shape's own axes.
@@ -321,8 +402,8 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
       id: d.id,
       x: d.x0,
       y: d.y0,
-      w: clampElementSize(d.w0 + ((2 * lx) / rect.width) * 100, "w"),
-      h: clampElementSize(d.h0 + ((2 * ly) / rect.width) * 100, "h"),
+      w: Math.min(room.w, clampElementSize(d.w0 + 2 * lx * unit, "w")),
+      h: Math.min(room.h, clampElementSize(d.h0 + 2 * ly * unit, "h")),
     });
   };
 
@@ -345,7 +426,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
     setDraft(null);
   };
 
-  const onItemKey = (e: KeyboardEvent<HTMLElement>, x: number, y: number, move: (x: number, y: number) => void) => {
+  const onItemKey = (e: KeyboardEvent<HTMLElement>, x: number, y: number, half: { x: number; y: number }, move: (x: number, y: number) => void) => {
     if ((e.key === "Delete" || e.key === "Backspace") && !locked) {
       e.preventDefault();
       onDeleteSelected?.();
@@ -355,7 +436,11 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
     if (!delta || locked) return;
     e.preventDefault();
     const step = e.shiftKey ? 5 : 1;
-    move(clampPos(x + delta[0] * step), clampPos(y + delta[1] * step));
+    const next = fitInside(x + delta[0] * step, y + delta[1] * step, half, room);
+    move(next.x, next.y);
+    // Bigger rooms scroll; keep the item being nudged in view.
+    const item = e.currentTarget;
+    requestAnimationFrame(() => item.scrollIntoView({ block: "nearest", inline: "nearest" }));
   };
 
   const isSel = (type: Selection["type"], id: string) => selection?.type === type && selection.id === id;
@@ -370,20 +455,33 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
       onClick={(e) => {
         if (interactive && e.target === e.currentTarget) onSelect?.(null);
       }}
-      style={{ aspectRatio: "16 / 10", containerType: "inline-size", ...style }}
+      style={{
+        aspectRatio: `${room.w} / ${room.h}`,
+        // The room's walls, so its size reads against the canvas when zoomed out.
+        ...(readOnly ? {} : { background: "var(--color-surface-container-lowest)", boxShadow: "0 0 0 1px var(--color-outline)" }),
+        ...style,
+      }}
     >
+      {plan.tables.length === 0 && elements.length === 0 && emptyState}
+
+      {/*
+        The ruler: a container exactly 100 plan units wide, so every size inside
+        (in cqw) is in plan units however big the room is. It has no height and
+        lets clicks through to the floor; items inside are placed in units too.
+      */}
+      <div className="pointer-events-none absolute left-0 top-0" style={{ width: `${(100 / room.w) * 100}%`, containerType: "inline-size" }}>
       {/* Dot grid, sized in cqw so it zooms with the plan. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute left-0 top-0"
         style={{
+          width: `${room.w}cqw`,
+          height: `${room.h}cqw`,
           backgroundImage: "radial-gradient(circle, var(--color-outline) 0.09cqw, transparent 0.12cqw)",
           backgroundSize: "2.5cqw 2.5cqw",
           opacity: readOnly ? 0 : 1,
         }}
       />
-
-      {plan.tables.length === 0 && elements.length === 0 && emptyState}
 
       {elements.map((el) => {
         const d = draft?.id === el.id ? draft : null;
@@ -401,8 +499,9 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
             key={el.id}
             className="absolute"
             style={{
-              left: `${x}%`,
-              top: `${y}%`,
+              left: `${x}cqw`,
+              top: `${y * Y_SCALE}cqw`,
+              pointerEvents: "auto",
               width: `${w}cqw`,
               height: `${h}cqw`,
               transform: `translate(-50%, -50%) rotate(${rot}deg)`,
@@ -423,7 +522,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
                 if (dragRef.current?.moved || picking) return;
                 onSelect?.({ type: "element", id: el.id });
               }}
-              onKeyDown={(e) => onItemKey(e, el.x, el.y, (nx, ny) => onPatchElement?.(el.id, { x: nx, y: ny }))}
+              onKeyDown={(e) => onItemKey(e, el.x, el.y, elementHalf(el), (nx, ny) => onPatchElement?.(el.id, { x: nx, y: ny }))}
               className="absolute inset-0 touch-none transition-[box-shadow,border-color] duration-150 disabled:cursor-default"
               style={{
                 cursor: readOnly ? "default" : picking ? "not-allowed" : locked ? "pointer" : d ? "grabbing" : "grab",
@@ -497,8 +596,9 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
             key={t.id}
             className="absolute transition-opacity duration-150"
             style={{
-              left: `${pos.x}%`,
-              top: `${pos.y}%`,
+              left: `${pos.x}cqw`,
+              top: `${pos.y * Y_SCALE}cqw`,
+              pointerEvents: "auto",
               width: `${w}cqw`,
               height: `${h}cqw`,
               transform: `translate(-50%, -50%) rotate(${rot}deg)`,
@@ -564,7 +664,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
                 if (dragRef.current?.moved) return;
                 onTableClick?.(t.id);
               }}
-              onKeyDown={(e) => onItemKey(e, t.x, t.y, (nx, ny) => onMoveTable?.(t.id, nx, ny))}
+              onKeyDown={(e) => onItemKey(e, t.x, t.y, tableHalf(t), (nx, ny) => onMoveTable?.(t.id, nx, ny))}
               className="absolute inset-0 touch-none transition-[box-shadow,background-color,border-color] duration-150 disabled:cursor-default"
               style={{
                 cursor: readOnly ? "default" : picking ? "copy" : locked ? "pointer" : draft?.id === t.id ? "grabbing" : "grab",
@@ -639,12 +739,13 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
         );
       })}
 
-      {hovered && <HoverCard table={hovered} seated={byTable.get(hovered.id) ?? []} sideOf={sideOf} />}
+      {hovered && <HoverCard table={hovered} room={room} seated={byTable.get(hovered.id) ?? []} sideOf={sideOf} />}
       {pinned && renderTableCard && (
-        <CardFrame table={pinned} interactive>
+        <CardFrame table={pinned} room={room} interactive>
           {renderTableCard(pinned)}
         </CardFrame>
       )}
+      </div>
     </div>
   );
 });
@@ -652,10 +753,11 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
 export default FloorSurface;
 
 /** A floating card beside a table, flipped to whichever side has room. */
-function CardFrame({ table, interactive, children }: { table: SeatingTable; interactive?: boolean; children: ReactNode }) {
+function CardFrame({ table, room, interactive, children }: { table: SeatingTable; room: Room; interactive?: boolean; children: ReactNode }) {
   const reach = tableReach(table) + 1;
-  const flip = table.x > 60;
-  const ty = table.y < 22 ? "-12%" : table.y > 78 ? "-88%" : "-50%";
+  const flip = table.x > room.w * 0.6;
+  const fy = table.y / roomYMax(room);
+  const ty = fy < 0.22 ? "-12%" : fy > 0.78 ? "-88%" : "-50%";
   return (
     <div
       aria-hidden={interactive ? undefined : true}
@@ -664,8 +766,9 @@ function CardFrame({ table, interactive, children }: { table: SeatingTable; inte
       className={`popover-in absolute ${interactive ? "" : "pointer-events-none"}`}
       onPointerDown={(e) => e.stopPropagation()}
       style={{
-        left: flip ? `calc(${table.x}% - ${reach}cqw)` : `calc(${table.x}% + ${reach}cqw)`,
-        top: `${table.y}%`,
+        left: `${flip ? table.x - reach : table.x + reach}cqw`,
+        top: `${table.y * Y_SCALE}cqw`,
+        pointerEvents: interactive ? "auto" : "none",
         transform: `translate(${flip ? "-100%" : "0"}, ${ty})`,
         zIndex: interactive ? 7 : 6,
         background: "var(--color-surface-container-lowest)",
@@ -680,13 +783,13 @@ function CardFrame({ table, interactive, children }: { table: SeatingTable; inte
 }
 
 /** Who's at a table, shown beside it on hover or keyboard focus. */
-function HoverCard({ table, seated, sideOf }: { table: SeatingTable; seated: GuestListEntry[]; sideOf: (g: GuestListEntry) => GuestSide | undefined }) {
+function HoverCard({ table, room, seated, sideOf }: { table: SeatingTable; room: Room; seated: GuestListEntry[]; sideOf: (g: GuestListEntry) => GuestSide | undefined }) {
   const list = seated.filter(needsSeat);
   const shown = list.slice(0, 10);
   const taken = seatsTaken(seated);
 
   return (
-    <CardFrame table={table}>
+    <CardFrame table={table} room={room}>
     <div className="w-56 p-3">
       <p className="flex items-baseline justify-between gap-2 text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
         <span className="truncate">{table.name || "Untitled"}</span>

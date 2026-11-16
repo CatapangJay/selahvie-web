@@ -89,13 +89,14 @@ export default function VenueSection({ config, palette: p, band, showNotes }: Pr
 
   return (
     <section id="venue" aria-labelledby="ah-venue-title" style={{ background: band.bg, padding: SECTION_PAD }}>
-      <div style={{ maxWidth: 560, margin: "0 auto", textAlign: "center" }}>
+      <div className="mx-auto max-w-[560px] text-center lg:max-w-[68rem]">
         <SectionTitle id="ah-venue-title" eyebrow="Where the sun sets" title="The place" band={band} palette={p} />
 
-        {hasCeremony && <PlaceCard p={p} t={t} venue={ceremony} time={ceremony.time} label="The ceremony" arch icon={<MapPin size={22} />} />}
-        {reception && (
-          <div style={{ marginTop: "1.25rem" }}>
-            <PlaceCard p={p} t={t} venue={reception} time={reception.time} label="The reception" arch={false} icon={<Wine size={22} />} />
+        {/* Two windows side by side on wide screens: ceremony and reception read as one evening. */}
+        {(hasCeremony || reception) && (
+          <div className={hasCeremony && reception ? "grid items-stretch gap-5 lg:grid-cols-2 lg:gap-8" : "mx-auto max-w-[560px]"}>
+            {hasCeremony && <PlaceCard p={p} t={t} venue={ceremony} time={ceremony.time} label="The ceremony" arch icon={<MapPin size={22} />} />}
+            {reception && <PlaceCard p={p} t={t} venue={reception} time={reception.time} label="The reception" arch icon={<Wine size={22} />} />}
           </div>
         )}
         {!reception && receptionTime && (
@@ -104,8 +105,10 @@ export default function VenueSection({ config, palette: p, band, showNotes }: Pr
           </p>
         )}
 
+        {(dress || notes.length > 0) && (
+        <div className={dress && notes.length > 0 ? "mx-auto mt-12 grid max-w-[560px] items-start gap-12 lg:max-w-none lg:grid-cols-2 lg:gap-16" : "mx-auto mt-12 max-w-[560px]"}>
         {dress && (
-          <div style={{ marginTop: "3rem", background: t.card, borderRadius: "1.75rem", padding: "2rem 1.5rem", boxShadow: band.dark ? `inset 0 0 0 1px ${t.rule}` : undefined, color: band.dark ? p.morning : p.ink }}>
+          <div style={{ background: t.card, borderRadius: "1.75rem", padding: "2rem 1.5rem", boxShadow: band.dark ? `inset 0 0 0 1px ${t.rule}` : undefined, color: band.dark ? p.morning : p.ink }}>
             <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 500, letterSpacing: "0.24em", paddingLeft: "0.24em", textTransform: "uppercase", color: band.dark ? p.butter : p.apricotDeep, margin: "0 0 0.5rem" }}>What to wear</p>
             {dress.title && <h3 style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 400, fontSize: "1.7rem", margin: 0 }}>{dress.title}</h3>}
             {dress.description && <p style={{ fontFamily: SANS, fontWeight: 300, fontSize: "1.05rem", lineHeight: 1.6, margin: "0.5rem auto 0", maxWidth: 420 }}>{dress.description}</p>}
@@ -119,13 +122,9 @@ export default function VenueSection({ config, palette: p, band, showNotes }: Pr
           </div>
         )}
 
-        {hashtag && (
-          <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 300, fontSize: "clamp(1.8rem, 7vw, 2.4rem)", color: t.text, margin: "2.5rem 0 0" }}>{hashtag}</p>
-        )}
-
         {notes.length > 0 && (
-          <div style={{ marginTop: "3rem", textAlign: "left" }}>
-            <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: "1.4rem", color: t.text, margin: "0 0 0.75rem", textAlign: "center" }}>Good to know before you go</p>
+          <div style={{ textAlign: "left" }}>
+            <p className={dress ? "text-center lg:text-left" : "text-center"} style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: "1.4rem", color: t.text, margin: "0 0 0.75rem" }}>Good to know before you go</p>
             <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
               {notes.map((note, i) => (
                 <li key={i} style={{ display: "flex", gap: "0.85rem", alignItems: "baseline", padding: "0.9rem 0", borderBottom: `1px dashed ${t.rule}` }}>
@@ -135,6 +134,12 @@ export default function VenueSection({ config, palette: p, band, showNotes }: Pr
               ))}
             </ul>
           </div>
+        )}
+        </div>
+        )}
+
+        {hashtag && (
+          <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 300, fontSize: "clamp(1.8rem, 7vw, 2.4rem)", color: t.text, margin: "3rem 0 0" }}>{hashtag}</p>
         )}
       </div>
     </section>

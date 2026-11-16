@@ -22,14 +22,15 @@ export default function EntourageSection({ config, palette: p, band }: Props) {
 
   return (
     <section id="entourage" aria-labelledby="ah-entourage-title" style={{ background: band.bg, padding: SECTION_PAD }}>
-      <div style={{ maxWidth: 760, margin: "0 auto" }}>
+      <div className="mx-auto max-w-[760px] lg:max-w-[70rem]">
         <SectionTitle id="ah-entourage-title" eyebrow="The ones beside us" title="Our people" band={band} palette={p} />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div // Wide screens wrap the posy cards three to a row and centre a short last row.
+          className="grid items-start gap-4 sm:grid-cols-2 lg:flex lg:flex-wrap lg:justify-center lg:gap-5">
           {categories.map((cat) => (
             <div
               key={cat.id}
               // A card split into columns takes the full row.
-              className={cat.cols && cat.cols.columns > 1 ? "sm:col-span-2" : undefined}
+              className={cat.cols && cat.cols.columns > 1 ? "sm:col-span-2 lg:w-full" : "lg:w-[calc((100%-2.5rem)/3)]"}
               style={{ background: t.card, borderRadius: "1.75rem", padding: "1.6rem 1.4rem", textAlign: "center", boxShadow: band.dark ? `inset 0 0 0 1px ${t.rule}` : undefined }}
             >
               <div className={cat.cols && `grid gap-x-6 ${cat.cols.roles}`}>

@@ -20,6 +20,7 @@ import GallerySection from "./components/GallerySection";
 import RsvpSection from "./components/RsvpSection";
 import RegistrySection from "./components/RegistrySection";
 import FaqSection from "./components/FaqSection";
+import GuestbookSection from "./components/GuestbookSection";
 import TemplateFooter from "./components/TemplateFooter";
 import { Reveal } from "./components/Motion";
 
@@ -109,6 +110,11 @@ export default function NarraKapisTemplate({ config, showBranding = true }: Prop
         {isSectionVisible(config, "faq") && (
           <Reveal>
             <FaqSection config={config} palette={palette} />
+          </Reveal>
+        )}
+        {isSectionVisible(config, "guestbook") && (
+          <Reveal>
+            <GuestbookSection config={config} palette={palette} />
           </Reveal>
         )}
         <div style={banigStyle(palette)}>

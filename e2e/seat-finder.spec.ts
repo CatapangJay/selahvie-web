@@ -1,0 +1,199 @@
+import { test, expect, type Browser } from "@playwright/test";
+import { addGuest, adminClient, buyWebsite, createConfirmedAccount, logIn, publishWebsite, updateWebsite, weddingRow, type TestAccount } from "./support";
+
+// FIND-01 … FIND-07 in e2e/TEST_CASES.csv. The day-of "Find your table" page.
+
+const tables = [
+  { id: "t1", name: "Table 1", shape: "round", seats: 8, x: 16, y: 34 },
+  { id: "t2", name: "Table 2", shape: "round", seats: 8, x: 38, y: 34 },
+  { id: "t3", name: "Table 3", shape: "round", seats: 8, x: 62, y: 34 },
+  { id: "t4", name: "Table 4", shape: "round", seats: 8, x: 84, y: 34 },
+  { id: "t5", name: "Table 5", shape: "round", seats: 8, x: 16, y: 70 },
+  { id: "t6", name: "Table 6", shape: "rect", seats: 10, x: 84, y: 70, rotation: 90 },
+  { id: "head", name: "Sweetheart Table", shape: "rect", seats: 2, seatSides: 1, x: 50, y: 18 },
+];
+const elements = [
+  { id: "stage", kind: "stage", label: "Stage", shape: "rect", x: 50, y: 7, w: 34, h: 6 },
+  { id: "dance", kind: "danceFloor", label: "Dance floor", shape: "rect", x: 50, y: 66, w: 22, h: 14 },
+  { id: "bar", kind: "bar", label: "Bar", shape: "rect", x: 10, y: 92, w: 14, h: 4 },
+  { id: "main", kind: "entrance", label: "Main entrance", shape: "rect", x: 56, y: 96, w: 10, h: 2.5 },
+  { id: "garden", kind: "entrance", label: "Garden door", shape: "rect", x: 98, y: 52, w: 9, h: 2.5, rotation: 90 },
+];
+
+async function seedRoom(weddingId: string, opts: { finder?: boolean } = {}) {
+  const maria = await addGuest(weddingId, "Maria Clara Santos", { partySize: 2, status: "attending" });
+  const jose = await addGuest(weddingId, "José Reyes", { status: "attending" });
+  const ana = await addGuest(weddingId, "Ana Cruz");
+  const twinA = await addGuest(weddingId, "Sam Lee");
+  const twinB = await addGuest(weddingId, "Sam Lee");
+  await updateWebsite(weddingId, {
+    seating_plan: {
+      tables,
+      elements,
+      assignments: { [maria.id]: "t6", [jose.id]: "t1", [twinA.id]: "t2", [twinB.id]: "t3" },
+      sides: {},
+      guestFinder: opts.finder ?? true,
+    },
+  });
+  const { error } = await adminClient()
+    .from("rsvps")
+    .insert({ wedding_id: weddingId, guest_id: maria.id, guest_name: maria.name, attending: true, plus_one: true, plus_one_name: "Paolo Santos" });
+  if (error) throw new Error(`Could not add RSVP: ${error.message}`);
+  return { maria, jose, ana, twinA, twinB };
+}
+
+/** A signed-out phone, the way a guest scans the code. */
+const guestPhone = (browser: Browser) => browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+test.describe("Find your table (Premium)", () => {
+  let account: TestAccount;
+
+  test.beforeEach(async ({ page }) => {
+    account = await createConfirmedAccount("finder");
+    await logIn(page, account.email, account.password);
+  });
+
+  test("FIND-01 a guest finds their table, sees the route and the directions", async ({ page, browser }) => {
+    const id = await buyWebsite(page, "premium");
+    const slug = await publishWebsite(id);
+    await seedRoom(id);
+
+    const phone = await guestPhone(browser);
+    const guest = await phone.newPage();
+    await guest.goto(`/wedding/${slug}/seat?from=main`);
+    await expect(guest.getByText("Ada & Ben")).toBeVisible();
+    await guest.screenshot({ path: "test-results/seat-finder/lookup.png" });
+    await guest.getByLabel("Your name").fill("maria santos");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+
+    await expect(guest.getByRole("heading", { name: "Table 6" })).toBeVisible();
+    await expect(guest.getByText("Party of 2")).toBeVisible();
+    await expect(guest.getByRole("img", { name: /Table 6 highlighted and the way there/ })).toBeVisible();
+    const steps = guest.getByRole("list", { name: "Directions" }).getByRole("listitem");
+    await expect(steps.first()).toContainText("Come in through the main entrance");
+    await expect(steps.last()).toContainText("Table 6 is");
+    await guest.waitForTimeout(2500);
+    await guest.screenshot({ path: "test-results/seat-finder/found-main.png", fullPage: true });
+
+    // Switching entrance reroutes from the other door.
+    await guest.getByRole("button", { name: "Garden door" }).click();
+    await expect(guest).toHaveURL(/from=garden/);
+    await expect(steps.first()).toContainText("Come in through the garden door");
+    await guest.waitForTimeout(2500);
+    await guest.screenshot({ path: "test-results/seat-finder/found-garden.png", fullPage: true });
+    await phone.close();
+  });
+
+  test("FIND-02 a plus-one's name (from the RSVP) finds the party's table", async ({ page, browser }) => {
+    const id = await buyWebsite(page, "premium");
+    const slug = await publishWebsite(id);
+    await seedRoom(id);
+
+    const phone = await guestPhone(browser);
+    const guest = await phone.newPage();
+    await guest.goto(`/wedding/${slug}/seat`);
+    await guest.getByLabel("Your name").fill("Paolo Santos");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByRole("heading", { name: "Table 6" })).toBeVisible();
+    await phone.close();
+  });
+
+  test("FIND-03 guests without a table, unknown names and shared names get the right message", async ({ page, browser }) => {
+    const id = await buyWebsite(page, "premium");
+    const slug = await publishWebsite(id);
+    const { twinB } = await seedRoom(id);
+
+    const phone = await guestPhone(browser);
+    const guest = await phone.newPage();
+    await guest.goto(`/wedding/${slug}/seat`);
+    await guest.getByLabel("Your name").fill("Ana Cruz");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByRole("heading", { name: "Welcome, Ana" })).toBeVisible();
+    await expect(guest.getByText("Your table isn't on the chart yet")).toBeVisible();
+
+    await guest.getByRole("button", { name: "Look up someone else" }).click();
+    await guest.getByLabel("Your name").fill("Nobody Here");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByText("We couldn't find that name")).toBeVisible();
+
+    // Two "Sam Lee"s: ask for the code instead of guessing.
+    await guest.getByLabel("Your name").fill("Sam Lee");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByText(/More than one guest has a name like that/)).toBeVisible();
+    await guest.getByLabel("Invitation code").fill(twinB.code);
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByRole("heading", { name: "Table 3" })).toBeVisible();
+    await phone.close();
+  });
+
+  test("FIND-04 the lookup reveals only the guest's own table, not who sits elsewhere", async ({ page, request }) => {
+    const id = await buyWebsite(page, "premium");
+    const slug = await publishWebsite(id);
+    const { jose } = await seedRoom(id);
+
+    const res = await request.post(`/api/sites/${slug}/seat`, { data: { query: "Maria Santos" } });
+    expect(res.ok()).toBe(true);
+    const text = await res.text();
+    const body = JSON.parse(text);
+    expect(body.status).toBe("found");
+    expect(body.tableId).toBe("t6");
+    expect(text).not.toContain(jose.id);
+    expect(text).not.toContain("José");
+    expect(text).not.toContain("assignments");
+    expect(text).not.toContain(jose.code);
+  });
+
+  test("FIND-05 the finder stays closed to guests until the couple switches it on", async ({ page, browser }) => {
+    const id = await buyWebsite(page, "premium");
+    const slug = await publishWebsite(id);
+    await seedRoom(id, { finder: false });
+
+    const phone = await guestPhone(browser);
+    const guest = await phone.newPage();
+    await guest.goto(`/wedding/${slug}/seat`);
+    await expect(guest.getByRole("heading", { name: "Table finder opens soon" })).toBeVisible();
+    const res = await guest.request.post(`/api/sites/${slug}/seat`, { data: { query: "Maria Santos" } });
+    expect(res.status()).toBe(404);
+
+    // The owner can still try it.
+    await page.goto(`/wedding/${slug}/seat`);
+    await page.getByLabel("Your name").fill("Maria Santos");
+    await page.getByRole("button", { name: "Find my table" }).click();
+    await expect(page.getByRole("heading", { name: "Table 6" })).toBeVisible();
+    await phone.close();
+  });
+
+  test("FIND-06 a draft website's finder isn't available to guests", async ({ page, browser }) => {
+    const id = await buyWebsite(page, "premium");
+    await updateWebsite(id, { slug: `e2e-draft-${id.slice(0, 8)}` });
+    await seedRoom(id);
+
+    const phone = await guestPhone(browser);
+    const guest = await phone.newPage();
+    await guest.goto(`/wedding/e2e-draft-${id.slice(0, 8)}/seat`);
+    await expect(guest.getByRole("heading", { name: "This page isn't available" })).toBeVisible();
+    await phone.close();
+  });
+
+  test("FIND-07 the Share tab switches the finder on and offers a code per entrance", async ({ page }) => {
+    const id = await buyWebsite(page, "premium");
+    await publishWebsite(id);
+    await seedRoom(id, { finder: false });
+
+    await page.goto(`/dashboard/manage/${id}?tab=share`);
+    await expect(page.getByRole("heading", { name: "Table finder for the day" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Find your table: Main entrance" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Find your table: Garden door" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Find your table: Garden door link" })).toHaveValue(/\/seat\?from=garden$/);
+
+    const toggle = page.getByRole("switch", { name: "Open the table finder to guests" });
+    await expect(toggle).toHaveAttribute("aria-checked", "false");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-checked", "true");
+    await expect
+      .poll(async () => ((await weddingRow(id)).seating_plan as { guestFinder?: boolean }).guestFinder, { timeout: 15_000 })
+      .toBe(true);
+    await page.getByRole("heading", { name: "Table finder for the day" }).scrollIntoViewIfNeeded();
+    await page.screenshot({ path: "test-results/seat-finder/share-tab.png", fullPage: true });
+  });
+});

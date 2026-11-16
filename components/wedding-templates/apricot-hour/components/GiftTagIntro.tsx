@@ -13,7 +13,23 @@ interface Props {
   date: DateParts;
   /** Personal note for the viewing guest; open invitations get a general tag. */
   greeting: { name: string; message: string } | null;
+  /** Sections the welcome note points to ("our story", "a few favourite photos"…), in page order. */
+  highlights: string[];
+  /** The RSVP section is on the page, so the note can ask guests to reply. */
+  canReply: boolean;
   onOpen: () => void;
+}
+
+/** "a, b and c" */
+function listOf(items: string[]): string {
+  if (items.length <= 1) return items[0] ?? "";
+  return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
+}
+
+/** The welcome note's invitation to look around, shaped by what the couple has filled in. */
+function lookAround(highlights: string[], canReply: boolean): string {
+  const look = highlights.length > 0 ? `Take a look at ${listOf(highlights)}` : "Take a look around";
+  return canReply ? `${look}, then let us know you'll be there.` : `${look}. We can't wait to celebrate with you.`;
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -22,17 +38,27 @@ const TAG_SHAPE = "polygon(18% 0, 82% 0, 100% 13%, 100% 100%, 0 100%, 0 13%)";
 
 /**
  * A florist's gift tag tied on with ribbon, written out to the guest. One tap
- * unties the bow, the tag turns over to the couple's names, and the page opens.
+ * unties the bow and the tag turns over to a welcome note from the couple; the
+ * guest steps inside when they've read it.
  */
-export default function GiftTagIntro({ palette: p, partner1, partner2, date, greeting, onOpen }: Props) {
+export default function GiftTagIntro({ palette: p, partner1, partner2, date, greeting, highlights, canReply, onOpen }: Props) {
   const reduce = useReducedMotion();
   const [untied, setUntied] = useState(false);
+  // The note is face up and the button has become "Take a look inside".
+  const [turned, setTurned] = useState(false);
 
   useEffect(() => {
     if (!untied) return;
-    const id = setTimeout(onOpen, reduce ? 0 : 2300);
+    const id = setTimeout(() => setTurned(true), reduce ? 0 : 1500);
     return () => clearTimeout(id);
-  }, [untied, onOpen, reduce]);
+  }, [untied, reduce]);
+
+  const press = () => {
+    if (!untied) setUntied(true);
+    else if (turned) onOpen();
+  };
+  const firstName = greeting?.name.split(/\s+/)[0]?.replace(/[,&]+$/, "");
+  const note = lookAround(highlights, canReply);
 
   const face = {
     position: "absolute",
@@ -83,7 +109,7 @@ export default function GiftTagIntro({ palette: p, partner1, partner2, date, gre
         }
         // Tapping the tag itself unties it too; the button below is the keyboard and screen-reader path.
         data-gift-tag=""
-        onClick={() => setUntied(true)}
+        onClick={press}
         style={{
           position: "relative",
           width: "min(74vw, 17.5rem, calc((100svh - 13rem) * 0.55))",
@@ -91,7 +117,7 @@ export default function GiftTagIntro({ palette: p, partner1, partner2, date, gre
           transformOrigin: "50% 0",
           perspective: 1200,
           marginTop: "4rem",
-          cursor: untied ? "default" : "pointer",
+          cursor: untied && !turned ? "default" : "pointer",
         }}
       >
         {/* Ribbon through the eyelet, with a bow that slips loose when untied */}
@@ -111,14 +137,17 @@ export default function GiftTagIntro({ palette: p, partner1, partner2, date, gre
           <circle cx="100" cy="40" r="9" fill={p.apricotDeep} />
         </motion.svg>
 
+        {/* The shadow lives on this wrapper: a filter on the turning element itself would flatten the 3D
+            turn, the back face would never show and the front's writing would read mirrored. */}
+        <div style={{ position: "absolute", inset: 0, perspective: 1200, filter: "drop-shadow(0 18px 28px rgba(91,44,58,.22))" }}>
         <motion.div
           initial={false}
           animate={{ rotateY: untied ? 180 : 0 }}
           transition={{ duration: reduce ? 0 : 1.1, delay: reduce ? 0 : 0.45, ease: EASE }}
-          style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d", filter: "drop-shadow(0 18px 28px rgba(91,44,58,.22))" }}
+          style={{ position: "absolute", inset: 0, transformStyle: "preserve-3d" }}
         >
           {/* Front: written out to the guest */}
-          <div style={face}>
+          <div style={face} aria-hidden={untied || undefined}>
             <Eyelet palette={p} />
             <Sprig color={p.dusk} bloom={p.apricot} style={{ width: "4.25rem", marginBottom: "0.75rem" }} />
             <p style={{ fontFamily: SANS, fontSize: 12, fontWeight: 500, letterSpacing: "0.28em", paddingLeft: "0.28em", textTransform: "uppercase", color: p.apricotDeep, margin: 0 }}>
@@ -134,32 +163,46 @@ export default function GiftTagIntro({ palette: p, partner1, partner2, date, gre
             </p>
           </div>
 
-          {/* Back: the couple */}
-          <div style={{ ...face, transform: "rotateY(180deg)", background: `linear-gradient(170deg, ${p.apricotSoft} 0%, ${p.butter} 100%)` }}>
+          {/* Back: a welcome note in the couple's hand, signed off with their names */}
+          <div
+            aria-hidden={!untied || undefined}
+            style={{ ...face, transform: "rotateY(180deg)", padding: "4.25rem 1.5rem 1.75rem", background: `linear-gradient(170deg, ${p.apricotSoft} 0%, ${p.butter} 100%)` }}
+          >
             <Eyelet palette={p} />
-            <p style={{ fontFamily: DISPLAY, fontWeight: 300, fontSize: "clamp(2.1rem, 9vw, 2.6rem)", lineHeight: 1.05, margin: 0, overflowWrap: "anywhere" }}>
-              {partner1}
-              <span style={{ display: "block", fontStyle: "italic", fontSize: "0.62em", color: p.apricotDeep, margin: "0.2em 0" }}>and</span>
-              {partner2}
+            <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontWeight: 400, fontSize: "clamp(1.9rem, 8.5vw, 2.4rem)", lineHeight: 1.05, color: p.ink, margin: 0, overflowWrap: "anywhere" }}>
+              Welcome{firstName ? `, ${firstName}` : ""}
+            </p>
+            <p style={{ fontFamily: SANS, fontSize: "clamp(13px, 3.6vw, 15px)", fontWeight: 400, lineHeight: 1.5, color: p.ink, margin: "0.7rem 0 0", textWrap: "balance" }}>
+              We&apos;re so glad you&apos;re here.
+            </p>
+            <span aria-hidden style={{ display: "block", flexShrink: 0, width: "2.5rem", height: 1.5, borderRadius: 2, background: `color-mix(in srgb, ${p.apricot} 60%, transparent)`, margin: "clamp(0.8rem, 3svh, 1.2rem) auto" }} />
+            <p style={{ fontFamily: SANS, fontSize: "clamp(13px, 3.6vw, 15px)", fontWeight: 300, lineHeight: 1.55, color: p.ink, margin: 0, textWrap: "pretty" }}>{note}</p>
+            <p style={{ fontFamily: DISPLAY, fontStyle: "italic", fontSize: "clamp(1.05rem, 4.6vw, 1.25rem)", lineHeight: 1.25, color: p.apricotDeep, margin: "clamp(0.9rem, 3svh, 1.3rem) 0 0", overflowWrap: "anywhere" }}>
+              With love,
+              <span style={{ display: "block", color: p.ink }}>
+                {partner1} &amp; {partner2}
+              </span>
             </p>
             {date.long && (
-              <p style={{ fontFamily: SANS, fontSize: 13, fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", color: p.apricotDeep, margin: "1.25rem 0 0" }}>
+              <p style={{ fontFamily: SANS, fontSize: 11, fontWeight: 500, letterSpacing: "0.2em", paddingLeft: "0.2em", textTransform: "uppercase", color: p.apricotDeep, margin: "0.6rem 0 0" }}>
                 {date.monthDay}
                 {date.year && ` · ${date.year}`}
               </p>
             )}
           </div>
         </motion.div>
+        </div>
       </motion.div>
 
       <motion.button
         type="button"
         autoFocus
-        disabled={untied}
-        onClick={() => setUntied(true)}
+        // Hidden while the tag turns, then back as the way inside.
+        disabled={untied && !turned}
+        onClick={press}
         initial={reduce ? false : { opacity: 0, y: 10 }}
-        animate={{ opacity: untied ? 0 : 1, y: 0 }}
-        transition={{ duration: 0.7, delay: untied ? 0 : 0.6, ease: EASE }}
+        animate={{ opacity: untied && !turned ? 0 : 1, y: 0 }}
+        transition={{ duration: 0.6, delay: untied && !turned ? 0 : 0.2, ease: EASE }}
         className="transition-transform hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-2 focus-visible:outline-offset-4"
         style={{
           minHeight: 50,
@@ -177,9 +220,17 @@ export default function GiftTagIntro({ palette: p, partner1, partner2, date, gre
           outlineColor: p.dusk,
         }}
       >
-        Untie the ribbon
+        {turned ? (
+          <>
+            Take a look inside <span aria-hidden>→</span>
+          </>
+        ) : (
+          "Untie the ribbon"
+        )}
       </motion.button>
-      <span className="sr-only" aria-live="polite">{untied ? `Opening the invitation from ${partner1} and ${partner2}` : ""}</span>
+      <span className="sr-only" aria-live="polite">
+        {turned ? `Welcome${firstName ? `, ${firstName}` : ""}. We're so glad you're here. ${note} With love, ${partner1} and ${partner2}.` : ""}
+      </span>
     </motion.div>
   );
 }

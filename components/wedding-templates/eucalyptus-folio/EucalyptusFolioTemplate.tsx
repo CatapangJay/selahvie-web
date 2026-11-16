@@ -14,7 +14,6 @@ import { FONTS_HREF, SANS, dateParts, makePalette, paperStyle } from "./theme";
 import FoldIntro from "./components/FoldIntro";
 import HeroSection from "./components/HeroSection";
 import StorySection from "./components/StorySection";
-import CountdownBand from "./components/CountdownBand";
 import DetailsSection from "./components/DetailsSection";
 import ScheduleSection from "./components/ScheduleSection";
 import EntourageSection from "./components/EntourageSection";
@@ -96,7 +95,6 @@ export default function EucalyptusFolioTemplate({ config, showBranding = true }:
               <StorySection config={config} palette={palette} />
             </Reveal>
           )}
-          {date.date && <CountdownBand target={date.date} palette={palette} />}
           <Reveal>
             <DetailsSection config={config} palette={palette} date={date} showTravel={isSectionVisible(config, "travel")} />
           </Reveal>

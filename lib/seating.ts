@@ -11,6 +11,58 @@ export const MAX_ELEMENTS = 40;
 
 export const EMPTY_PLAN: SeatingPlan = { tables: [], elements: [], assignments: {}, sides: {} };
 
+// ─── Room ────────────────────────────────────────────────────────────────────
+// Plan units are the planner's own scale: an 8-seat round table is ~10.6 wide.
+// x is in units; y is stored in steps of Y_SCALE units (it began as a percentage
+// of the original 16:10 room's height), so older plans keep their positions.
+
+export type Room = NonNullable<SeatingPlan["room"]>;
+export const Y_SCALE = 0.625;
+/** The original 16:10 room, about 15 × 9.4 m. Plans without a `room` use it. */
+export const DEFAULT_ROOM: Room = { w: 100, h: 62.5 };
+/** About 15 cm per unit: a 60-inch round table top is ~1.5 m. */
+export const METRES_PER_UNIT = 0.15;
+export const ROOM_MIN_M = 8;
+export const ROOM_MAX_M = 60;
+
+export const roomOf = (plan: Pick<SeatingPlan, "room">): Room => plan.room ?? DEFAULT_ROOM;
+export const toMetres = (units: number) => Math.round(units * METRES_PER_UNIT * 2) / 2;
+export const fromMetres = (m: number) => Math.round((Math.max(ROOM_MIN_M, Math.min(ROOM_MAX_M, m)) / METRES_PER_UNIT) * 10) / 10;
+/** The room's height in stored-y steps (100 for the default room). */
+export const roomYMax = (room: Room) => room.h / Y_SCALE;
+
+const EDGE = 4;
+const clampTo = (n: number, max: number) => Math.max(EDGE, Math.min(max - EDGE, Math.round((Number(n) || 0) * 10) / 10));
+/** Keep a centre inside the room (x in units, y in stored-y steps). */
+export const clampX = (n: number, room: Room = DEFAULT_ROOM) => clampTo(n, room.w);
+export const clampY = (n: number, room: Room = DEFAULT_ROOM) => clampTo(n, roomYMax(room));
+
+/**
+ * Moves a centre so an item reaching `half` units each way (its outline, chairs
+ * included) stays inside the room's walls. Items bigger than the room centre on it.
+ * Takes and returns stored coordinates (x in units, y in Y_SCALE steps).
+ */
+export function fitInside(x: number, y: number, half: { x: number; y: number }, room: Room): { x: number; y: number } {
+  // Work in stored steps and round toward the inside, so an item can touch a wall but never cross it.
+  const fit = (n: number, h: number, max: number) => {
+    if (2 * h >= max) return Math.round((max / 2) * 10) / 10;
+    const lo = Math.ceil(h * 10 - 1e-9) / 10;
+    const hi = Math.floor((max - h) * 10 + 1e-9) / 10;
+    return Math.max(lo, Math.min(hi, Math.round(n * 10) / 10));
+  };
+  return { x: fit(x, half.x, room.w), y: fit(y, half.y / Y_SCALE, room.h / Y_SCALE) };
+}
+
+export function setRoom(plan: SeatingPlan, room: Room): SeatingPlan {
+  const same = room.w === DEFAULT_ROOM.w && room.h === DEFAULT_ROOM.h;
+  if (same) {
+    const { room: _drop, ...rest } = plan;
+    void _drop;
+    return rest;
+  }
+  return { ...plan, room };
+}
+
 export const planOf = (config: WeddingConfig): SeatingPlan => config.seatingPlan ?? EMPTY_PLAN;
 
 /** Declined guests don't need a seat. */
@@ -40,8 +92,8 @@ export function fourSided(long: number, ends: number): Pick<SeatingTable, "seatS
   return { seatSides: 4, endSeats: e, seats: 2 * (l + e) };
 }
 
-/** Keep a table's centre inside the floor plan. */
-export const clampPos = (n: number) => Math.max(4, Math.min(96, Math.round(n * 10) / 10));
+/** Keep a centre inside the original room. Prefer `clampX` / `clampY` with the plan's room. */
+export const clampPos = (n: number) => clampX(n);
 
 /** "Table 1", "Table 2", … using the lowest free number. */
 export function nextTableName(tables: SeatingTable[]): string {
@@ -51,16 +103,21 @@ export function nextTableName(tables: SeatingTable[]): string {
   return `Table ${n}`;
 }
 
-/** A free spot on a loose grid, so new tables don't stack on top of each other. */
-export function freeSpot(tables: SeatingTable[]): { x: number; y: number } {
-  const xs = [14, 32, 50, 68, 86];
-  const ys = [16, 39, 62, 85];
+/** A free spot on a loose grid across the room, so new tables don't stack on top of each other. */
+export function freeSpot(tables: SeatingTable[], room: Room = DEFAULT_ROOM): { x: number; y: number } {
+  const span = (max: number, step: number) => {
+    const n = Math.max(1, Math.floor((max - 6) / step));
+    const pad = (max - (n - 1) * step) / 2;
+    return Array.from({ length: n }, (_, i) => Math.round((pad + i * step) * 10) / 10);
+  };
+  const xs = span(room.w, 18);
+  const ys = span(roomYMax(room), 23);
   for (const y of ys) {
     for (const x of xs) {
       if (tables.every((t) => Math.hypot(t.x - x, t.y - y) > 10)) return { x, y };
     }
   }
-  return { x: 50, y: 50 };
+  return { x: Math.round(room.w / 2), y: Math.round(roomYMax(room) / 2) };
 }
 
 /** Chairs a new table of this shape starts with. */
@@ -77,7 +134,7 @@ export function addTable(plan: SeatingPlan, id: string, shape: SeatingTable["sha
     shape,
     seats: clampSeats(seats),
     ...(shape === "curve" ? { sweep: 90, sBend: true } : {}),
-    ...freeSpot(plan.tables),
+    ...freeSpot(plan.tables, roomOf(plan)),
   };
   return { ...plan, tables: [...plan.tables, table] };
 }
@@ -91,7 +148,8 @@ export function addTables(plan: SeatingPlan, ids: string[], shape: SeatingTable[
 export function duplicateTable(plan: SeatingPlan, id: string, newId: string): SeatingPlan {
   const src = plan.tables.find((t) => t.id === id);
   if (!src || plan.tables.length >= MAX_TABLES) return plan;
-  const copy: SeatingTable = { ...src, id: newId, name: nextTableName(plan.tables), x: clampPos(src.x + 6), y: clampPos(src.y + 6) };
+  const room = roomOf(plan);
+  const copy: SeatingTable = { ...src, id: newId, name: nextTableName(plan.tables), x: clampX(src.x + 6, room), y: clampY(src.y + 6, room) };
   return { ...plan, tables: [...plan.tables, copy] };
 }
 
@@ -151,7 +209,8 @@ export const CUSTOM_PRESETS: Record<VenueElement["shape"], ElementPreset> = {
 };
 
 export const ELEMENT_MIN = { w: 2, h: 1.5 };
-export const ELEMENT_MAX = { w: 90, h: 56 };
+/** Up to the largest room. */
+export const ELEMENT_MAX = { w: 400, h: 400 };
 
 export const clampElementSize = (n: number, axis: "w" | "h") =>
   Math.max(ELEMENT_MIN[axis], Math.min(ELEMENT_MAX[axis], Math.round((Number(n) || 0) * 10) / 10));
@@ -162,9 +221,12 @@ export function addElement(plan: SeatingPlan, id: string, preset: ElementPreset)
   const elements = elementsOf(plan);
   if (elements.length >= MAX_ELEMENTS) return plan;
   // Stages and entrances belong at the room's edges; everything else starts in the middle, staggered.
-  const y = preset.kind === "stage" ? 10 : preset.kind === "entrance" ? 95 : 50;
+  const room = roomOf(plan);
+  const yMax = roomYMax(room);
+  const mid = yMax / 2;
+  const y = preset.kind === "stage" ? 10 : preset.kind === "entrance" ? yMax - 5 : mid;
   const offset = (elements.length % 5) * 3;
-  const element: VenueElement = { id, ...preset, x: clampPos(50 + offset), y: clampPos(y + (y === 50 ? offset : 0)) };
+  const element: VenueElement = { id, ...preset, x: clampX(room.w / 2 + offset, room), y: clampY(y + (y === mid ? offset : 0), room) };
   return { ...plan, elements: [...elements, element] };
 }
 
@@ -180,7 +242,8 @@ export function duplicateElement(plan: SeatingPlan, id: string, newId: string): 
   const elements = elementsOf(plan);
   const src = elements.find((e) => e.id === id);
   if (!src || elements.length >= MAX_ELEMENTS) return plan;
-  return { ...plan, elements: [...elements, { ...src, id: newId, x: clampPos(src.x + 4), y: clampPos(src.y + 4) }] };
+  const room = roomOf(plan);
+  return { ...plan, elements: [...elements, { ...src, id: newId, x: clampX(src.x + 4, room), y: clampY(src.y + 4, room) }] };
 }
 
 export function patchTable(plan: SeatingPlan, id: string, data: Partial<SeatingTable>): SeatingPlan {

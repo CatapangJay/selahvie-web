@@ -23,6 +23,7 @@ import GallerySection from "./components/GallerySection";
 import RsvpSection from "./components/RsvpSection";
 import RegistrySection from "./components/RegistrySection";
 import FaqSection from "./components/FaqSection";
+import GuestbookSection from "./components/GuestbookSection";
 import TemplateFooter from "./components/TemplateFooter";
 import { Reveal } from "./components/Motion";
 
@@ -31,7 +32,7 @@ interface Props {
   showBranding?: boolean;
 }
 
-type SectionKey = "story" | "venue" | "schedule" | "entourage" | "gallery" | "rsvp" | "registry" | "faq";
+type SectionKey = "story" | "venue" | "schedule" | "entourage" | "gallery" | "rsvp" | "registry" | "faq" | "guestbook";
 
 /**
  * Monochrome: a hairline-framed title card reserved for the viewing guest opens
@@ -74,6 +75,7 @@ export default function MonochromeTemplate({ config, showBranding = true }: Prop
     rsvp: isSectionVisible(config, "rsvp"),
     registry: isSectionVisible(config, "registry") && (config.registryLinks ?? []).some((l) => l.label.trim()),
     faq: isSectionVisible(config, "faq") && (config.faq ?? []).some((f) => f.question.trim()),
+    guestbook: isSectionVisible(config, "guestbook"),
   };
   const order = (Object.keys(renders) as SectionKey[]).filter((k) => renders[k]);
   const index = (key: SectionKey) => String(order.indexOf(key) + 1).padStart(2, "0");
@@ -140,6 +142,11 @@ export default function MonochromeTemplate({ config, showBranding = true }: Prop
         {renders.faq && (
           <Reveal>
             <FaqSection config={config} palette={palette} index={index("faq")} />
+          </Reveal>
+        )}
+        {renders.guestbook && (
+          <Reveal>
+            <GuestbookSection config={config} palette={palette} index={index("guestbook")} />
           </Reveal>
         )}
         <div style={{ background: palette.stone }}>

@@ -13,7 +13,6 @@ import { isSectionVisible } from "@/components/wedding-templates/_shared/section
 import { FONTS_HREF, SANS, cssImage, dateParts, makePalette } from "./theme";
 import LiftIntro from "./components/LiftIntro";
 import HeroSection from "./components/HeroSection";
-import CountdownStrip from "./components/CountdownStrip";
 import Directory, { type FloorEntry } from "./components/Directory";
 import StorySection from "./components/StorySection";
 import DetailsSection from "./components/DetailsSection";
@@ -154,7 +153,6 @@ export default function MezzanineTemplate({ config, showBranding = true }: Props
       {/* While the doors are shut the page behind them is inert, so focus and screen readers stay in the lift. */}
       <div inert={!arrived} style={{ background: palette.linen, color: palette.ink, containerType: "inline-size", fontFamily: SANS, overflowX: "clip" }}>
         <HeroSection config={config} palette={palette} date={date} started={started} greeting={greeting} showRsvpLink={show.rsvp} instant={returning} />
-        <CountdownStrip date={date} palette={palette} />
         <Directory floors={floors} palette={palette} />
 
         <main>

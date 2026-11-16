@@ -1,18 +1,26 @@
 "use client";
 
 import { useEffect, useId, useRef, type ComponentProps } from "react";
-import { Expand, Lock, LockOpen, Minus, Plus, RotateCcw, Search, Shrink, X } from "lucide-react";
+import { Expand, Lock, LockOpen, Maximize, Minus, Plus, RotateCcw, Search, Shrink, X } from "lucide-react";
+import { roomOf } from "@/lib/seating";
 import FloorSurface from "./FloorSurface";
 
-export const ZOOM_MIN = 0.5;
+/** Low enough to fit the largest room (60 m) in a short canvas. */
+export const ZOOM_MIN = 0.1;
 export const ZOOM_MAX = 2;
-const ZOOM_STEPS = [0.5, 0.65, 0.8, 1, 1.25, 1.5, 1.75, 2];
+const ZOOM_STEPS = [0.1, 0.15, 0.25, 0.35, 0.5, 0.65, 0.8, 1, 1.25, 1.5, 1.75, 2];
 export const clampZoom = (z: number) => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, Math.round(z * 100) / 100));
 export const stepZoom = (z: number, dir: 1 | -1) =>
   dir > 0 ? ZOOM_STEPS.find((s) => s > z + 0.001) ?? ZOOM_MAX : [...ZOOM_STEPS].reverse().find((s) => s < z - 0.001) ?? ZOOM_MIN;
 
-/** Narrowest the plan renders at 100%, so seats stay legible on small screens (it scrolls instead). */
+/**
+ * Narrowest the original-size room renders at 100%, so seats stay legible on small
+ * screens (it scrolls instead). Bigger rooms are wider in proportion, so a table
+ * is the same size on screen whatever the room.
+ */
 const MIN_PLAN_PX = 680;
+/** Width of the original room (100 units), as a share of the canvas. */
+const BASE = 100;
 
 interface Props extends Omit<ComponentProps<typeof FloorSurface>, "readOnly" | "style"> {
   zoom: number;
@@ -41,6 +49,16 @@ export default function FloorCanvas({ zoom, onZoom, onLocked, expanded, onExpand
   }, [zoom, onZoom]);
 
   const { locked, query = "" } = surface;
+  const room = roomOf(surface.plan);
+  const scale = room.w / BASE;
+
+  /** The zoom at which the whole room fits the canvas. */
+  const fitZoom = () => {
+    const el = scrollRef.current;
+    if (!el) return 1;
+    const base = Math.max(el.clientWidth, MIN_PLAN_PX) * scale;
+    return clampZoom(Math.min(el.clientWidth / base, el.clientHeight / ((base * room.h) / room.w)) * 0.98);
+  };
 
   return (
     <div
@@ -59,7 +77,7 @@ export default function FloorCanvas({ zoom, onZoom, onLocked, expanded, onExpand
         <FloorSurface
           {...surface}
           style={{
-            width: `max(${zoom * 100}%, ${Math.round(MIN_PLAN_PX * zoom)}px)`,
+            width: `max(${zoom * 100 * scale}%, ${Math.round(MIN_PLAN_PX * zoom * scale)}px)`,
             margin: "0 auto",
           }}
         />
@@ -133,6 +151,9 @@ export default function FloorCanvas({ zoom, onZoom, onLocked, expanded, onExpand
         <RailDivider />
         <RailButton label="Reset zoom" onClick={() => onZoom(1)} disabled={zoom === 1}>
           <RotateCcw size={15} />
+        </RailButton>
+        <RailButton label="Fit the whole room" onClick={() => onZoom(fitZoom())}>
+          <Maximize size={15} />
         </RailButton>
         <RailButton label={locked ? "Unlock layout" : "Lock layout"} pressed={Boolean(locked)} onClick={() => onLocked(!locked)}>
           {locked ? <Lock size={15} /> : <LockOpen size={15} />}

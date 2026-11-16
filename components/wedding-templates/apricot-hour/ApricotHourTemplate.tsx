@@ -22,8 +22,9 @@ import GallerySection from "./components/GallerySection";
 import RsvpSection from "./components/RsvpSection";
 import RegistrySection from "./components/RegistrySection";
 import FaqSection from "./components/FaqSection";
+import GuestbookSection from "./components/GuestbookSection";
 import TemplateFooter from "./components/TemplateFooter";
-import { Reveal, sunsetRamp, type Band } from "./components/Band";
+import { sunsetRamp, type Band } from "./components/Band";
 import { Horizon } from "./components/Ornaments";
 
 interface Props {
@@ -103,9 +104,21 @@ export default function ApricotHourTemplate({ config, showBranding = true }: Pro
       when: isSectionVisible(config, "rsvp"),
       render: (band) => <RsvpSection config={config} palette={palette} band={band} rsvpDeadline={rsvpDeadline} />,
     },
+    {
+      key: "guestbook",
+      when: isSectionVisible(config, "guestbook"),
+      render: (band) => <GuestbookSection config={config} palette={palette} band={band} />,
+    },
   ];
   const shown = sections.filter((s) => s.when);
   const bands = sunsetRamp(palette, shown.length);
+  // What the welcome note on the back of the tag invites guests to look at, in page order.
+  const has = (key: string) => shown.some((s) => s.key === key);
+  const highlights = [
+    has("story") && "our story",
+    (has("venue") || has("schedule")) && "the plans for the day",
+    has("gallery") && "a few favourite photos",
+  ].filter((h): h is string => Boolean(h));
 
   return (
     <div style={{ background: palette.morning, color: palette.ink, fontFamily: SANS, overflowX: "clip" }}>
@@ -118,6 +131,8 @@ export default function ApricotHourTemplate({ config, showBranding = true }: Pro
             partner2={config.partner2Name}
             date={date}
             greeting={greeting}
+            highlights={highlights}
+            canReply={shown.some((s) => s.key === "rsvp")}
             onOpen={handleOpen}
           />
         )}
@@ -125,7 +140,7 @@ export default function ApricotHourTemplate({ config, showBranding = true }: Pro
 
       {opened && <AudioPlayer src={musicSrc} accentColor={palette.apricot} />}
 
-      <HeroSection config={config} palette={palette} date={date} opened={opened} greeting={greeting} />
+      <HeroSection config={config} palette={palette} date={date} opened={opened} greeting={greeting} rsvpHref={shown.some((s) => s.key === "rsvp") ? "#rsvp" : undefined} />
 
       <main>
         {shown.map((section, i) => {
@@ -134,7 +149,7 @@ export default function ApricotHourTemplate({ config, showBranding = true }: Pro
           return (
             <Fragment key={section.key}>
               {above !== band.bg && <Horizon from={above} to={band.bg} ridge={`color-mix(in srgb, ${above} 45%, ${band.bg})`} flip={i % 2 === 1} />}
-              <Reveal>{section.render(band)}</Reveal>
+              {section.render(band)}
             </Fragment>
           );
         })}

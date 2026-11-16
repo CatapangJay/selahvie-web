@@ -6,7 +6,6 @@ import { ceremonyVenue, dressCodeOf, hashtagOf, receptionTimeAtCeremony, recepti
 import type { DateParts, Palette } from "../theme";
 import { SCRIPT, SECTION_PAD, SERIF, feltStyle, paperStyle } from "../theme";
 import SectionHeading from "./SectionHeading";
-import Countdown from "./Countdown";
 
 interface Props {
   config: WeddingConfig;
@@ -176,12 +175,6 @@ export default function DetailsSection({ config, palette: p, date, rsvpDeadline,
               Share the day
             </p>
             <p style={{ fontFamily: SCRIPT, fontSize: "clamp(2rem, 6vw, 3rem)", lineHeight: 1.2, color: p.cream, marginTop: "0.25rem" }}>{hashtag}</p>
-          </Reveal>
-        )}
-
-        {date.date && (
-          <Reveal index={0} style={{ marginTop: "clamp(3.5rem, 8vw, 5rem)" }}>
-            <Countdown target={date.date} palette={p} />
           </Reveal>
         )}
       </div>

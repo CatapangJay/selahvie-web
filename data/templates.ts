@@ -351,10 +351,10 @@ export const templates: WeddingTemplate[] = [
     longDescription:
       "Jewel Tones opens like a letter that was written by hand, for one person. Every guest first meets a sealed envelope with their own name on the front; one tap on the gold wax seal cracks it, the flap lifts, and a cream save-the-date card rises out to reveal the website. Beneath it, raspberry and deep-teal felt panels, gilt-framed gallery pictures, calla lilies and old-master florals carry the same collected, candle-lit warmth. Built exclusively for the Premium plan, because the envelope is only magic when it is addressed to someone.",
     price: 12900,
-    previewImage: "https://picsum.photos/seed/jewel-tones/800/1000",
+    previewImage: "https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=800&h=1000&q=80",
     previewImages: [
-      "https://picsum.photos/seed/jewel-tones/1200/800",
-      "https://picsum.photos/seed/jewel-tones-2/1200/800",
+      "https://images.unsplash.com/photo-1591604466107-ec97de577aff?auto=format&fit=crop&w=1200&h=800&q=80",
+      "https://images.unsplash.com/photo-1596457221755-b96bc3a6df18?auto=format&fit=crop&w=1200&h=800&q=80",
     ],
     tags: ["Romantic", "Luxe"],
     features: [
@@ -383,12 +383,12 @@ export const templates: WeddingTemplate[] = [
     slug: "monochrome",
     description: "A black-and-white contact-sheet invitation — a framed title card reserved for each guest, a full-height portrait and numbered, hairline-ruled sections.",
     longDescription:
-      "Monochrome treats your wedding website like a box of silver-gelatin prints. Every guest first meets a hairline-framed title card with your names, the date in numerals and their own name written in by hand; one tap and it dissolves onto a full-height black-and-white portrait with your names stacked on the centre line and a ruled countdown beneath. From there the page reads like a contact sheet: numbered sections, a black venue print with directions, a ruled timetable, the entourage, numbered film frames, gifts and good-to-know notes. Every photo is rendered in black and white, so whatever you upload belongs.",
+      "Monochrome treats your wedding website like a box of silver-gelatin prints. Every guest first meets a hairline-framed title card with your names, the date in numerals and their own name written in by hand; one tap and it dissolves onto a black-and-white portrait with your names and a ruled countdown in the very first view: stacked on the centre line on a phone, set in a black column beside the portrait as a mounted print on a wide screen. From there the page reads like a contact sheet: numbered sections, a black venue print with directions, a ruled timetable, the entourage, numbered film frames, gifts and good-to-know notes. Every photo is rendered in black and white, so whatever you upload belongs.",
     price: 9900,
-    previewImage: "https://picsum.photos/seed/monochrome/800/1000?grayscale",
+    previewImage: "https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=800&h=1000&q=80",
     previewImages: [
-      "https://picsum.photos/seed/monochrome/1200/800?grayscale",
-      "https://picsum.photos/seed/monochrome-2/1200/800?grayscale",
+      "https://images.unsplash.com/photo-1537633552985-df8429e8048b?auto=format&fit=crop&w=1200&h=800&q=80",
+      "https://images.unsplash.com/photo-1731566971965-acfb1151fc34?auto=format&fit=crop&w=1200&h=800&q=80",
     ],
     tags: ["Modern", "Minimalist"],
     features: [
@@ -418,10 +418,10 @@ export const templates: WeddingTemplate[] = [
     longDescription:
       "Apricot Hour arrives the way flowers do: a butter-yellow gift tag tied on with apricot ribbon, written out to the guest by name. One tap unties the bow, the tag turns over to your names, and the website opens onto a morning sky with your portrait framed in an arched window and the sun turning slowly behind it. As guests scroll, every section is another band of the same sunset — butter, gold, apricot, rose and plum — joined by rolling horizons, until the footer settles into a starry night. Along the way: an order of events where a small sun sinks lower with each moment, arched garden-door photo frames, posy-card entourage lists, and questions that open in place.",
     price: 9900,
-    previewImage: "https://picsum.photos/seed/apricot-hour/800/1000",
+    previewImage: "https://images.unsplash.com/photo-1621621667797-e06afc217fb0?auto=format&fit=crop&w=800&h=1000&q=80",
     previewImages: [
-      "https://picsum.photos/seed/apricot-hour/1200/800",
-      "https://picsum.photos/seed/apricot-hour-2/1200/800",
+      "https://images.unsplash.com/photo-1546032996-6dfacbacbf3f?auto=format&fit=crop&w=1200&h=800&q=80",
+      "https://images.unsplash.com/photo-1532712938310-34cb3982ef74?auto=format&fit=crop&w=1200&h=800&q=80",
     ],
     tags: ["Romantic", "Garden"],
     features: [
@@ -451,10 +451,10 @@ export const templates: WeddingTemplate[] = [
     longDescription:
       "Narra & Kapis is a visit to an old bahay na bato on a slow afternoon. Each guest first finds a closed capiz shell window set in a narra wall, with a note tucked into the sash and their name written on it by hand. One tap slides both shell panels into the frame, the way the old windows open, onto a sepia portrait hung in a carved wooden frame with a calado transom, while the couple's names are written across it in brown ink. Inside, the rooms alternate between planed narra, banig weave and pearly capiz: the story signed off by hand, a shell-plaque venue card, the programme pinned down a narra rail, an entourage set like an old missal, photographs seen through capiz sashes that slide aside, gift plaques, aparador-drawer FAQs, and a dusk over Mount Banahaw to close.",
     price: 9900,
-    previewImage: "https://picsum.photos/seed/narra-kapis/800/1000",
+    previewImage: "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=800&h=1000&q=80",
     previewImages: [
-      "https://picsum.photos/seed/narra-kapis/1200/800",
-      "https://picsum.photos/seed/narra-kapis-2/1200/800",
+      "https://images.unsplash.com/photo-1606216794074-735e91aa2c92?auto=format&fit=crop&w=1200&h=800&q=80",
+      "https://images.unsplash.com/photo-1655994586789-ac173a44aaa5?auto=format&fit=crop&w=1200&h=800&q=80",
     ],
     tags: ["Romantic", "Rustic"],
     features: [
@@ -484,10 +484,10 @@ export const templates: WeddingTemplate[] = [
     longDescription:
       "Shutter & Strip turns opening an invitation into a turn in the photo booth. Each guest finds a marquee booth with chasing bulbs and a card reserved in their name pinned to the red curtain. One tap pulls the curtain back for a 3-2-1 countdown and four camera flashes, then a strip of the couple feeds out of the print slot and develops frame by frame. Inside, the site alternates oat photo paper and the darkroom, each section a numbered frame on the roll: a portrait cut from a length of negative with the camera's orange date burned in, an admission-ticket venue card, the programme as a contact sheet, gallery prints hung on a drying line, a colour-chip dress code, an order-form RSVP and gifts printed on lab receipts.",
     price: 9900,
-    previewImage: "https://picsum.photos/seed/shutter-strip/800/1000",
+    previewImage: "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=800&h=1000&q=80",
     previewImages: [
-      "https://picsum.photos/seed/shutter-strip/1200/800",
-      "https://picsum.photos/seed/shutter-strip-2/1200/800",
+      "https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&h=800&q=80",
+      "https://images.unsplash.com/photo-1781108170068-b657d372cef5?auto=format&fit=crop&w=1200&h=800&q=80",
     ],
     tags: ["Modern", "Romantic"],
     features: [
@@ -516,10 +516,10 @@ export const templates: WeddingTemplate[] = [
     longDescription:
       "Wizarding Vows is a wizarding-world wedding kept elegant: charcoal chalkboard, light-brown linen, antique-gold hairlines and dried flowers. Each guest finds a kraft envelope among bunny-tail grass and statice, addressed to them in sepia quill with a vintage snowy-owl stamp. Breaking the glossy wax seal turns it over, lifts the flap and draws out an aged, stained letter: \"Calling all Witches & Wizards\", a four-house crest with your initials, and the date set between rules. Inside, a slowly breathing portrait sits in a gold arch above your names, with a quiet countdown and a platform 9¾ ticket for every guest. The venue is an enchanted map that unfolds when you solemnly swear, footprints carrying the guest's name to your door, followed by a hairline timetable, moving portraits, house-scarf dress code, a reply by owl, a gift vault and a Deathly Hallows sign-off.",
     price: 9900,
-    previewImage: "https://picsum.photos/seed/wizarding-vows/800/1000",
+    previewImage: "https://images.unsplash.com/photo-1460978812857-470ed1c77af0?auto=format&fit=crop&w=800&h=1000&q=80",
     previewImages: [
-      "https://picsum.photos/seed/wizarding-vows/1200/800",
-      "https://picsum.photos/seed/wizarding-vows-2/1200/800",
+      "https://images.unsplash.com/photo-1460978812857-470ed1c77af0?auto=format&fit=crop&w=1200&h=800&q=80",
+      "https://images.unsplash.com/photo-1750208759971-bf493f97ffca?auto=format&fit=crop&w=1200&h=800&q=80",
     ],
     tags: ["Romantic", "Luxe"],
     features: [
@@ -548,7 +548,7 @@ export const templates: WeddingTemplate[] = [
     slug: "eucalyptus-folio",
     description: "A botanist's herbarium folio: unfold a sheet of rag paper to find pressed eucalyptus and your day, typed like a specimen label.",
     longDescription:
-      "Eucalyptus Folio is a garden wedding told as a herbarium. Each guest receives a sheet of unbleached rag paper folded in four around a typed specimen label made out in their name; it unfolds top, then bottom, then the two doors part and split the linen tape. Inside, every section is a numbered sheet: a photograph tipped in with tape and a real pressed eucalyptus sprig across its corner, the names in a light serif, a locality label for the date and place, a quiet olive countdown band, venue labels with map links, a collection-log timeline, an index of the entourage, mounted photo plates that turn on their own, paint-chip dress code, an accession-slip RSVP, guestbook, specimen-tag gifts and annotated FAQs.",
+      "Eucalyptus Folio is a garden wedding told as a herbarium. Each guest receives a sheet of unbleached rag paper folded in four around a typed specimen label made out in their name; it unfolds top, then bottom, then the two doors part and split the linen tape. Inside, every section is a numbered sheet: a photograph tipped in with tape and a real pressed eucalyptus sprig across its corner, the names in a light serif and a typed specimen label carrying the date, the place and a live countdown, laid out landscape on a wide screen; then venue labels with map links, a collection-log timeline, an index of the entourage, mounted photo plates that turn on their own, paint-chip dress code, an accession-slip RSVP, guestbook, specimen-tag gifts and annotated FAQs.",
     price: 9900,
     previewImage: "https://images.unsplash.com/photo-1775126964550-122cc9c1ecaf?auto=format&fit=crop&w=1600&q=80",
     previewImages: ["https://images.unsplash.com/photo-1775126964550-122cc9c1ecaf?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1786335203772-b1ae0e55b65e?auto=format&fit=crop&w=1200&q=80"],
@@ -558,7 +558,7 @@ export const templates: WeddingTemplate[] = [
       "Real pressed eucalyptus from public-domain herbarium scans",
       "Rag paper, olive ink and a rust accent, in a light serif with typed labels",
       "Tipped-in hero photograph and a locality label for date and place",
-      "Countdown band, venue labels with maps and a collection-log timeline",
+      "Countdown on the hero's specimen label, venue labels with maps and a collection-log timeline",
       "Self-turning photo plates with pause, thumbnails and enlarge",
       "Accession-slip RSVP, guestbook, specimen-tag gifts and FAQs",
       "Mobile-optimized",
@@ -577,7 +577,7 @@ export const templates: WeddingTemplate[] = [
     slug: "mezzanine",
     description: "A grand-hotel lift invitation: press the call button, watch the needle swing to M, and the bronze doors slide open onto your photograph.",
     longDescription:
-      "Mezzanine is a city-hotel wedding told as a lift arriving at the celebration floor. Each guest finds a bronze transom with a floor dial and a place card reserved in their name, above two brushed-bronze doors joined by your initials. One press of the call button swings the needle from L to M, lights the lamp, and the doors part slowly onto your photograph, music already playing. Inside, every section is a floor: a lobby directory lists them and each heading carries its round floor button. Oxblood, bronze and table-linen white throughout: a live countdown strip, venues with map links, the evening as a lift shaft, the wedding party, mounted photographs that open full screen, the dress code on oxblood, travel notes, an RSVP, guestbook, gifts and FAQs.",
+      "Mezzanine is a city-hotel wedding told as a lift arriving at the celebration floor. Each guest finds a bronze transom with a floor dial and a place card reserved in their name, above two brushed-bronze doors joined by your initials. One press of the call button swings the needle from L to M, lights the lamp, and the doors part slowly onto your photograph beside a directory-style panel with your names, the day, the place and a live countdown, music already playing. Inside, every section is a floor: a lobby directory lists them and each heading carries its round floor button. Oxblood, bronze and table-linen white throughout: venues with map links, the evening as a lift shaft, the wedding party, mounted photographs that open full screen, the dress code on oxblood, travel notes, an RSVP, guestbook, gifts and FAQs.",
     price: 9900,
     previewImage: "https://images.unsplash.com/photo-1770866381405-f47395dd2414?auto=format&fit=crop&w=1600&q=80",
     previewImages: ["https://images.unsplash.com/photo-1770866381405-f47395dd2414?auto=format&fit=crop&w=1600&q=80", "https://images.unsplash.com/photo-1774545272426-264af5db8d01?auto=format&fit=crop&w=1200&q=80"],
@@ -588,7 +588,7 @@ export const templates: WeddingTemplate[] = [
       "Oxblood, bronze and linen white in a sharp serif with engraved capitals",
       "Full-bleed hero photograph revealed by the opening doors",
       "Lobby directory and floor-numbered sections",
-      "Countdown strip, venues with maps and an evening timeline",
+      "Live countdown in the arrival view, venues with maps and an evening timeline",
       "Framed photographs with full-screen viewing, RSVP, guestbook, gifts and FAQs",
       "Mobile-optimized",
     ],

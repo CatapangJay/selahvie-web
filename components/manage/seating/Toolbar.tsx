@@ -12,6 +12,7 @@ import {
   Lock,
   LockOpen,
   Plus,
+  Ruler,
   Printer,
   RectangleHorizontal,
   Redo2,
@@ -25,7 +26,22 @@ import {
   ZoomOut,
 } from "lucide-react";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
-import { CUSTOM_PRESETS, DEFAULT_SEATS, ELEMENT_PRESETS, MAX_SEATS, MAX_TABLES, MIN_SEATS, type ElementPreset } from "@/lib/seating";
+import {
+  CUSTOM_PRESETS,
+  DEFAULT_ROOM,
+  DEFAULT_SEATS,
+  ELEMENT_PRESETS,
+  MAX_SEATS,
+  MAX_TABLES,
+  METRES_PER_UNIT,
+  MIN_SEATS,
+  ROOM_MAX_M,
+  ROOM_MIN_M,
+  fromMetres,
+  toMetres,
+  type ElementPreset,
+  type Room,
+} from "@/lib/seating";
 import type { SeatingTable, VenueElementKind } from "@/types/wedding";
 import { Stepper } from "./Editors";
 import { Group, LargeButton, MenuButton, QuickButton, SmallButton, Stack } from "./RibbonParts";
@@ -49,6 +65,10 @@ interface Props {
   onAddTable: (shape: SeatingTable["shape"]) => void;
   onAddTables: (count: number, shape: SeatingTable["shape"], seats: number) => void;
   onAddElement: (preset: ElementPreset) => void;
+  room: Room;
+  /** Smallest room that still holds everything placed. */
+  minRoom: Room;
+  onRoom: (room: Room) => void;
   zoom: number;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -142,6 +162,7 @@ export default function Toolbar(p: Props) {
   );
   const room = (
     <Group label="Room">
+      <RoomSize room={p.room} minRoom={p.minRoom} onRoom={p.onRoom} />
       <RoomFeatures disabled={p.elementsFull} onAdd={p.onAddElement} />
       <Stack>
         {(["stage", "danceFloor", "grazing"] as const).map((k) => (
@@ -379,6 +400,72 @@ function AddSeveral({ disabled, room, onAdd }: { disabled: boolean; room: number
           >
             Add {n} {n === 1 ? "table" : "tables"} · {n * seats} seats
           </ButtonPrimary>
+        </div>
+      )}
+    </MenuButton>
+  );
+}
+
+/** Room size in metres. It can grow freely; it can't shrink past what's already placed. */
+function RoomSize({ room, minRoom, onRoom }: { room: Room; minRoom: Room; onRoom: (room: Room) => void }) {
+  const wM = toMetres(room.w);
+  const hM = toMetres(room.h);
+  const minW = Math.max(ROOM_MIN_M, Math.ceil(minRoom.w * METRES_PER_UNIT * 2) / 2);
+  const minH = Math.max(ROOM_MIN_M, Math.ceil(minRoom.h * METRES_PER_UNIT * 2) / 2);
+  const fit = { w: fromMetres(Math.max(minW, ROOM_MIN_M)), h: fromMetres(Math.max(minH, ROOM_MIN_M)) };
+  const isDefault = room.w === DEFAULT_ROOM.w && room.h === DEFAULT_ROOM.h;
+  return (
+    <MenuButton icon={Ruler} label="Room size">
+      {() => (
+        <div className="w-72 space-y-4">
+          <div>
+            <p className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>Room size</p>
+            <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
+              Roughly the venue floor. Tables and features keep their size and place; the room can&apos;t shrink past them.
+            </p>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>Width</span>
+            <Stepper
+              value={wM}
+              noun="metre of width"
+              min={minW}
+              max={ROOM_MAX_M}
+              format={(v) => `${v} m`}
+              onChange={(m) => onRoom({ ...room, w: fromMetres(Math.max(minW, m)) })}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>Length</span>
+            <Stepper
+              value={hM}
+              noun="metre of length"
+              min={minH}
+              max={ROOM_MAX_M}
+              format={(v) => `${v} m`}
+              onChange={(m) => onRoom({ ...room, h: fromMetres(Math.max(minH, m)) })}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onRoom(fit)}
+              disabled={fit.w === room.w && fit.h === room.h}
+              className="min-h-[36px] flex-1 px-3 text-sm transition-colors hover:bg-[var(--color-surface-container-low)] disabled:opacity-40"
+              style={{ border: "1px solid var(--color-outline)", borderRadius: "var(--radius-sm)", color: "var(--color-on-surface)" }}
+            >
+              Fit to layout
+            </button>
+            <button
+              type="button"
+              onClick={() => onRoom(DEFAULT_ROOM)}
+              disabled={isDefault || minRoom.w > DEFAULT_ROOM.w || minRoom.h > DEFAULT_ROOM.h}
+              className="min-h-[36px] flex-1 px-3 text-sm transition-colors hover:bg-[var(--color-surface-container-low)] disabled:opacity-40"
+              style={{ border: "1px solid var(--color-outline)", borderRadius: "var(--radius-sm)", color: "var(--color-on-surface)" }}
+            >
+              Standard size
+            </button>
+          </div>
         </div>
       )}
     </MenuButton>

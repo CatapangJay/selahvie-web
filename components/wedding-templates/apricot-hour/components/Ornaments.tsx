@@ -16,14 +16,14 @@ export function Horizon({ from, to, ridge, flip = false }: { from: string; to: s
 }
 
 /** Hand-drawn posy sprig: a curved stem, two leaves and three five-petal blooms. */
-export function Sprig({ color, bloom, style }: { color: string; bloom: string; style?: CSSProperties }) {
+export function Sprig({ color, bloom, style, className }: { color: string; bloom: string; style?: CSSProperties; className?: string }) {
   const petals = (cx: number, cy: number, r: number) =>
     Array.from({ length: 5 }, (_, i) => {
       const a = (i * 72 - 90) * (Math.PI / 180);
       return <ellipse key={i} cx={cx + Math.cos(a) * r} cy={cy + Math.sin(a) * r} rx={r * 0.78} ry={r * 0.5} transform={`rotate(${i * 72} ${cx + Math.cos(a) * r} ${cy + Math.sin(a) * r})`} fill={bloom} />;
     });
   return (
-    <svg aria-hidden viewBox="0 0 120 140" style={style}>
+    <svg aria-hidden viewBox="0 0 120 140" style={style} className={className}>
       <path d="M60 136 C 58 100, 50 70, 34 40 M58 96 C 70 74, 84 58, 92 34 M57 112 C 50 100, 40 94, 26 92" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" />
       <path d="M57 112 C 46 116, 34 112, 26 92 C 40 92, 52 100, 57 112 Z" fill={color} opacity=".55" />
       <path d="M60 80 C 70 82, 80 76, 84 66 C 72 64, 64 70, 60 80 Z" fill={color} opacity=".55" />
