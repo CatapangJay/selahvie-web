@@ -5,7 +5,7 @@ import { curveGeometry, seatPoints, SEAT, tableSize } from "@/components/manage/
 import type { FinderFloor, FinderTable } from "@/lib/seatFinder";
 import type { VenueElement } from "@/types/wedding";
 import type { Room } from "@/lib/seating";
-import { centreOf, headsUpRotation, routePath, type Pt, type Route } from "./wayfinding";
+import { centreOf, facingFrom, headsUpRotation, routePath, type Pt, type Route } from "./wayfinding";
 
 interface Props {
   floor: FinderFloor;
@@ -58,11 +58,16 @@ const usePrefersReducedMotion = () =>
   useSyncExternalStore(subscribeReduced, () => window.matchMedia(REDUCED_QUERY).matches, () => false);
 
 export default function SeatMap({ floor, targetId, route, entrance, accent, focus, replayKey, onProgress }: Props) {
-  const rot: Rot = route ? headsUpRotation(route.facing) : 0;
+  const target = floor.tables.find((t) => t.id === targetId);
+  // Door at the bottom, walk going up. Without a route, still face the table from the door.
+  const rot: Rot = route
+    ? headsUpRotation(route.facing)
+    : entrance && target
+      ? headsUpRotation(facingFrom(entrance, floor.room, [centreOf(entrance), centreOf(target)]))
+      : 0;
   const room = floor.room;
   const viewW = rot === 90 || rot === -90 ? room.h : room.w;
   const viewH = rot === 90 || rot === -90 ? room.w : room.h;
-  const target = floor.tables.find((t) => t.id === targetId);
   const d = useMemo(() => (route ? routePath(route.points) : ""), [route]);
   const reduced = usePrefersReducedMotion();
 

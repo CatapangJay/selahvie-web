@@ -305,17 +305,52 @@ export interface Route {
   facing: Pt;
 }
 
-/** Which way is "into the room" from an entrance: away from the nearest wall. */
-export function facingFrom(entrance: VenueElement, room: Room): Pt {
-  const { x, y } = centreOf(entrance);
+const AXES: Pt[] = [{ x: 0, y: -1 }, { x: 0, y: 1 }, { x: 1, y: 0 }, { x: -1, y: 0 }];
+
+/**
+ * Which way the guest faces on walking in, as one of the room's four axes, chosen
+ * so the map can put the door at the bottom and the walk going up ("forward").
+ * Weighs, in order of trust:
+ *  - the door itself: a long, thin entrance opens across its short side, into the room;
+ *  - the walls it's against: a door by a wall faces away from it;
+ *  - the walk: where the table is, and which way the route first heads.
+ * `path` is the walk (entrance first); without a route, entrance → table is enough.
+ */
+export function facingFrom(entrance: VenueElement, room: Room, path: Pt[] = []): Pt {
+  const at = centreOf(entrance);
+  const centre = { x: room.w / 2, y: room.h / 2 };
+  const scores = AXES.map(() => 0);
+  const add = (v: Pt, weight: number) => AXES.forEach((axis, i) => (scores[i] += (axis.x * v.x + axis.y * v.y) * weight));
+
+  // The door: its short side, the half that looks into the room.
+  const long = Math.max(entrance.w, entrance.h);
+  const short = Math.min(entrance.w, entrance.h);
+  if (long >= short * 1.5) {
+    const r = (((entrance.rotation ?? 0) + (entrance.w >= entrance.h ? 90 : 0)) * Math.PI) / 180;
+    let n = { x: Math.cos(r), y: Math.sin(r) };
+    if (n.x * (centre.x - at.x) + n.y * (centre.y - at.y) < 0) n = { x: -n.x, y: -n.y };
+    add(n, 2);
+  }
+
+  // The walls: the closer, the stronger the pull away from them.
+  const reach = Math.max(6, Math.min(room.w, room.h) * 0.15);
   const walls: [number, Pt][] = [
-    [y, { x: 0, y: 1 }],
-    [room.h - y, { x: 0, y: -1 }],
-    [x, { x: 1, y: 0 }],
-    [room.w - x, { x: -1, y: 0 }],
+    [at.y, { x: 0, y: 1 }],
+    [room.h - at.y, { x: 0, y: -1 }],
+    [at.x, { x: 1, y: 0 }],
+    [room.w - at.x, { x: -1, y: 0 }],
   ];
-  walls.sort((a, b) => a[0] - b[0]);
-  return walls[0][1];
+  for (const [d, inward] of walls) add(inward, 1.5 * Math.max(0, 1 - d / reach));
+
+  // The walk: overall towards the table, and the first stretch of the route.
+  if (path.length >= 2) {
+    add(unit(path[0], path[path.length - 1]), 1);
+    const first = path.find((p, i) => i > 0 && Math.hypot(p.x - path[0].x, p.y - path[0].y) > 2) ?? path[1];
+    add(unit(path[0], first), 0.75);
+  }
+
+  const best = scores.indexOf(Math.max(...scores));
+  return AXES[best];
 }
 
 /**
@@ -346,11 +381,12 @@ export function findRoute(floor: FinderFloor, entrance: VenueElement, targetId: 
     paint(goal, tableHit(target, margin + 0.7));
     const start = nearestOpen(grid, begin);
     if (start == null) continue;
-    if (goal[start]) return { points: [begin, aim], facing: facingFrom(entrance, floor.room) };
+    if (goal[start]) return { points: [begin, aim], facing: facingFrom(entrance, floor.room, [begin, aim]) };
     const cells = search(grid, near, goal, start, aim);
     if (!cells) continue;
     const raw = [begin, ...cells.map(centreOfCell)];
-    return { points: straighten(grid, raw), facing: facingFrom(entrance, floor.room) };
+    const points = straighten(grid, raw);
+    return { points, facing: facingFrom(entrance, floor.room, points) };
   }
   return null;
 }
@@ -426,6 +462,8 @@ function landmarks(floor: FinderFloor, targetId: string): Landmark[] {
 /** "Bar" → "the bar"; proper names ("Sweetheart Table", "DJ") keep their capitals. */
 function theLabel(label: string): string {
   const l = label.trim();
+  // Already has its article: "The garden door" → "the garden door".
+  if (/^the\s/i.test(l)) return `the ${l.slice(4).trim()}`;
   const words = l.split(/\s+/);
   const plain = words.every((w, i) => (i === 0 ? /^[A-Z][a-z]*$/.test(w) : /^[a-z]+$/.test(w)));
   return plain ? `the ${l.toLowerCase()}` : `the ${l}`;
