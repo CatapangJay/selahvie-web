@@ -18,6 +18,8 @@ interface Props {
   focus: boolean;
   /** Bumped to restart the walk. */
   replayKey: number;
+  /** Extra quarter turns clockwise the guest asked for, on top of the door-at-the-bottom view. */
+  turns?: number;
   /** 0–1 along the route while the walker moves; drives the step list. */
   onProgress?: (t: number) => void;
 }
@@ -32,6 +34,12 @@ const WALK_MIN_MS = 3200;
 const REST_MS = 1600;
 
 type Rot = 0 | 90 | 180 | -90;
+
+/** `rot` turned a further `turns` quarter turns clockwise. */
+function turnBy(rot: Rot, turns: number): Rot {
+  const deg = (((rot + turns * 90) % 360) + 360) % 360;
+  return (deg === 270 ? -90 : deg) as Rot;
+}
 
 /** Plan point → view point for the turned map (matches `groupTransform`). */
 function toView(p: Pt, rot: Rot, room: Room): Pt {
@@ -57,14 +65,15 @@ const subscribeReduced = (cb: () => void) => {
 const usePrefersReducedMotion = () =>
   useSyncExternalStore(subscribeReduced, () => window.matchMedia(REDUCED_QUERY).matches, () => false);
 
-export default function SeatMap({ floor, targetId, route, entrance, accent, focus, replayKey, onProgress }: Props) {
+export default function SeatMap({ floor, targetId, route, entrance, accent, focus, replayKey, turns = 0, onProgress }: Props) {
   const target = floor.tables.find((t) => t.id === targetId);
   // Door at the bottom, walk going up. Without a route, still face the table from the door.
-  const rot: Rot = route
+  const auto: Rot = route
     ? headsUpRotation(route.facing)
     : entrance && target
       ? headsUpRotation(facingFrom(entrance, floor.room, [centreOf(entrance), centreOf(target)]))
       : 0;
+  const rot = turnBy(auto, turns);
   const room = floor.room;
   const viewW = rot === 90 || rot === -90 ? room.h : room.w;
   const viewH = rot === 90 || rot === -90 ? room.w : room.h;
@@ -179,25 +188,32 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
         <pattern id="sf-stage" width="1" height="1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <rect width="0.12" height="1" fill={INK} opacity="0.08" />
         </pattern>
-        <mask id="sf-draw" maskUnits="userSpaceOnUse">
-          {d && (
-            <path
-              ref={revealRef}
-              data-testid="seat-map-reveal"
-              d={d}
-              fill="none"
-              stroke="#fff"
-              strokeWidth={4}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              pathLength={1}
-              strokeDasharray="1 1"
-            />
-          )}
-        </mask>
       </defs>
 
       <g transform={groupTransform(rot, room)}>
+        <defs>
+          {/*
+            The draw-in mask lives inside the turned group, in the room's own units,
+            so it lines up with the route at any rotation (outside the group it was
+            drawn unturned and hid the start of the route by the door).
+          */}
+          <mask id="sf-draw" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x={-10} y={-10} width={Math.max(room.w, room.h) + 20} height={Math.max(room.w, room.h) + 20}>
+            {d && (
+              <path
+                ref={revealRef}
+                data-testid="seat-map-reveal"
+                d={d}
+                fill="none"
+                stroke="#fff"
+                strokeWidth={4}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                pathLength={1}
+                strokeDasharray="1 1"
+              />
+            )}
+          </mask>
+        </defs>
         <rect x={0.25} y={0.25} width={room.w - 0.5} height={room.h - 0.5} rx={1.2} fill={FLOOR} stroke={HAIRLINE} strokeWidth={0.3} />
 
         {floor.elements.map((el) => (
@@ -210,17 +226,17 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
 
         {d && (
           <g>
-            <path d={d} fill="none" stroke={accent} strokeOpacity={0.16} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
             <path
               ref={pathRef}
               data-testid="seat-map-route"
               d={d}
               fill="none"
               stroke={accent}
-              strokeWidth={0.75}
+              // Dots only, a touch larger now they carry the route on their own.
+              strokeWidth={0.95}
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeDasharray="0.01 1.5"
+              strokeDasharray="0.01 1.6"
               mask="url(#sf-draw)"
               className={reduced ? undefined : "sf-march"}
             />
@@ -251,7 +267,7 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
 
       <style>{`
         .sf-march { animation: sf-march 1.1s linear infinite; }
-        @keyframes sf-march { to { stroke-dashoffset: -1.51; } }
+        @keyframes sf-march { to { stroke-dashoffset: -1.61; } }
         .sf-pulse { transform-box: fill-box; transform-origin: center; animation: sf-pulse 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
         @keyframes sf-pulse { 0% { transform: scale(0.92); opacity: 0.55; } 70%, 100% { transform: scale(1.35); opacity: 0; } }
         @media (prefers-reduced-motion: reduce) { .sf-march, .sf-pulse { animation: none; } }

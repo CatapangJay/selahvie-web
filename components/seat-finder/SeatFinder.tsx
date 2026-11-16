@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, ArrowUpLeft, ArrowUpRight, CornerUpLeft, CornerUpRight, DoorOpen, MapPin, RotateCcw, Search, Users } from "lucide-react";
+import { ArrowUp, ArrowUpLeft, ArrowUpRight, CornerUpLeft, CornerUpRight, DoorOpen, MapPin, Play, RotateCwSquare, Search, Users } from "lucide-react";
 import { FROM_PARAM, type FinderResult, type FinderSite } from "@/lib/seatFinder";
 import SeatMap from "./SeatMap";
 import { directions, findRoute, type Step } from "./wayfinding";
@@ -407,7 +407,8 @@ function Result({
         </div>
       )}
 
-      <Wayfinder floor={floor} tableId={tableId} entranceId={entrance?.id ?? ""} entranceLabel={entranceLabel} accent={accent} />
+      {/* Keyed by door: a new entrance starts from its own door-at-the-bottom view. */}
+      <Wayfinder key={entrance?.id ?? "none"} floor={floor} tableId={tableId} entranceId={entrance?.id ?? ""} entranceLabel={entranceLabel} accent={accent} />
     </div>
   );
 }
@@ -481,6 +482,7 @@ function Wayfinder({
 
   const [focus, setFocus] = useState(true);
   const [replay, setReplay] = useState(0);
+  const [turns, setTurns] = useState(0);
   const [progress, setProgress] = useState(0);
   const active = steps.reduce((a, s, i) => (progress >= s.at - 0.001 ? i : a), 0);
 
@@ -519,25 +521,58 @@ function Wayfinder({
               );
             })}
           </div>
-          {route && (
+          <div className="flex shrink-0 items-center gap-1">
             <button
               type="button"
-              onClick={() => setReplay((n) => n + 1)}
-              aria-label="Replay"
-              title="Replay the route"
-              className="sf-focus inline-flex h-11 w-11 shrink-0 items-center justify-center transition-colors duration-150 hover:bg-white"
+              onClick={() => setTurns((n) => (n + 1) % 4)}
+              aria-label="Rotate map"
+              title="Rotate the map a quarter turn"
+              className="sf-focus inline-flex h-11 w-11 items-center justify-center transition-colors duration-150 hover:bg-white"
               style={{ color: INK_VARIANT, borderRadius: 999 }}
             >
-              <RotateCcw size={18} aria-hidden />
+              <RotateCwSquare size={19} aria-hidden />
             </button>
-          )}
+            {route && (
+              <button
+                type="button"
+                onClick={() => setReplay((n) => n + 1)}
+                aria-label="Replay"
+                title="Replay the route"
+                className="sf-focus inline-flex h-11 w-11 items-center justify-center transition-colors duration-150 hover:bg-white"
+                style={{ color: INK_VARIANT, borderRadius: 999 }}
+              >
+                <Play size={18} aria-hidden />
+              </button>
+            )}
+          </div>
         </div>
         <div className="[--sf-map-max:min(58svh,560px)] lg:[--sf-map-max:calc(100svh-9rem)]">
-          <SeatMap floor={floor} targetId={tableId} route={route} entrance={entrance} accent={accent} focus={focus && Boolean(route)} replayKey={replay} onProgress={setProgress} />
+          <SeatMap
+            floor={floor}
+            targetId={tableId}
+            route={route}
+            entrance={entrance}
+            accent={accent}
+            focus={focus && Boolean(route)}
+            replayKey={replay}
+            turns={turns}
+            onProgress={setProgress}
+          />
         </div>
-        {route && (
-          <p className="px-2 pt-2 text-center text-[0.8125rem] leading-snug" style={{ color: INK_VARIANT }}>
-            Turned so {theDoor(entranceLabel)} is behind you.
+        {entrance && (
+          <p className="flex min-h-[32px] items-center justify-center px-2 pt-2 text-center text-[0.8125rem] leading-snug" style={{ color: INK_VARIANT }} aria-live="polite">
+            {turns === 0 ? (
+              <>Turned so {theDoor(entranceLabel)} is behind you.</>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setTurns(0)}
+                className="sf-focus min-h-[32px] px-1 font-medium underline underline-offset-4"
+                style={{ color: INK_VARIANT, borderRadius: 6 }}
+              >
+                Turn back so {theDoor(entranceLabel)} is behind you
+              </button>
+            )}
           </p>
         )}
       </section>
