@@ -21,8 +21,19 @@ type Access = { config: WeddingConfig; isOwner: boolean; open: boolean } | { err
  * guests once the site is published, on a package with seating, with the finder
  * switched on; the owner always (to try it before the day).
  */
+/** The service-role client, or null (logged) when the server isn't configured for it. */
+function adminOrNull() {
+  try {
+    return createAdminClient();
+  } catch (err) {
+    console.error("[api/sites/seat] server misconfigured:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
 async function access(site: string): Promise<Access> {
-  const admin = createAdminClient();
+  const admin = adminOrNull();
+  if (!admin) return { error: "This page isn't available right now.", status: 503 };
   const query = admin.from("weddings").select("*");
   const { data: row, error } = await (UUID.test(site) ? query.eq("id", site) : query.eq("slug", site.toLowerCase())).maybeSingle<WeddingRow>();
   if (error) {
@@ -70,8 +81,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   if ("error" in a) return NextResponse.json({ error: a.error }, { status: a.status, headers: NO_STORE });
   if (!a.open && !a.isOwner) return NextResponse.json({ error: "Not found." }, { status: 404, headers: NO_STORE });
 
+  const admin = adminOrNull();
+  if (!admin) return NextResponse.json({ error: "Couldn't look that up." }, { status: 503, headers: NO_STORE });
   try {
-    const admin = createAdminClient();
     const [{ guests, groups }, rsvps] = await Promise.all([
       loadGuestList(admin, a.config.id),
       fetchAllRows<{ guest_id: string | null; plus_one_name: string | null; additional_guest_names: string[] | null }>((from, to) =>

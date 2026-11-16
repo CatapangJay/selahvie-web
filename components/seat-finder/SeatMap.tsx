@@ -5,7 +5,7 @@ import { curveGeometry, seatPoints, SEAT, tableSize } from "@/components/manage/
 import type { FinderFloor, FinderTable } from "@/lib/seatFinder";
 import type { VenueElement } from "@/types/wedding";
 import type { Room } from "@/lib/seating";
-import { centreOf, facingFrom, headsUpRotation, routePath, type Pt, type Route } from "./wayfinding";
+import { centreOf, facingFrom, headsUpRotation, routeDots, routePath, type Pt, type Route } from "./wayfinding";
 
 interface Props {
   floor: FinderFloor;
@@ -30,6 +30,8 @@ const HAIRLINE = "#DFD4D4";
 const FLOOR = "#FDF8F7";
 
 const DRAW_MS = 1600;
+/** Each dot's own fade-in; the stagger across the route fills the rest of DRAW_MS. */
+const DOT_MS = 280;
 const WALK_MIN_MS = 3200;
 const REST_MS = 1600;
 
@@ -78,6 +80,7 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
   const viewW = rot === 90 || rot === -90 ? room.h : room.w;
   const viewH = rot === 90 || rot === -90 ? room.w : room.h;
   const d = useMemo(() => (route ? routePath(route.points) : ""), [route]);
+  const dots = useMemo(() => (route ? routeDots(route.points) : []), [route]);
   const reduced = usePrefersReducedMotion();
 
   // Crop to the walk and the table, with room to see what's around them.
@@ -110,7 +113,6 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
 
   // ── Walk animation: draw the route, then loop a walker along it. ──
   const pathRef = useRef<SVGPathElement | null>(null);
-  const revealRef = useRef<SVGPathElement | null>(null);
   const walkerRef = useRef<SVGGElement | null>(null);
   const progressRef = useRef(onProgress);
   useEffect(() => {
@@ -119,27 +121,19 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
 
   useEffect(() => {
     const path = pathRef.current;
-    const reveal = revealRef.current;
     const walker = walkerRef.current;
-    if (!path || !reveal || !walker || !d) return;
+    if (!path || !walker || !d) return;
     const length = path.getTotalLength();
     const place = (t: number) => {
       const p = path.getPointAtLength(Math.max(0, Math.min(1, t)) * length);
       walker.setAttribute("transform", `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
     };
     if (reduced) {
-      reveal.style.transition = "none";
-      reveal.style.strokeDashoffset = "0";
       walker.style.opacity = "0";
       progressRef.current?.(1);
       return;
     }
-    // Draw the line in from the entrance, then start walking it.
-    reveal.style.transition = "none";
-    reveal.style.strokeDashoffset = "1";
-    reveal.getBoundingClientRect();
-    reveal.style.transition = `stroke-dashoffset ${DRAW_MS}ms cubic-bezier(0.65, 0, 0.35, 1)`;
-    reveal.style.strokeDashoffset = "0";
+    // The dots appear from the door (CSS, staggered), then the walker sets off.
     const walkMs = Math.max(WALK_MIN_MS, length * 55);
     const t0 = performance.now();
     let raf = 0;
@@ -191,29 +185,6 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
       </defs>
 
       <g transform={groupTransform(rot, room)}>
-        <defs>
-          {/*
-            The draw-in mask lives inside the turned group, in the room's own units,
-            so it lines up with the route at any rotation (outside the group it was
-            drawn unturned and hid the start of the route by the door).
-          */}
-          <mask id="sf-draw" maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse" x={-10} y={-10} width={Math.max(room.w, room.h) + 20} height={Math.max(room.w, room.h) + 20}>
-            {d && (
-              <path
-                ref={revealRef}
-                data-testid="seat-map-reveal"
-                d={d}
-                fill="none"
-                stroke="#fff"
-                strokeWidth={4}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                pathLength={1}
-                strokeDasharray="1 1"
-              />
-            )}
-          </mask>
-        </defs>
         <rect x={0.25} y={0.25} width={room.w - 0.5} height={room.h - 0.5} rx={1.2} fill={FLOOR} stroke={HAIRLINE} strokeWidth={0.3} />
 
         {floor.elements.map((el) => (
@@ -225,24 +196,24 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
         ))}
 
         {d && (
-          <g>
-            <path
-              ref={pathRef}
-              data-testid="seat-map-route"
-              d={d}
-              fill="none"
-              stroke={accent}
-              // Dots only, a touch larger now they carry the route on their own.
-              strokeWidth={0.95}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeDasharray="0.01 1.6"
-              mask="url(#sf-draw)"
-              className={reduced ? undefined : "sf-march"}
-            />
-          </g>
+          <>
+            {/* The walker's track: geometry only. */}
+            <path ref={pathRef} d={d} fill="none" stroke="none" />
+            {/* The route itself: dots that appear one after another from the door. */}
+            <g key={replayKey} data-testid="seat-map-route" fill={accent}>
+              {dots.map((p, i) => (
+                <circle
+                  key={i}
+                  cx={p.x.toFixed(2)}
+                  cy={p.y.toFixed(2)}
+                  r={0.48}
+                  className="sf-dot"
+                  style={{ animationDelay: `${Math.round((i / Math.max(1, dots.length - 1)) * (DRAW_MS - DOT_MS))}ms` }}
+                />
+              ))}
+            </g>
+          </>
         )}
-
         {start && (
           <g transform={`translate(${start.x} ${start.y})`}>
             <circle r={1.5} fill="#fff" stroke={accent} strokeWidth={0.45} />
@@ -266,11 +237,11 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
       </g>
 
       <style>{`
-        .sf-march { animation: sf-march 1.1s linear infinite; }
-        @keyframes sf-march { to { stroke-dashoffset: -1.61; } }
+        .sf-dot { transform-box: fill-box; transform-origin: center; animation: sf-dot ${DOT_MS}ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+        @keyframes sf-dot { from { opacity: 0; transform: scale(0.3); } }
         .sf-pulse { transform-box: fill-box; transform-origin: center; animation: sf-pulse 2.6s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
         @keyframes sf-pulse { 0% { transform: scale(0.92); opacity: 0.55; } 70%, 100% { transform: scale(1.35); opacity: 0; } }
-        @media (prefers-reduced-motion: reduce) { .sf-march, .sf-pulse { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .sf-dot, .sf-pulse { animation: none; } }
       `}</style>
     </svg>
   );

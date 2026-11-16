@@ -57,7 +57,12 @@ const walker = (page: Page) => page.getByTestId("seat-map-walker");
 const steps = (page: Page) => page.getByRole("list", { name: "Directions" }).getByRole("listitem");
 const walkerAt = (page: Page) => walker(page).evaluate((g) => g.getAttribute("transform") ?? "");
 const walkerOpacity = (page: Page) => walker(page).evaluate((g) => Number(getComputedStyle(g).opacity));
-const revealOffset = (page: Page) => page.getByTestId("seat-map-reveal").evaluate((p) => Number(getComputedStyle(p).strokeDashoffset.replace("px", "")));
+/** Share of the route's dots that are showing (they appear one after another from the door). */
+const dotsShown = (page: Page) =>
+  page.getByTestId("seat-map-route").evaluate((g) => {
+    const dots = [...g.querySelectorAll("circle")];
+    return dots.filter((c) => Number(getComputedStyle(c).opacity) > 0.5).length / Math.max(1, dots.length);
+  });
 const activeStep = (page: Page) => steps(page).evaluateAll((items) => items.findIndex((li) => li.getAttribute("aria-current") === "step"));
 const viewBox = (page: Page) => map(page).evaluate((svg) => svg.getAttribute("viewBox") ?? "");
 
@@ -80,13 +85,13 @@ test.describe("Find your table: map and animation", () => {
     const { ctx, page } = await phone(browser);
     await lookUp(page, "Lena Ortiz", "south");
 
-    // While the line is drawing, it's still mostly hidden and the walker hasn't set off.
-    expect(await revealOffset(page)).toBeGreaterThan(0.2);
+    // While the line is drawing, part of it is still hidden and the walker hasn't set off.
+    expect(await dotsShown(page)).toBeLessThan(0.8);
     expect(await walkerOpacity(page)).toBe(0);
     await page.screenshot({ path: "test-results/seat-finder/anim-1-drawing.png" });
 
     // Fully drawn, then walking: the walker is visible and its position changes.
-    await expect.poll(() => revealOffset(page), { timeout: 4_000 }).toBeLessThan(0.01);
+    await expect.poll(() => dotsShown(page), { timeout: 4_000 }).toBe(1);
     await expect.poll(() => walkerOpacity(page), { timeout: 4_000 }).toBe(1);
     const a = await walkerAt(page);
     await page.waitForTimeout(600);
@@ -138,7 +143,7 @@ test.describe("Find your table: map and animation", () => {
 
     await page.getByRole("button", { name: "Replay" }).click();
     expect(await walkerOpacity(page)).toBe(0);
-    expect(await revealOffset(page)).toBeGreaterThan(0.2);
+    expect(await dotsShown(page)).toBeLessThan(0.8);
     await expect.poll(() => walkerOpacity(page), { timeout: 4_000 }).toBe(1);
     await ctx.close();
   });
@@ -148,11 +153,11 @@ test.describe("Find your table: map and animation", () => {
     const { ctx, page } = await phone(browser, { reducedMotion: "reduce" });
     await lookUp(page, "Lena Ortiz", "south");
 
-    expect(await revealOffset(page)).toBeLessThan(0.01);
+    expect(await dotsShown(page)).toBe(1);
     await page.waitForTimeout(2_500);
     expect(await walkerOpacity(page)).toBe(0);
     const animations = await map(page).evaluate((svg) =>
-      [...svg.querySelectorAll(".sf-march, .sf-pulse")].map((el) => getComputedStyle(el).animationName)
+      [...svg.querySelectorAll(".sf-dot, .sf-pulse")].map((el) => getComputedStyle(el).animationName)
     );
     expect(animations.length).toBeGreaterThan(0);
     expect(animations.every((name) => name === "none")).toBe(true);

@@ -411,6 +411,47 @@ export function routePath(points: Pt[], radius = 2.4): string {
   return `${d}L${f(last.x)} ${f(last.y)}`;
 }
 
+/**
+ * Evenly spaced dots along the same rounded path `routePath` draws, door first.
+ * The route is drawn as these dots, so it needs no SVG masks (which Chrome renders
+ * unreliably inside a turned map).
+ */
+export function routeDots(points: Pt[], spacing = 1.6, radius = 2.4): Pt[] {
+  if (points.length < 2) return points.slice();
+  // Rebuild the path as fine line pieces: straight runs, each corner a quadratic curve.
+  const fine: Pt[] = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    const p = points[i - 1];
+    const q = points[i];
+    const s = points[i + 1];
+    const r = Math.min(radius, Math.hypot(q.x - p.x, q.y - p.y) / 2, Math.hypot(s.x - q.x, s.y - q.y) / 2);
+    const a = towards(q, p, r);
+    const b = towards(q, s, r);
+    fine.push(a);
+    for (let k = 1; k <= 8; k++) {
+      const t = k / 8;
+      const u = 1 - t;
+      fine.push({ x: u * u * a.x + 2 * u * t * q.x + t * t * b.x, y: u * u * a.y + 2 * u * t * q.y + t * t * b.y });
+    }
+  }
+  fine.push(points[points.length - 1]);
+
+  const dots: Pt[] = [fine[0]];
+  let carry = 0;
+  for (let i = 1; i < fine.length; i++) {
+    const a = fine[i - 1];
+    const b = fine[i];
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    let at = spacing - carry;
+    while (at <= len) {
+      dots.push({ x: a.x + ((b.x - a.x) * at) / len, y: a.y + ((b.y - a.y) * at) / len });
+      at += spacing;
+    }
+    carry = len - (at - spacing);
+  }
+  return dots;
+}
+
 function towards(from: Pt, to: Pt, dist: number): Pt {
   const len = Math.hypot(to.x - from.x, to.y - from.y) || 1;
   return { x: from.x + ((to.x - from.x) / len) * dist, y: from.y + ((to.y - from.y) / len) * dist };

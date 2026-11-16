@@ -17,7 +17,14 @@ const NO_STORE = { "Cache-Control": "no-store" };
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ site: string }> }) {
   const { site } = await params;
-  const admin = createAdminClient();
+  let admin: ReturnType<typeof createAdminClient>;
+  try {
+    admin = createAdminClient();
+  } catch (err) {
+    // Usually SUPABASE_SECRET_KEY missing from the server's runtime environment.
+    console.error("[api/sites] server misconfigured:", err instanceof Error ? err.message : err);
+    return NextResponse.json({ error: "Couldn't load this website." }, { status: 503, headers: NO_STORE });
+  }
   const query = admin.from("weddings").select("*");
   const { data: row, error } = await (UUID.test(site) ? query.eq("id", site) : query.eq("slug", site.toLowerCase())).maybeSingle<WeddingRow>();
   if (error) {
