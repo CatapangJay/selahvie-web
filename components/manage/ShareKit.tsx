@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Download, ExternalLink, Lock, Printer } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, Lock } from "lucide-react";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { configTier, hasModule, upgradePrice } from "@/lib/tiers";
@@ -20,7 +20,7 @@ import { planOf } from "@/lib/seating";
 import { entrancesOf, seatFinderPath } from "@/lib/seatFinder";
 import { useWeddingStore } from "@/store/weddingStore";
 import { weddingTheme, type GuestTheme } from "@/lib/weddingTheme";
-import { tableFinderSignPng } from "@/lib/qrSign";
+import SignDesigner from "@/components/manage/SignDesigner";
 import type { WeddingConfig } from "@/types/wedding";
 
 interface Props {
@@ -33,7 +33,7 @@ interface ShareCode {
   label: string;
   hint: string;
   url: string;
-  /** Table finder codes also come as a printed sign for that door. */
+  /** Table finder codes: which door the code is for (signs say "You're at the …"). */
   sign?: { entrance?: string };
 }
 
@@ -255,6 +255,14 @@ function TableFinder({ config, origin, stem, look }: { config: WeddingConfig; or
           <span className="sr-only"> (opens in a new tab)</span>
         </Link>
       </p>
+
+      <SignDesigner
+        codes={codes.map((c) => ({ id: c.id, entrance: c.sign?.entrance, url: c.url }))}
+        theme={look.theme}
+        names={look.names}
+        meta={look.meta}
+        stem={stem}
+      />
     </section>
   );
 }
@@ -275,20 +283,6 @@ function QrCard({ code, stem, look }: { code: ShareCode; stem: string; look: QrL
       setTimeout(() => setCopied(false), 2000);
     } catch {
       setError("Couldn't copy. Select the link and copy it instead.");
-    }
-  };
-
-  const [signing, setSigning] = useState(false);
-  const downloadSign = async () => {
-    setError("");
-    setSigning(true);
-    try {
-      const blob = await tableFinderSignPng({ url: code.url, theme: look.theme, names: look.names, meta: look.meta, entrance: code.sign?.entrance });
-      downloadBlob(`${filename.replace(/-qr$/, "")}-sign.png`, blob);
-    } catch {
-      setError("Couldn't create the sign. Try again, or use the PNG code.");
-    } finally {
-      setSigning(false);
     }
   };
 
@@ -365,12 +359,6 @@ function QrCard({ code, stem, look }: { code: ShareCode; stem: string; look: QrL
           SVG
         </ButtonSecondary>
       </div>
-      {code.sign && (
-        <ButtonSecondary size="sm" fullWidth onClick={downloadSign} disabled={signing} aria-label={`Download a printable ${code.label} sign`}>
-          <Printer size={13} aria-hidden />
-          {signing ? "Making the sign…" : "Printable sign (A5)"}
-        </ButtonSecondary>
-      )}
       {error && (
         <p role="alert" className="text-xs" style={{ color: "var(--color-error)" }}>{error}</p>
       )}
