@@ -45,7 +45,8 @@ async function access(site: string): Promise<Access> {
   const user = await requireUser();
   const isOwner = Boolean(user && user.id === row.owner_id);
   const config = fromWeddingRow(row);
-  const open = row.status === "published" && hasModule(config, "seating") && Boolean(config.seatingPlan?.guestFinder);
+  // Part of Premium: open to guests once the website is published.
+  const open = row.status === "published" && hasModule(config, "seating");
   if (!isOwner && row.status !== "published") return { error: "Not found.", status: 404 };
   return { config, isOwner, open };
 }

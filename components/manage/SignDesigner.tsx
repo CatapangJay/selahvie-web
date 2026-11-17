@@ -2,29 +2,59 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Download, Monitor, Printer, RectangleVertical, Smartphone } from "lucide-react";
+import { Ban, Download, ImageOff, Monitor, Printer, RectangleVertical, Smartphone } from "lucide-react";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { InputField, TextareaField } from "@/components/ui/InputField";
 import Select from "@/components/ui/Select";
 import { downloadBlob } from "@/lib/qr";
-import { DEFAULT_HEADLINE, DEFAULT_MESSAGE, SIGN_FORMATS, drawSign, prepareSign, signPng, type SignFormat, type SignFormatId } from "@/lib/qrSign";
+import {
+  SIGN_FORMATS,
+  SIGN_STYLES,
+  drawSign,
+  loadSignPhoto,
+  prepareSign,
+  signPng,
+  type SignFormat,
+  type SignFormatId,
+  type SignOptions,
+  type SignStyleId,
+} from "@/lib/qrSign";
 import type { GuestTheme } from "@/lib/weddingTheme";
 
 export interface SignCode {
   id: string;
-  /** Entrance name, when the plan has entrances. */
+  /** Name in the "which one" picker, e.g. "Main entrance" or "Reception". */
+  label: string;
+  /** Entrance name, when the plan has entrances ("You're at the …" on the sign). */
   entrance?: string;
   url: string;
 }
 
-interface Props {
+/** What a sign is for: where its code leads, and the wording it starts with. */
+export interface SignPurpose {
+  id: string;
+  label: string;
+  /** One line on where it's used, shown under the picker. */
+  hint: string;
+  headline: string;
+  message: string;
+  /** Label for the picker when there's more than one code, e.g. "Which entrance". */
+  pick?: string;
   codes: SignCode[];
+}
+
+interface Props {
+  purposes: SignPurpose[];
+  purposeId: string;
+  onPurposeChange: (id: string) => void;
   theme: GuestTheme;
   names: string;
   meta: string;
   /** File name stem, e.g. "ana-ben". */
   stem: string;
+  /** The couple's photos (hero first, then the gallery), for the photo styles. */
+  photos: string[];
 }
 
 const FORMAT_ICON: Record<SignFormatId, typeof Monitor> = {
@@ -38,45 +68,78 @@ const FORMAT_ICON: Record<SignFormatId, typeof Monitor> = {
 
 /** Longest side of the on-screen preview, in device pixels. */
 const PREVIEW_PX = 900;
+/** Longest side of each style thumbnail. */
+const THUMB_PX = 220;
 
 /**
- * Signs for the day, between the ceremony and the reception: pick where it goes
- * (card, poster, easel board, phone, screen), which door's code, and the words.
+ * Signs and cards with a code: pick what it's for (invitation, RSVP, directions,
+ * registry, table finder), where it goes (card, poster, easel board, phone,
+ * screen), which code when there's more than one, and the words.
  * The preview is drawn by the same code as the export.
  */
-export default function SignDesigner({ codes, theme, names, meta, stem }: Props) {
+export default function SignDesigner({ purposes, purposeId, onPurposeChange, theme, names, meta, stem, photos }: Props) {
   const ids = useId();
-  const [codeId, setCodeId] = useState(codes[0]?.id ?? "");
+  const purpose = purposes.find((p) => p.id === purposeId) ?? purposes[0];
+  const codes = purpose?.codes ?? [];
+  /** Which code, per purpose (e.g. the side entrance for the table finder). */
+  const [codeIds, setCodeIds] = useState<Record<string, string>>({});
   const [formatId, setFormatId] = useState<SignFormatId>("a4");
-  const [headline, setHeadline] = useState(DEFAULT_HEADLINE);
-  const [message, setMessage] = useState(DEFAULT_MESSAGE);
+  /** The couple's own wording, per purpose; unset means the purpose's default. */
+  const [copy, setCopy] = useState<Record<string, { headline?: string; message?: string }>>({});
   const [showEntrance, setShowEntrance] = useState(true);
   const [showLink, setShowLink] = useState(true);
+  const [styleId, setStyleId] = useState<SignStyleId>(photos.length ? "cover" : "band");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(photos[0] ?? null);
+  /** The loaded photo for `photoUrl`; null while loading or when it can't be used. */
+  const [photo, setPhoto] = useState<{ url: string; img: HTMLImageElement | null } | null>(null);
   const [busy, setBusy] = useState<"png" | "print" | null>(null);
   const [error, setError] = useState("");
   const [printUrl, setPrintUrl] = useState<string | null>(null);
   const previewRef = useRef<HTMLCanvasElement>(null);
 
-  const code = codes.find((c) => c.id === codeId) ?? codes[0];
+  const code = codes.find((c) => c.id === codeIds[purpose?.id ?? ""]) ?? codes[0];
+  const headline = copy[purpose?.id ?? ""]?.headline ?? purpose?.headline ?? "";
+  const message = copy[purpose?.id ?? ""]?.message ?? purpose?.message ?? "";
+  const edit = (field: "headline" | "message", value: string) => {
+    if (purpose) setCopy((c) => ({ ...c, [purpose.id]: { ...c[purpose.id], [field]: value } }));
+  };
   const format = SIGN_FORMATS.find((f) => f.id === formatId) ?? SIGN_FORMATS[1];
   const entrance = showEntrance ? code?.entrance : undefined;
-  const opts = code ? { url: code.url, theme, names, meta, entrance, headline, message, showLink } : null;
+  const img = photo && photo.url === photoUrl ? photo.img : null;
+  const photoBlocked = Boolean(photoUrl && photo?.url === photoUrl && !photo.img);
+  const opts: SignOptions | null = code && purpose ? { url: code.url, theme, names, meta, entrance, headline: headline || purpose.headline, message: message || purpose.message, showLink, style: styleId, photo: img } : null;
 
-  // Redraw the preview whenever anything changes (fonts first, so canvas has them).
+  // Load the chosen photo (once per photo; loadSignPhoto caches).
+  useEffect(() => {
+    if (!photoUrl) return;
+    let live = true;
+    loadSignPhoto(photoUrl).then((loaded) => live && setPhoto({ url: photoUrl, img: loaded }));
+    return () => {
+      live = false;
+    };
+  }, [photoUrl]);
+
+  // Redraw the preview and the style thumbnails whenever anything changes (fonts first).
+  const thumbs = useRef<Partial<Record<SignStyleId, HTMLCanvasElement | null>>>({});
   useEffect(() => {
     const canvas = previewRef.current;
     if (!canvas || !opts) return;
     let live = true;
     prepareSign(theme).then(() => {
-      if (live) drawSign(canvas, format, opts, PREVIEW_PX / Math.max(format.width, format.height));
+      if (!live) return;
+      drawSign(canvas, format, opts, PREVIEW_PX / Math.max(format.width, format.height));
+      for (const st of SIGN_STYLES) {
+        const t = thumbs.current[st.id];
+        if (t) drawSign(t, format, { ...opts, style: st.id }, THUMB_PX / Math.max(format.width, format.height));
+      }
     });
     return () => {
       live = false;
     };
   });
 
-  if (!code || !opts) return null;
-  const file = `${stem}-find-your-table-${format.id}${code.entrance && codes.length > 1 ? `-${code.id}` : ""}`;
+  if (!code || !opts || !purpose) return null;
+  const file = `${stem}-${purpose.id}-sign-${styleId}-${format.id}${codes.length > 1 ? `-${code.id}` : ""}`;
 
   const download = async () => {
     setError("");
@@ -104,19 +167,150 @@ export default function SignDesigner({ codes, theme, names, meta, stem }: Props)
   const landscape = format.width > format.height;
 
   return (
-    <section aria-labelledby={`${ids}-title`} className="space-y-5 pt-6" style={{ borderTop: "1px solid var(--color-outline)" }}>
+    <section aria-labelledby={`${ids}-title`} className="space-y-6">
       <div className="max-w-xl space-y-1.5">
-        <h3 id={`${ids}-title`} className="text-[1.0625rem] font-medium" style={{ color: "var(--color-on-surface)" }}>
-          Signs for the day
-        </h3>
+        <h2 id={`${ids}-title`} className="text-[1.0625rem] font-medium" style={{ color: "var(--color-on-surface)" }}>
+          Signs &amp; cards
+        </h2>
         <p className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
-          For the entrance, an easel by cocktail hour, or a screen while guests make their way from the ceremony
-          to the reception. In your colours, with the code ready to scan.
+          A card to tuck in with the invitations, a poster at the door, an easel by cocktail hour or a slide for
+          the screen. In your colours, with the code ready to scan.
         </p>
       </div>
 
+      <fieldset>
+        <legend className="text-[0.8125rem] font-medium" style={{ color: "var(--color-on-surface-variant)" }}>
+          What it&apos;s for
+        </legend>
+        <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="What the sign is for">
+          {purposes.map((p) => {
+            const on = p.id === purpose.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => onPurposeChange(p.id)}
+                className="inline-flex min-h-[40px] items-center px-4 text-sm transition-colors duration-150 hover:bg-[var(--color-surface-container-low)]"
+                style={{
+                  borderRadius: "var(--radius-full)",
+                  border: `1px solid ${on ? "var(--color-primary)" : "var(--color-outline)"}`,
+                  background: on ? "var(--color-primary-container)" : "var(--color-surface-container-lowest)",
+                  color: on ? "var(--color-primary-dim)" : "var(--color-on-surface)",
+                  fontWeight: on ? 500 : 400,
+                }}
+              >
+                {p.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>{purpose.hint}</p>
+      </fieldset>
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="space-y-6">
+          <fieldset>
+            <legend className="text-[0.8125rem] font-medium" style={{ color: "var(--color-on-surface-variant)" }}>
+              Design
+            </legend>
+            <div className="mt-2 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Sign design">
+              {SIGN_STYLES.map((st) => {
+                const on = st.id === styleId;
+                return (
+                  <button
+                    key={st.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    aria-label={`${st.label}: ${st.note}`}
+                    title={st.note}
+                    onClick={() => setStyleId(st.id)}
+                    className="group flex flex-col items-center gap-1.5 p-2 transition-colors duration-150 hover:bg-[var(--color-surface-container-low)]"
+                    style={{
+                      borderRadius: "var(--radius-sm)",
+                      border: `1px solid ${on ? "var(--color-primary)" : "var(--color-outline)"}`,
+                      background: on ? "var(--color-primary-container)" : "var(--color-surface-container-lowest)",
+                      boxShadow: on ? "inset 0 0 0 1px var(--color-primary)" : undefined,
+                    }}
+                  >
+                    <span className="flex h-[92px] w-full items-center justify-center">
+                      <canvas
+                        aria-hidden
+                        ref={(node) => {
+                          thumbs.current[st.id] = node;
+                        }}
+                        className="block max-h-[92px] max-w-full"
+                        style={{ borderRadius: 2, boxShadow: "0 2px 8px -3px rgb(47 30 38 / 0.35)" }}
+                      />
+                    </span>
+                    <span className="text-xs font-medium" style={{ color: on ? "var(--color-primary-dim)" : "var(--color-on-surface)" }}>
+                      {st.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+              {SIGN_STYLES.find((st) => st.id === styleId)?.note}.
+            </p>
+          </fieldset>
+
+          {photos.length > 0 && (
+            <fieldset>
+              <legend className="text-[0.8125rem] font-medium" style={{ color: "var(--color-on-surface-variant)" }}>
+                Photo
+              </legend>
+              <div className="mt-2 flex gap-2 overflow-x-auto pb-1" role="radiogroup" aria-label="Photo on the sign">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={photoUrl === null}
+                  aria-label="No photo"
+                  onClick={() => setPhotoUrl(null)}
+                  className="inline-flex h-16 w-16 shrink-0 items-center justify-center transition-colors"
+                  style={{
+                    borderRadius: "var(--radius-sm)",
+                    border: `${photoUrl === null ? 2 : 1}px solid ${photoUrl === null ? "var(--color-primary)" : "var(--color-outline)"}`,
+                    color: "var(--color-on-surface-variant)",
+                    background: "var(--color-surface-container-lowest)",
+                  }}
+                >
+                  <Ban size={18} aria-hidden />
+                </button>
+                {photos.slice(0, 12).map((src, i) => {
+                  const on = src === photoUrl;
+                  return (
+                    <button
+                      key={src}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      aria-label={i === 0 ? "Main photo" : `Gallery photo ${i}`}
+                      onClick={() => setPhotoUrl(src)}
+                      className="relative h-16 w-16 shrink-0 overflow-hidden transition-[box-shadow]"
+                      style={{
+                        borderRadius: "var(--radius-sm)",
+                        boxShadow: on ? "0 0 0 2px var(--color-surface), 0 0 0 4px var(--color-primary)" : "inset 0 0 0 1px var(--color-outline)",
+                      }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element -- the couple's own uploads, any host */}
+                      <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    </button>
+                  );
+                })}
+              </div>
+              {photoBlocked && (
+                <p className="mt-2 flex items-start gap-1.5 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+                  <ImageOff size={13} aria-hidden className="mt-px shrink-0" />
+                  This photo&apos;s host doesn&apos;t let it be saved into an image, so the sign uses your colours instead.
+                  Upload the photo in the studio to use it here.
+                </p>
+              )}
+            </fieldset>
+          )}
+
           <fieldset>
             <legend className="text-[0.8125rem] font-medium" style={{ color: "var(--color-on-surface-variant)" }}>
               Where it goes
@@ -157,11 +351,11 @@ export default function SignDesigner({ codes, theme, names, meta, stem }: Props)
 
           {codes.length > 1 && (
             <Select
-              id={`${ids}-door`}
-              label="Which entrance's code"
+              id={`${ids}-code`}
+              label={purpose.pick ?? "Which code"}
               value={code.id}
-              onChange={setCodeId}
-              options={codes.map((c) => ({ value: c.id, label: c.entrance ?? "Find your table" }))}
+              onChange={(id) => setCodeIds((c) => ({ ...c, [purpose.id]: id }))}
+              options={codes.map((c) => ({ value: c.id, label: c.label }))}
             />
           )}
 
@@ -170,8 +364,8 @@ export default function SignDesigner({ codes, theme, names, meta, stem }: Props)
             label="Headline"
             value={headline}
             maxLength={40}
-            onChange={(e) => setHeadline(e.target.value)}
-            placeholder={DEFAULT_HEADLINE}
+            onChange={(e) => edit("headline", e.target.value)}
+            placeholder={purpose.headline}
           />
           <TextareaField
             id={`${ids}-message`}
@@ -179,8 +373,8 @@ export default function SignDesigner({ codes, theme, names, meta, stem }: Props)
             value={message}
             rows={3}
             maxLength={180}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder={DEFAULT_MESSAGE}
+            onChange={(e) => edit("message", e.target.value)}
+            placeholder={purpose.message}
           />
 
           <div className="space-y-2.5 text-sm" style={{ color: "var(--color-on-surface)" }}>
@@ -196,13 +390,10 @@ export default function SignDesigner({ codes, theme, names, meta, stem }: Props)
             </label>
           </div>
 
-          {(headline !== DEFAULT_HEADLINE || message !== DEFAULT_MESSAGE) && (
+          {(headline !== purpose.headline || message !== purpose.message) && (
             <button
               type="button"
-              onClick={() => {
-                setHeadline(DEFAULT_HEADLINE);
-                setMessage(DEFAULT_MESSAGE);
-              }}
+              onClick={() => setCopy((c) => ({ ...c, [purpose.id]: {} }))}
               className="text-sm underline underline-offset-4"
               style={{ color: "var(--color-on-surface-variant)" }}
             >
@@ -219,7 +410,7 @@ export default function SignDesigner({ codes, theme, names, meta, stem }: Props)
             <canvas
               ref={previewRef}
               role="img"
-              aria-label={`Preview: ${format.label} sign for ${names || "your wedding"}${entrance ? `, ${entrance}` : ""}`}
+              aria-label={`Preview: ${purpose.label} ${format.label} sign for ${names || "your wedding"}${entrance ? `, ${entrance}` : ""}`}
               className="block h-auto shadow-[0_12px_32px_-16px_rgb(47_30_38_/_0.35)]"
               style={{ width: "100%", maxWidth: landscape ? 560 : 340, borderRadius: 4 }}
             />

@@ -208,8 +208,8 @@ export interface SeatingPlan {
    */
   room?: { w: number; h: number };
   /**
-   * Day-of "Find your table" page (/wedding/[slug]/seat) is open to guests. Off by
-   * default, so a half-finished chart isn't shown before the couple is ready.
+   * @deprecated No longer read: the day-of "Find your table" page is open on every
+   * published website with seating. Kept so stored plans still parse.
    */
   guestFinder?: boolean;
 }

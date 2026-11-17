@@ -1,5 +1,5 @@
 import { test, expect, type Browser } from "@playwright/test";
-import { addGuest, adminClient, buyWebsite, createConfirmedAccount, logIn, publishWebsite, updateWebsite, weddingRow, type TestAccount } from "./support";
+import { addGuest, adminClient, buyWebsite, createConfirmedAccount, logIn, publishWebsite, updateWebsite, type TestAccount } from "./support";
 
 // FIND-01 … FIND-07 in e2e/TEST_CASES.csv. The day-of "Find your table" page.
 
@@ -143,23 +143,18 @@ test.describe("Find your table (Premium)", () => {
     expect(text).not.toContain(jose.code);
   });
 
-  test("FIND-05 the finder stays closed to guests until the couple switches it on", async ({ page, browser }) => {
+  test("FIND-05 the finder is open to guests on a published Premium website, with no switch to flip", async ({ page, browser }) => {
     const id = await buyWebsite(page, "premium");
     const slug = await publishWebsite(id);
+    // A plan saved while the finder still had an on/off switch, left off.
     await seedRoom(id, { finder: false });
 
     const phone = await guestPhone(browser);
     const guest = await phone.newPage();
     await guest.goto(`/wedding/${slug}/seat`);
-    await expect(guest.getByRole("heading", { name: "Table finder opens soon" })).toBeVisible();
-    const res = await guest.request.post(`/api/sites/${slug}/seat`, { data: { query: "Maria Santos" } });
-    expect(res.status()).toBe(404);
-
-    // The owner can still try it.
-    await page.goto(`/wedding/${slug}/seat`);
-    await page.getByLabel("Your name").fill("Maria Santos");
-    await page.getByRole("button", { name: "Find my table" }).click();
-    await expect(page.getByRole("heading", { name: "Table 6" })).toBeVisible();
+    await guest.getByLabel("Your name").fill("Maria Santos");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByRole("heading", { name: "Table 6" })).toBeVisible();
     await phone.close();
   });
 
@@ -175,25 +170,18 @@ test.describe("Find your table (Premium)", () => {
     await phone.close();
   });
 
-  test("FIND-07 the Share tab switches the finder on and offers a code per entrance", async ({ page }) => {
+  test("FIND-07 the Share tab's QR codes include a table finder code per entrance", async ({ page }) => {
     const id = await buyWebsite(page, "premium");
     await publishWebsite(id);
-    await seedRoom(id, { finder: false });
+    await seedRoom(id);
 
     await page.goto(`/dashboard/manage/${id}?tab=share`);
-    await expect(page.getByRole("heading", { name: "Table finder for the day" })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /QR codes/ })).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("heading", { name: "RSVP" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Find your table: Main entrance" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Find your table: Garden door" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Find your table: Garden door link" })).toHaveValue(/\/seat\?from=garden$/);
-
-    const toggle = page.getByRole("switch", { name: "Open the table finder to guests" });
-    await expect(toggle).toHaveAttribute("aria-checked", "false");
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-checked", "true");
-    await expect
-      .poll(async () => ((await weddingRow(id)).seating_plan as { guestFinder?: boolean }).guestFinder, { timeout: 15_000 })
-      .toBe(true);
-    await page.getByRole("heading", { name: "Table finder for the day" }).scrollIntoViewIfNeeded();
+    await expect(page.getByRole("switch")).toHaveCount(0);
     await page.screenshot({ path: "test-results/seat-finder/share-tab.png", fullPage: true });
   });
 });

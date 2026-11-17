@@ -150,13 +150,12 @@ export default function SmsInvites({ config }: Props) {
   const muted = { color: "var(--color-on-surface-variant)" };
 
   return (
-    <section aria-labelledby="sms-title" className="space-y-6 pt-4" style={{ borderTop: "1px solid var(--color-outline)" }}>
-      <div className="max-w-2xl space-y-2 pt-6">
-        <h2 id="sms-title" className="headline-sm flex items-center gap-2" style={{ fontSize: "1.35rem" }}>
-          <MessageSquareText size={18} aria-hidden style={{ color: "var(--color-primary)" }} />
+    <section aria-labelledby="sms-title" className="space-y-6">
+      <div className="max-w-2xl space-y-1.5">
+        <h2 id="sms-title" className="text-[1.0625rem] font-medium" style={{ color: "var(--color-on-surface)" }}>
           Text invitations
         </h2>
-        <p className="text-[0.9375rem]" style={muted}>
+        <p className="text-sm" style={muted}>
           Send each guest their own invitation link by SMS. Guests on your list get their personal link; a number you
           type in gets the link of the guest whose name matches, or your website&apos;s link if there&apos;s no match.
         </p>
