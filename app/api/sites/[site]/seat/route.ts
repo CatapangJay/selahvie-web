@@ -7,6 +7,7 @@ import { hasModule } from "@/lib/tiers";
 import { planOf } from "@/lib/seating";
 import { receptionVenue } from "@/lib/weddingDetails";
 import { entrancesOf, findSeat, type FinderResult, type FinderSite } from "@/lib/seatFinder";
+import { weddingTheme } from "@/lib/weddingTheme";
 import type { WeddingConfig } from "@/types/wedding";
 
 export const runtime = "nodejs";
@@ -61,8 +62,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     partner1Name: config.partner1Name,
     partner2Name: config.partner2Name,
     weddingDate: config.weddingDate || undefined,
-    primaryColor: config.primaryColor,
-    accentColor: config.accentColor,
+    theme: weddingTheme(config),
     venueName: (receptionVenue(config)?.name || config.venueName)?.trim() || undefined,
     // Entrance names only matter (and are only sent) when the finder is on.
     entrances: enabled ? entrancesOf(planOf(config)) : [],

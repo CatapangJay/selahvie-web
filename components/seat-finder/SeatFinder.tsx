@@ -2,34 +2,48 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowUp, ArrowUpLeft, ArrowUpRight, CornerUpLeft, CornerUpRight, DoorOpen, MapPin, Play, RotateCwSquare, Search, Users } from "lucide-react";
+import {
+  ArrowUp,
+  ArrowUpLeft,
+  ArrowUpRight,
+  CircleAlert,
+  CornerUpLeft,
+  CornerUpRight,
+  DoorOpen,
+  HandHeart,
+  KeyRound,
+  Loader2,
+  MapPin,
+  Play,
+  RotateCwSquare,
+  Search,
+  UserRound,
+  Users,
+} from "lucide-react";
 import { FROM_PARAM, type FinderResult, type FinderSite } from "@/lib/seatFinder";
+import { weddingTheme, type GuestTheme } from "@/lib/weddingTheme";
 import SeatMap from "./SeatMap";
 import { directions, findRoute, type Step } from "./wayfinding";
 
-const INK = "#2F1E26";
-const INK_VARIANT = "#604C55";
-const OUTLINE = "#DFD4D4";
-const SURFACE = "#FDF8F7";
-const SURFACE_1 = "#FAF1F1";
-const ERROR = "#AE3F2C";
-const FALLBACK_ACCENT = "#A75463";
+// The wedding's theme (lib/weddingTheme), set as CSS variables on the page shell.
+const INK = "var(--sf-ink)";
+const INK_VARIANT = "var(--sf-ink-2)";
+const OUTLINE = "var(--sf-outline)";
+const SURFACE = "var(--sf-bg)";
+const SURFACE_1 = "var(--sf-surface)";
+const CARD = "var(--sf-card)";
+const PRIMARY = "var(--sf-primary)";
+const ON_PRIMARY = "var(--sf-on-primary)";
+const LINK = "var(--sf-link)";
+const ERROR = "var(--sf-error)";
+const SERIF: React.CSSProperties = { fontFamily: "var(--sf-serif)" };
 
-/** The accent mixed toward white, for tints that keep the couple's hue. */
-const tint = (accent: string, pct: number) => `color-mix(in oklab, ${accent} ${pct}%, white)`;
+/** The couple's colour mixed into the card colour, for tints that keep their hue (light or dark). */
+const tint = (pct: number) => `color-mix(in oklab, ${PRIMARY} ${pct}%, ${CARD})`;
+/** A colour at reduced strength. */
+const fade = (color: string, pct: number) => `color-mix(in oklab, ${color} ${pct}%, transparent)`;
 
 type Found = Extract<FinderResult, { status: "found" }>;
-
-/** The couple's colour when it reads well as a fill under white text; otherwise ink. */
-function usableAccent(hex: string | undefined): string {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex?.trim() ?? "");
-  if (!m) return FALLBACK_ACCENT;
-  const n = parseInt(m[1], 16);
-  const lin = (c: number) => ((c /= 255) <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
-  const L = 0.2126 * lin((n >> 16) & 255) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
-  // White on it needs 4.5:1 → luminance ≤ ~0.18.
-  return L <= 0.18 ? `#${m[1]}` : INK;
-}
 
 function formatDate(iso?: string): string {
   if (!iso) return "";
@@ -46,12 +60,20 @@ const theDoor = (label: string) => (/^the\s/i.test(label) ? label : `the ${label
 const PAGE_CSS = `
   .sf-rise { animation: sf-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes sf-rise { from { transform: translateY(0.16em); } }
+  .sf-sheet { animation: sf-sheet 560ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes sf-sheet { from { transform: translateY(14px); } }
+  .sf-spin { animation: sf-spin 0.9s linear infinite; }
+  @keyframes sf-spin { to { transform: rotate(360deg); } }
   .sf-skeleton { animation: sf-shimmer 1.4s ease-in-out infinite; }
   @keyframes sf-shimmer { 50% { opacity: 0.55; } }
   .sf-chips { scrollbar-width: none; }
   .sf-chips::-webkit-scrollbar { display: none; }
-  .sf-focus:focus-visible { outline: 2px solid var(--sf-accent); outline-offset: 2px; }
-  @media (prefers-reduced-motion: reduce) { .sf-rise, .sf-skeleton { animation: none; } }
+  .sf-focus:focus-visible { outline: 2px solid var(--sf-link); outline-offset: 2px; }
+  /* The app's global ring is Selah Vie rose; here focus follows the wedding's colour,
+     and the name field shows its own themed glow instead. */
+  .sf-root :focus-visible { outline-color: var(--sf-link); }
+  .sf-root input:focus-visible { outline: none; }
+  @media (prefers-reduced-motion: reduce) { .sf-rise, .sf-sheet, .sf-skeleton, .sf-spin { animation: none; } }
 `;
 
 export default function SeatFinder({ site }: { site: string }) {
@@ -77,11 +99,12 @@ export default function SeatFinder({ site }: { site: string }) {
     };
   }, [site]);
 
-  const accent = usableAccent(info?.primaryColor);
+  // Until the site loads, the house theme; then the couple's.
+  const theme = info?.theme ?? HOUSE_THEME;
 
   if (loadError) {
     return (
-      <Shell accent={accent}>
+      <Shell theme={theme}>
         <Notice title={loadError === "missing" ? "This page isn't available" : "We couldn't load this page"}>
           {loadError === "missing"
             ? "Check the link, or ask the welcome table for your seat."
@@ -92,7 +115,7 @@ export default function SeatFinder({ site }: { site: string }) {
   }
   if (!info) {
     return (
-      <Shell accent={accent}>
+      <Shell theme={theme}>
         <LoadingSkeleton />
       </Shell>
     );
@@ -101,10 +124,10 @@ export default function SeatFinder({ site }: { site: string }) {
   const names = [info.partner1Name, info.partner2Name].map((n) => n?.trim()).filter(Boolean).join(" & ");
 
   return (
-    <Shell accent={accent}>
+    <Shell theme={theme}>
       {!info.enabled ? (
         <div className="mx-auto max-w-md">
-          <TopBar names={names} meta={metaLine(info)} />
+          <Welcome names={names} meta={metaLine(info)} />
           <Notice title="Table finder opens soon">
             The couple hasn&apos;t opened table lookups yet. Please ask the welcome table for your seat.
           </Notice>
@@ -115,7 +138,6 @@ export default function SeatFinder({ site }: { site: string }) {
           info={info}
           names={names}
           from={from}
-          accent={accent}
           onEntrance={(id) => {
             const url = new URL(window.location.href);
             url.searchParams.set(FROM_PARAM, id);
@@ -133,45 +155,89 @@ export default function SeatFinder({ site }: { site: string }) {
   );
 }
 
-function Shell({ accent, children }: { accent: string; children: React.ReactNode }) {
+/** Selah Vie's own rose, used only while the wedding's theme loads (and on errors). */
+const HOUSE_THEME = weddingTheme({});
+
+/** Sets the wedding's theme as CSS variables for everything inside. */
+function Shell({ theme, children }: { theme: GuestTheme; children: React.ReactNode }) {
+  const vars = {
+    "--sf-bg": theme.background,
+    "--sf-surface": theme.surface,
+    "--sf-card": theme.card,
+    "--sf-ink": theme.ink,
+    "--sf-ink-2": theme.inkVariant,
+    "--sf-outline": theme.outline,
+    "--sf-primary": theme.primary,
+    "--sf-on-primary": theme.onPrimary,
+    "--sf-link": theme.link,
+    "--sf-error": theme.error,
+    "--sf-serif": theme.serif,
+    "--sf-sans": theme.sans,
+    colorScheme: theme.dark ? "dark" : "light",
+  } as React.CSSProperties;
   return (
-    <main className="min-h-dvh px-4 pb-12 sm:px-6" style={{ background: SURFACE, color: INK, ["--sf-accent" as string]: accent }}>
+    <main className="sf-root min-h-dvh px-4 pb-12 sm:px-6" style={{ ...vars, background: SURFACE, color: INK, fontFamily: "var(--sf-sans)" }}>
       <div className="mx-auto w-full max-w-xl lg:max-w-6xl">{children}</div>
       <style>{PAGE_CSS}</style>
     </main>
   );
 }
 
-/** One quiet line: whose wedding this is, and (once found) a way back. */
-function TopBar({ names, meta, action }: { names: string; meta?: string; action?: React.ReactNode }) {
+/** One quiet line once the guest is found: whose wedding this is, and a way back. */
+function TopBar({ names, action }: { names: string; action?: React.ReactNode }) {
   return (
     <header className="flex min-h-[60px] items-center justify-between gap-4 py-3">
-      <div className="min-w-0">
-        <p className="truncate font-serif text-[1.125rem] leading-tight" style={{ color: INK }}>
-          {names || "The happy couple"}
-        </p>
-        {meta && (
-          <p className="mt-0.5 truncate text-[0.8125rem] leading-snug" style={{ color: INK_VARIANT }}>
-            {meta}
-          </p>
-        )}
-      </div>
+      <p className="min-w-0 truncate text-[1.125rem] leading-tight" style={{ ...SERIF, color: INK }}>
+        {names || "The happy couple"}
+      </p>
       {action}
     </header>
   );
 }
 
+/**
+ * The welcome on arrival, in the couple's colour: their names as the headline,
+ * the day and place beneath, and the round-table motif from the result screen.
+ * Full width on phones, a rounded panel from `sm`.
+ */
+function Welcome({ names, meta }: { names: string; meta?: string }) {
+  return (
+    <header
+      className="relative -mx-4 overflow-hidden px-6 pb-14 pt-9 sm:mx-0 sm:mt-4 sm:rounded-[28px] sm:px-8"
+      style={{ background: PRIMARY, color: ON_PRIMARY }}
+    >
+      <TableMotif />
+      <p className="relative text-[0.9375rem]" style={{ color: fade(ON_PRIMARY, 88) }}>
+        Welcome to the wedding of
+      </p>
+      <p className="sf-rise relative mt-1.5 text-[2.375rem] leading-[1.05] tracking-[-0.01em]" style={{ ...SERIF, textWrap: "balance" }}>
+        {names || "the happy couple"}
+      </p>
+      {meta && (
+        <p className="relative mt-3 text-[0.9375rem] leading-snug" style={{ color: fade(ON_PRIMARY, 88) }}>
+          {meta}
+        </p>
+      )}
+    </header>
+  );
+}
+
 function LoadingSkeleton() {
-  const block = (cls: string, radius = 12) => <div aria-hidden className={`sf-skeleton ${cls}`} style={{ background: SURFACE_1, borderRadius: radius }} />;
+  const block = (cls: string, radius = 12, bg = SURFACE_1) => (
+    <div aria-hidden className={`sf-skeleton ${cls}`} style={{ background: bg, borderRadius: radius }} />
+  );
   return (
     <div role="status" aria-label="Loading" className="mx-auto max-w-md">
-      <div className="py-4">{block("h-5 w-32", 6)}</div>
-      <div className="mt-8 space-y-3">
-        {block("h-10 w-56", 8)}
-        {block("h-4 w-72", 6)}
-        <div className="h-6" />
-        {block("h-14 w-full", 14)}
-        {block("h-14 w-full", 999)}
+      <div className="-mx-4 px-6 pb-14 pt-9 sm:mx-0 sm:mt-4 sm:rounded-[28px]" style={{ background: SURFACE_1 }}>
+        {block("h-4 w-44", 6, OUTLINE)}
+        {block("mt-3 h-10 w-60", 8, OUTLINE)}
+        {block("mt-4 h-4 w-52", 6, OUTLINE)}
+      </div>
+      <div className="relative px-1 pt-7">
+        {block("h-9 w-52", 8)}
+        {block("mt-3 h-4 w-72", 6)}
+        {block("mt-8 h-14 w-full", 16)}
+        {block("mt-6 h-14 w-full", 999)}
       </div>
     </div>
   );
@@ -180,10 +246,10 @@ function LoadingSkeleton() {
 function Notice({ title, children, icon: Icon = MapPin }: { title: string; children: React.ReactNode; icon?: typeof MapPin }) {
   return (
     <section className="mx-auto mt-6 max-w-md px-6 py-8" style={{ background: SURFACE_1, borderRadius: 24 }}>
-      <span aria-hidden className="inline-flex h-11 w-11 items-center justify-center" style={{ background: "#FFFFFF", borderRadius: 999, color: INK_VARIANT }}>
+      <span aria-hidden className="inline-flex h-11 w-11 items-center justify-center" style={{ background: CARD, borderRadius: 999, color: INK_VARIANT }}>
         <Icon size={20} />
       </span>
-      <h1 className="mt-4 font-serif text-[1.625rem] leading-tight" style={{ color: INK, textWrap: "balance" }}>
+      <h1 className="mt-4 text-[1.625rem] leading-tight" style={{ ...SERIF, color: INK, textWrap: "balance" }}>
         {title}
       </h1>
       <p className="mt-2 text-[1rem] leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
@@ -199,9 +265,9 @@ type Phase =
   | { kind: "found"; result: Found };
 
 function Finder({
-  site, info, names, from, accent, onEntrance,
+  site, info, names, from, onEntrance,
 }: {
-  site: string; info: FinderSite; names: string; from: string; accent: string; onEntrance: (id: string) => void;
+  site: string; info: FinderSite; names: string; from: string; onEntrance: (id: string) => void;
 }) {
   const [phase, setPhase] = useState<Phase>({ kind: "ask", step: "lookup" });
   const [query, setQuery] = useState("");
@@ -265,7 +331,7 @@ function Finder({
             </button>
           }
         />
-        <Result result={phase.result} info={info} from={from} accent={accent} onEntrance={onEntrance} />
+        <Result result={phase.result} info={info} from={from} onEntrance={onEntrance} />
       </>
     );
   }
@@ -278,7 +344,12 @@ function Finder({
           Your table isn&apos;t on the chart yet. Our team at the welcome table will show you to your seat.
         </Notice>
         <p className="mt-6 text-center">
-          <button type="button" onClick={reset} className="sf-focus min-h-[44px] px-2 text-[0.9375rem] font-medium underline underline-offset-4" style={{ color: INK_VARIANT, borderRadius: 6 }}>
+          <button
+            type="button"
+            onClick={reset}
+            className="sf-focus min-h-[44px] px-2 text-[0.9375rem] font-medium underline underline-offset-4"
+            style={{ color: INK_VARIANT, borderRadius: 6 }}
+          >
             Look up someone else
           </button>
         </p>
@@ -287,63 +358,85 @@ function Finder({
   }
 
   const isCode = phase.step === "code";
+  const Lead = isCode ? KeyRound : UserRound;
   return (
     <div className="mx-auto max-w-md">
-      <TopBar names={names} meta={metaLine(info)} />
-      <section className="pt-8 sm:pt-12">
-        <h1 className="font-serif text-[2.25rem] leading-[1.1]" style={{ color: INK, textWrap: "balance" }}>
+      <Welcome names={names} meta={metaLine(info)} />
+
+      {/* The form sits on a sheet that rises over the welcome, like a card set down on a table. */}
+      <section
+        className="sf-sheet relative -mx-4 -mt-7 px-5 pb-2 pt-7 sm:mx-0 sm:px-2"
+        style={{ background: SURFACE, borderRadius: "28px 28px 0 0" }}
+      >
+        <h1 className="text-[2rem] leading-[1.1]" style={{ ...SERIF, color: INK, textWrap: "balance" }}>
           {isCode ? "Enter your invitation code" : "Find your table"}
         </h1>
         <p className="mt-2 text-[1rem] leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
-          {isCode ? "We'll use it to find your seat." : "We'll show you the room and the way to your seat."}
+          {isCode ? "It's on your invitation, or at the end of your invite link." : "Type your name and we'll show you the room, your table, and the way there."}
         </p>
-        <form onSubmit={submit} className="mt-8" noValidate>
+
+        <form onSubmit={submit} className="mt-7" noValidate>
           <label htmlFor="sf-query" className="block text-[0.9375rem] font-medium" style={{ color: INK }}>
             {isCode ? "Invitation code" : "Your name"}
           </label>
-          <input
-            id="sf-query"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoComplete={isCode ? "off" : "name"}
-            autoCapitalize={isCode ? "characters" : "words"}
-            autoFocus
-            maxLength={80}
-            placeholder={isCode ? "e.g. K7QM-24PX" : "e.g. Maria Santos"}
-            aria-describedby="sf-hint"
-            aria-invalid={phase.message ? true : undefined}
-            className="mt-2 block min-h-[56px] w-full px-4 text-[1.0625rem] outline-none transition-[box-shadow,border-color] duration-150 placeholder:text-[#7D6A72] focus:shadow-[0_0_0_3px_var(--sf-ring)]"
-            style={{
-              background: "#FFFFFF",
-              border: `1px solid ${phase.message ? ERROR : OUTLINE}`,
-              borderRadius: 14,
-              color: INK,
-              ["--sf-ring" as string]: tint(accent, 30),
-            }}
-          />
+          <div className="relative mt-2">
+            <Lead aria-hidden size={19} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2" style={{ color: INK_VARIANT }} />
+            <input
+              id="sf-query"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              autoComplete={isCode ? "off" : "name"}
+              autoCapitalize={isCode ? "characters" : "words"}
+              spellCheck={false}
+              autoFocus
+              maxLength={80}
+              placeholder={isCode ? "K7QM-24PX" : "e.g. Maria Santos"}
+              aria-describedby="sf-hint"
+              aria-invalid={phase.message ? true : undefined}
+              className={`block min-h-[58px] w-full pl-12 pr-4 text-[1.0625rem] outline-none transition-[box-shadow,border-color] duration-150 placeholder:text-[var(--sf-ink-2)] focus:shadow-[0_0_0_4px_var(--sf-ring)] ${isCode ? "uppercase tracking-[0.12em]" : ""}`}
+              style={{
+                background: CARD,
+                border: `1px solid ${phase.message ? ERROR : OUTLINE}`,
+                borderRadius: 16,
+                color: INK,
+                ["--sf-ring" as string]: tint(28),
+              }}
+            />
+          </div>
           <p id="sf-hint" className="mt-2 text-[0.875rem] leading-snug" style={{ color: INK_VARIANT }}>
-            {isCode ? "It's printed on your invitation, or at the end of your invite link." : "As it appears on your invitation. A plus-one's name works too."}
+            {isCode ? "Letters and numbers; the dash is optional." : "As it's written on your invitation. A plus-one's name works too."}
           </p>
           {phase.message && (
-            <p role="alert" className="mt-3 text-[0.9375rem] leading-snug" style={{ color: ERROR }}>
-              {phase.message}
+            <p role="alert" className="mt-3 flex gap-2 text-[0.9375rem] leading-snug" style={{ color: ERROR }}>
+              <CircleAlert aria-hidden size={18} className="mt-px shrink-0" />
+              <span>{phase.message}</span>
             </p>
           )}
           <button
             type="submit"
             disabled={busy || !query.trim()}
-            className="sf-focus mt-6 inline-flex min-h-[56px] w-full items-center justify-center gap-2 text-[1rem] font-medium text-white transition-[opacity,transform] duration-150 active:scale-[0.99] disabled:opacity-50"
-            style={{ background: accent, borderRadius: 999 }}
+            className="sf-focus mt-6 inline-flex min-h-[58px] w-full items-center justify-center gap-2 text-[1.0625rem] font-medium transition-[opacity,transform] duration-150 active:scale-[0.99] disabled:opacity-45"
+            style={{ background: PRIMARY, color: ON_PRIMARY, borderRadius: 999 }}
           >
-            <Search size={18} aria-hidden />
+            {busy ? <Loader2 size={19} aria-hidden className="sf-spin" /> : <Search size={19} aria-hidden />}
             {busy ? "Looking…" : "Find my table"}
           </button>
           {isCode && (
-            <button type="button" onClick={reset} className="sf-focus mt-3 block min-h-[44px] w-full text-center text-[0.9375rem] underline underline-offset-4" style={{ color: INK_VARIANT, borderRadius: 6 }}>
+            <button
+              type="button"
+              onClick={reset}
+              className="sf-focus mt-3 block min-h-[44px] w-full text-center text-[0.9375rem] underline underline-offset-4"
+              style={{ color: INK_VARIANT, borderRadius: 6 }}
+            >
               Search by name instead
             </button>
           )}
         </form>
+
+        <p className="mt-8 flex items-start gap-3 py-4 text-[0.9375rem] leading-snug" style={{ color: INK_VARIANT, borderTop: `1px solid ${OUTLINE}` }}>
+          <HandHeart aria-hidden size={19} className="mt-px shrink-0" style={{ color: LINK }} />
+          <span>No invitation with you? Our team at the welcome table will find your seat.</span>
+        </p>
       </section>
     </div>
   );
@@ -360,9 +453,9 @@ const STEP_ICON: Record<Step["icon"], typeof ArrowUp> = {
 };
 
 function Result({
-  result, info, from, accent, onEntrance,
+  result, info, from, onEntrance,
 }: {
-  result: Found; info: FinderSite; from: string; accent: string; onEntrance: (id: string) => void;
+  result: Found; info: FinderSite; from: string; onEntrance: (id: string) => void;
 }) {
   const { floor, tableId } = result;
   const table = floor.tables.find((t) => t.id === tableId);
@@ -374,7 +467,7 @@ function Result({
   return (
     // Phone: table, door, map, steps. Desktop: the map on the left, the rest beside it.
     <div className="lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(340px,1fr)] lg:gap-x-10">
-      <TableBand name={table?.name.trim() || "Your table"} guest={firstName(result.guestName)} partySize={result.partySize} accent={accent} />
+      <TableBand name={table?.name.trim() || "Your table"} guest={firstName(result.guestName)} partySize={result.partySize} />
 
       {entrances.length > 1 && (
         <div className="mt-4 lg:col-start-2 lg:row-start-2 lg:mt-5">
@@ -393,12 +486,12 @@ function Result({
                   className="sf-focus inline-flex min-h-[44px] shrink-0 items-center gap-2 whitespace-nowrap px-4 text-[0.9375rem] font-medium transition-[background-color,border-color] duration-150"
                   style={{
                     borderRadius: 999,
-                    border: `1px solid ${on ? accent : OUTLINE}`,
-                    background: on ? tint(accent, 12) : "#FFFFFF",
+                    border: `1px solid ${on ? PRIMARY : OUTLINE}`,
+                    background: on ? tint(12) : CARD,
                     color: INK,
                   }}
                 >
-                  <DoorOpen size={16} aria-hidden style={{ color: on ? accent : INK_VARIANT }} />
+                  <DoorOpen size={16} aria-hidden style={{ color: on ? LINK : INK_VARIANT }} />
                   {labelOf(e.id, e.label)}
                 </button>
               );
@@ -408,7 +501,7 @@ function Result({
       )}
 
       {/* Keyed by door: a new entrance starts from its own door-at-the-bottom view. */}
-      <Wayfinder key={entrance?.id ?? "none"} floor={floor} tableId={tableId} entranceId={entrance?.id ?? ""} entranceLabel={entranceLabel} accent={accent} />
+      <Wayfinder key={entrance?.id ?? "none"} floor={floor} tableId={tableId} entranceId={entrance?.id ?? ""} entranceLabel={entranceLabel} theme={info.theme} />
     </div>
   );
 }
@@ -417,20 +510,20 @@ function Result({
  * The answer, in the couple's colour: "Table" small, the number large. Names that
  * aren't "Table N" (a sweetheart table, "Family") are set as one serif line.
  */
-function TableBand({ name, guest, partySize, accent }: { name: string; guest: string; partySize: number; accent: string }) {
+function TableBand({ name, guest, partySize }: { name: string; guest: string; partySize: number }) {
   const numbered = /^table\s+(\S{1,4})$/i.exec(name);
   return (
     <section
       aria-live="polite"
-      className="relative overflow-hidden px-6 pb-5 pt-4 text-white lg:col-start-2 lg:row-start-1 lg:pb-6 lg:pt-5"
-      style={{ background: accent, borderRadius: 28 }}
+      className="relative overflow-hidden px-6 pb-5 pt-4 lg:col-start-2 lg:row-start-1 lg:pb-6 lg:pt-5"
+      style={{ background: PRIMARY, color: ON_PRIMARY, borderRadius: 28 }}
     >
       <TableMotif />
-      <p className="relative text-[0.9375rem]" style={{ color: "rgb(255 255 255 / 0.9)" }}>
+      <p className="relative text-[0.9375rem]" style={{ color: fade(ON_PRIMARY, 90) }}>
         {guest}, you&apos;re seated at
       </p>
       <div className="relative mt-1 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-        <h1 className="font-serif" style={{ textWrap: "balance" }}>
+        <h1 style={{ ...SERIF, textWrap: "balance" }}>
           {numbered ? (
             <span className="flex items-baseline gap-3 leading-none">
               <span className="text-[1.75rem]">Table</span>{" "}
@@ -443,7 +536,7 @@ function TableBand({ name, guest, partySize, accent }: { name: string; guest: st
         {partySize > 1 && (
           <p
             className="mb-1 inline-flex min-h-[32px] shrink-0 items-center gap-1.5 px-3 text-[0.875rem] font-medium"
-            style={{ background: "rgb(255 255 255 / 0.16)", borderRadius: 999 }}
+            style={{ background: fade(ON_PRIMARY, 16), borderRadius: 999 }}
           >
             <Users size={15} aria-hidden />
             Party of {partySize}
@@ -461,7 +554,7 @@ function TableMotif() {
     return { x: 100 + Math.cos(a) * 74, y: 100 + Math.sin(a) * 74 };
   });
   return (
-    <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute -right-16 -top-14 h-52 w-52" fill="none" stroke="white" strokeOpacity={0.18} strokeWidth={2}>
+    <svg aria-hidden viewBox="0 0 200 200" className="pointer-events-none absolute -right-16 -top-14 h-52 w-52" fill="none" stroke="currentColor" strokeOpacity={0.18} strokeWidth={2}>
       <circle cx={100} cy={100} r={50} />
       {chairs.map((c, i) => (
         <circle key={i} cx={c.x} cy={c.y} r={11} />
@@ -471,9 +564,9 @@ function TableMotif() {
 }
 
 function Wayfinder({
-  floor, tableId, entranceId, entranceLabel, accent,
+  floor, tableId, entranceId, entranceLabel, theme,
 }: {
-  floor: Found["floor"]; tableId: string; entranceId: string; entranceLabel: string; accent: string;
+  floor: Found["floor"]; tableId: string; entranceId: string; entranceLabel: string; theme: GuestTheme;
 }) {
   // The search runs once per table and entrance, not on every animation tick.
   const entrance = useMemo(() => floor.elements.find((e) => e.id === entranceId) ?? null, [floor, entranceId]);
@@ -495,7 +588,7 @@ function Wayfinder({
         style={{ background: SURFACE_1, borderRadius: 28 }}
       >
         <div className="flex items-center justify-between gap-2 px-2 pb-2">
-          <div className="inline-flex p-1" style={{ background: "rgb(47 30 38 / 0.06)", borderRadius: 999 }} role="group" aria-label="Map view">
+          <div className="inline-flex p-1" style={{ background: fade(INK, 7), borderRadius: 999 }} role="group" aria-label="Map view">
             {[
               { on: true, label: "My route" },
               { on: false, label: "Whole room" },
@@ -511,9 +604,9 @@ function Wayfinder({
                   className="sf-focus min-h-[36px] whitespace-nowrap px-3.5 text-[0.875rem] font-medium transition-[background-color,color,box-shadow] duration-150 disabled:opacity-40"
                   style={{
                     borderRadius: 999,
-                    background: pressed ? "#FFFFFF" : "transparent",
+                    background: pressed ? CARD : "transparent",
                     color: pressed ? INK : INK_VARIANT,
-                    boxShadow: pressed ? "0 1px 2px rgb(47 30 38 / 0.14)" : "none",
+                    boxShadow: pressed ? `0 1px 2px ${fade(INK, 16)}` : "none",
                   }}
                 >
                   {o.label}
@@ -527,7 +620,7 @@ function Wayfinder({
               onClick={() => setTurns((n) => (n + 1) % 4)}
               aria-label="Rotate map"
               title="Rotate the map a quarter turn"
-              className="sf-focus inline-flex h-11 w-11 items-center justify-center transition-colors duration-150 hover:bg-white"
+              className="sf-focus inline-flex h-11 w-11 items-center justify-center transition-colors duration-150 hover:bg-[var(--sf-card)]"
               style={{ color: INK_VARIANT, borderRadius: 999 }}
             >
               <RotateCwSquare size={19} aria-hidden />
@@ -538,7 +631,7 @@ function Wayfinder({
                 onClick={() => setReplay((n) => n + 1)}
                 aria-label="Replay"
                 title="Replay the route"
-                className="sf-focus inline-flex h-11 w-11 items-center justify-center transition-colors duration-150 hover:bg-white"
+                className="sf-focus inline-flex h-11 w-11 items-center justify-center transition-colors duration-150 hover:bg-[var(--sf-card)]"
                 style={{ color: INK_VARIANT, borderRadius: 999 }}
               >
                 <Play size={18} aria-hidden />
@@ -552,7 +645,7 @@ function Wayfinder({
             targetId={tableId}
             route={route}
             entrance={entrance}
-            accent={accent}
+            theme={theme}
             focus={focus && Boolean(route)}
             replayKey={replay}
             turns={turns}
@@ -594,7 +687,7 @@ function Wayfinder({
                     <span
                       aria-hidden
                       className="absolute bottom-1 left-[19px] top-11 w-[2px] transition-colors duration-300"
-                      style={{ background: done ? tint(accent, 45) : OUTLINE, borderRadius: 2 }}
+                      style={{ background: done ? tint(45) : OUTLINE, borderRadius: 2 }}
                     />
                   )}
                   <span
@@ -602,9 +695,9 @@ function Wayfinder({
                     className="relative inline-flex h-10 w-10 items-center justify-center transition-[background-color,color,box-shadow] duration-300"
                     style={{
                       borderRadius: 999,
-                      background: on ? accent : done ? tint(accent, 14) : "#FFFFFF",
-                      color: on ? "#FFFFFF" : done ? accent : INK_VARIANT,
-                      boxShadow: on ? `0 0 0 5px ${tint(accent, 18)}` : `inset 0 0 0 1px ${done ? "transparent" : OUTLINE}`,
+                      background: on ? PRIMARY : done ? tint(14) : CARD,
+                      color: on ? ON_PRIMARY : done ? LINK : INK_VARIANT,
+                      boxShadow: on ? `0 0 0 5px ${tint(18)}` : `inset 0 0 0 1px ${done ? "transparent" : OUTLINE}`,
                     }}
                   >
                     <Icon size={18} />

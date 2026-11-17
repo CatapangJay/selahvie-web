@@ -8,6 +8,7 @@
  */
 import { findInviteeByCode, matchByName, normalizeCode } from "@/lib/invitations";
 import { elementsOf, needsSeat, roomOf, type Room } from "@/lib/seating";
+import type { GuestTheme } from "@/lib/weddingTheme";
 import type { GuestListEntry, GuestGroup, RSVPEntry, SeatingPlan, SeatingTable, VenueElement, WeddingConfig } from "@/types/wedding";
 
 /** Query param on the finder link: which entrance the printed code hangs at. */
@@ -36,8 +37,8 @@ export interface FinderSite {
   partner1Name: string;
   partner2Name: string;
   weddingDate?: string;
-  primaryColor?: string;
-  accentColor?: string;
+  /** The wedding's look (lib/weddingTheme): colours as the couple chose them, fonts. */
+  theme: GuestTheme;
   /** Where the reception is, for the header. */
   venueName?: string;
   entrances: { id: string; label: string }[];

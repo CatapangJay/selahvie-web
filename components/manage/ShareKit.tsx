@@ -2,16 +2,25 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Check, Copy, Download, ExternalLink, Lock } from "lucide-react";
+import { Check, Copy, Download, ExternalLink, Lock, Printer } from "lucide-react";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { configTier, hasModule, upgradePrice } from "@/lib/tiers";
 import { downloadFile, formatPrice } from "@/lib/utils";
 import { downloadBlob, fileStem, qrExtent, qrMatrix, qrPath, qrPngBlob, qrSvgMarkup } from "@/lib/qr";
 import { ceremonyVenue, invitationPath, receptionVenue, RSVP_ANCHOR, safeUrl, sitePath } from "@/lib/weddingDetails";
+
+/** "2026-10-31" → "October 31, 2026". */
+function formatWeddingDate(iso?: string): string {
+  if (!iso) return "";
+  const d = new Date(`${iso}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
 import { planOf } from "@/lib/seating";
 import { entrancesOf, seatFinderPath } from "@/lib/seatFinder";
 import { useWeddingStore } from "@/store/weddingStore";
+import { weddingTheme, type GuestTheme } from "@/lib/weddingTheme";
+import { tableFinderSignPng } from "@/lib/qrSign";
 import type { WeddingConfig } from "@/types/wedding";
 
 interface Props {
@@ -24,10 +33,16 @@ interface ShareCode {
   label: string;
   hint: string;
   url: string;
+  /** Table finder codes also come as a printed sign for that door. */
+  sign?: { entrance?: string };
 }
 
-const QR_DARK = "#1a1416";
-const QR_LIGHT = "#ffffff";
+/** How each code is drawn: the wedding's theme (lib/weddingTheme), plus what the sign prints. */
+interface QrLook {
+  theme: GuestTheme;
+  names: string;
+  meta: string;
+}
 
 /** The codes worth printing for this website. Codes with nothing to point at are left out. */
 function shareCodes(config: WeddingConfig, origin: string): ShareCode[] {
@@ -74,6 +89,15 @@ export default function ShareKit({ config, onUpgrade }: Props) {
   const codes = useMemo(() => shareCodes(config, origin), [config, origin]);
   const stem = fileStem(config.partner1Name, config.partner2Name);
   const published = config.status === "published";
+  // Codes and signs use the couple's chosen colours and fonts.
+  const look = useMemo<QrLook>(
+    () => ({
+      theme: weddingTheme(config),
+      names: [config.partner1Name, config.partner2Name].map((n) => n?.trim()).filter(Boolean).join(" & "),
+      meta: [formatWeddingDate(config.weddingDate), (receptionVenue(config)?.name || config.venueName)?.trim()].filter(Boolean).join(" · "),
+    }),
+    [config]
+  );
 
   return (
     <div className="space-y-8">
@@ -120,11 +144,11 @@ export default function ShareKit({ config, onUpgrade }: Props) {
 
         <ul className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))" }}>
           {codes.map((code) => (
-            <QrCard key={code.id} code={code} stem={stem} />
+            <QrCard key={code.id} code={code} stem={stem} look={look} />
           ))}
         </ul>
 
-        {hasModule(config, "seating") && <TableFinder config={config} origin={origin} stem={stem} />}
+        {hasModule(config, "seating") && <TableFinder config={config} origin={origin} stem={stem} look={look} />}
 
         {hasModule(config, "invitationDownload") && (
           <p className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
@@ -150,7 +174,7 @@ export default function ShareKit({ config, onUpgrade }: Props) {
  * Day-of "Find your table" codes, one per entrance on the floor plan, so the
  * route starts at the door the guest walked through.
  */
-function TableFinder({ config, origin, stem }: { config: WeddingConfig; origin: string; stem: string }) {
+function TableFinder({ config, origin, stem, look }: { config: WeddingConfig; origin: string; stem: string; look: QrLook }) {
   const updateConfig = useWeddingStore((s) => s.updateConfig);
   const plan = planOf(config);
   const on = Boolean(plan.guestFinder);
@@ -163,8 +187,9 @@ function TableFinder({ config, origin, stem }: { config: WeddingConfig; origin: 
           label: entrances.length > 1 ? `Find your table: ${e.label}` : "Find your table",
           hint: `Print for ${e.label.toLowerCase().startsWith("the ") ? e.label : `the ${e.label.toLowerCase()}`}. Directions start from there.`,
           url: `${origin}${seatFinderPath(config, e.id)}`,
+          sign: { entrance: e.label },
         }))
-      : [{ id: "table-finder", label: "Find your table", hint: "Shows the guest's table on the floor plan.", url: `${origin}${seatFinderPath(config)}` }];
+      : [{ id: "table-finder", label: "Find your table", hint: "Shows the guest's table on the floor plan.", url: `${origin}${seatFinderPath(config)}`, sign: {} }];
   const titleId = "table-finder-title";
 
   return (
@@ -214,7 +239,7 @@ function TableFinder({ config, origin, stem }: { config: WeddingConfig; origin: 
 
       <ul className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(250px, 1fr))" }}>
         {codes.map((code) => (
-          <QrCard key={code.id} code={code} stem={stem} />
+          <QrCard key={code.id} code={code} stem={stem} look={look} />
         ))}
       </ul>
       <p className="text-sm">
@@ -234,7 +259,8 @@ function TableFinder({ config, origin, stem }: { config: WeddingConfig; origin: 
   );
 }
 
-function QrCard({ code, stem }: { code: ShareCode; stem: string }) {
+function QrCard({ code, stem, look }: { code: ShareCode; stem: string; look: QrLook }) {
+  const { qrDark, qrLight } = look.theme;
   const matrix = useMemo(() => qrMatrix(code.url), [code.url]);
   const extent = qrExtent(matrix);
   const [copied, setCopied] = useState(false);
@@ -252,10 +278,24 @@ function QrCard({ code, stem }: { code: ShareCode; stem: string }) {
     }
   };
 
+  const [signing, setSigning] = useState(false);
+  const downloadSign = async () => {
+    setError("");
+    setSigning(true);
+    try {
+      const blob = await tableFinderSignPng({ url: code.url, theme: look.theme, names: look.names, meta: look.meta, entrance: code.sign?.entrance });
+      downloadBlob(`${filename.replace(/-qr$/, "")}-sign.png`, blob);
+    } catch {
+      setError("Couldn't create the sign. Try again, or use the PNG code.");
+    } finally {
+      setSigning(false);
+    }
+  };
+
   const downloadPng = async () => {
     setError("");
     try {
-      downloadBlob(`${filename}.png`, await qrPngBlob(code.url, 1200, QR_DARK, QR_LIGHT));
+      downloadBlob(`${filename}.png`, await qrPngBlob(code.url, 1200, qrDark, qrLight));
     } catch {
       setError("Couldn't create the image. Try the SVG instead.");
     }
@@ -282,8 +322,8 @@ function QrCard({ code, stem }: { code: ShareCode; stem: string }) {
         aria-label={`QR code for ${code.label}`}
         style={{ borderRadius: "var(--radius-sm)" }}
       >
-        <rect width={extent} height={extent} fill={QR_LIGHT} />
-        <path d={qrPath(matrix)} fill={QR_DARK} />
+        <rect width={extent} height={extent} fill={qrLight} />
+        <path d={qrPath(matrix)} fill={qrDark} />
       </svg>
 
       <div
@@ -318,13 +358,19 @@ function QrCard({ code, stem }: { code: ShareCode; stem: string }) {
         <ButtonSecondary
           size="sm"
           className="flex-1"
-          onClick={() => downloadFile(`${filename}.svg`, qrSvgMarkup(code.url, QR_DARK, QR_LIGHT), "image/svg+xml")}
+          onClick={() => downloadFile(`${filename}.svg`, qrSvgMarkup(code.url, qrDark, qrLight), "image/svg+xml")}
           aria-label={`Download ${code.label} QR code as SVG`}
         >
           <Download size={13} aria-hidden />
           SVG
         </ButtonSecondary>
       </div>
+      {code.sign && (
+        <ButtonSecondary size="sm" fullWidth onClick={downloadSign} disabled={signing} aria-label={`Download a printable ${code.label} sign`}>
+          <Printer size={13} aria-hidden />
+          {signing ? "Making the sign…" : "Printable sign (A5)"}
+        </ButtonSecondary>
+      )}
       {error && (
         <p role="alert" className="text-xs" style={{ color: "var(--color-error)" }}>{error}</p>
       )}

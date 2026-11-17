@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useSyncExternalStore } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useSyncExternalStore } from "react";
 import { curveGeometry, seatPoints, SEAT, tableSize } from "@/components/manage/seating/FloorSurface";
 import type { FinderFloor, FinderTable } from "@/lib/seatFinder";
 import type { VenueElement } from "@/types/wedding";
 import type { Room } from "@/lib/seating";
+import { ensureContrast, mix } from "@/lib/color";
+import type { GuestTheme } from "@/lib/weddingTheme";
 import { centreOf, facingFrom, headsUpRotation, routeDots, routePath, type Pt, type Route } from "./wayfinding";
 
 interface Props {
@@ -12,8 +14,8 @@ interface Props {
   targetId: string;
   route: Route | null;
   entrance: VenueElement | null;
-  /** Highlight and route colour (the couple's primary colour). */
-  accent: string;
+  /** The wedding's look: the highlighted table and route use the couple's colour. */
+  theme: GuestTheme;
   /** Crop to the route, or show the whole room. */
   focus: boolean;
   /** Bumped to restart the walk. */
@@ -24,10 +26,46 @@ interface Props {
   onProgress?: (t: number) => void;
 }
 
-const INK = "#2F1E26";
-const INK_VARIANT = "#604C55";
-const HAIRLINE = "#DFD4D4";
-const FLOOR = "#FDF8F7";
+/** Map colours from the wedding's theme. */
+interface MapColors {
+  floor: string;
+  hairline: string;
+  ink: string;
+  inkVariant: string;
+  table: string;
+  chair: string;
+  feature: string;
+  /** The couple's colour: the highlighted table, chairs and pulse. */
+  hi: string;
+  onHi: string;
+  /** Route dots and markers (3:1 on the floor). */
+  line: string;
+  /** "You are here" and the door's name (4.5:1 on the floor). */
+  lineText: string;
+}
+
+function mapColors(t: GuestTheme): MapColors {
+  return {
+    floor: t.card,
+    hairline: t.outline,
+    ink: t.ink,
+    inkVariant: t.inkVariant,
+    table: t.dark ? mix(t.card, "#FFFFFF", 0.07) : "#FFFFFF",
+    chair: mix(t.card, t.ink, t.dark ? 0.16 : 0.07),
+    feature: mix(t.card, t.ink, t.dark ? 0.08 : 0.045),
+    hi: t.primary,
+    onHi: t.onPrimary,
+    line: ensureContrast(t.primary, t.card, 3),
+    lineText: ensureContrast(t.primary, t.card, 4.5),
+  };
+}
+
+const MapTheme = createContext<MapColors | null>(null);
+const useColors = () => {
+  const c = useContext(MapTheme);
+  if (!c) throw new Error("SeatMap colours missing");
+  return c;
+};
 
 const DRAW_MS = 1600;
 /** Each dot's own fade-in; the stagger across the route fills the rest of DRAW_MS. */
@@ -67,7 +105,9 @@ const subscribeReduced = (cb: () => void) => {
 const usePrefersReducedMotion = () =>
   useSyncExternalStore(subscribeReduced, () => window.matchMedia(REDUCED_QUERY).matches, () => false);
 
-export default function SeatMap({ floor, targetId, route, entrance, accent, focus, replayKey, turns = 0, onProgress }: Props) {
+export default function SeatMap({ floor, targetId, route, entrance, theme, focus, replayKey, turns = 0, onProgress }: Props) {
+  const colors = useMemo(() => mapColors(theme), [theme]);
+  const accent = colors.line;
   const target = floor.tables.find((t) => t.id === targetId);
   // Door at the bottom, walk going up. Without a route, still face the table from the door.
   const auto: Rot = route
@@ -165,6 +205,7 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
   const end = route?.points[route.points.length - 1];
 
   return (
+    <MapTheme.Provider value={colors}>
     <svg
       viewBox={viewBox}
       data-rotation={rot}
@@ -176,23 +217,23 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
     >
       <defs>
         <pattern id="sf-dance" width="2.4" height="2.4" patternUnits="userSpaceOnUse">
-          <rect width="1.2" height="1.2" fill={INK} opacity="0.05" />
-          <rect x="1.2" y="1.2" width="1.2" height="1.2" fill={INK} opacity="0.05" />
+          <rect width="1.2" height="1.2" fill={colors.ink} opacity="0.05" />
+          <rect x="1.2" y="1.2" width="1.2" height="1.2" fill={colors.ink} opacity="0.05" />
         </pattern>
         <pattern id="sf-stage" width="1" height="1" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width="0.12" height="1" fill={INK} opacity="0.08" />
+          <rect width="0.12" height="1" fill={colors.ink} opacity="0.08" />
         </pattern>
       </defs>
 
       <g transform={groupTransform(rot, room)}>
-        <rect x={0.25} y={0.25} width={room.w - 0.5} height={room.h - 0.5} rx={1.2} fill={FLOOR} stroke={HAIRLINE} strokeWidth={0.3} />
+        <rect x={0.25} y={0.25} width={room.w - 0.5} height={room.h - 0.5} rx={1.2} fill={colors.floor} stroke={colors.hairline} strokeWidth={0.3} />
 
         {floor.elements.map((el) => (
-          <Feature key={el.id} el={el} rot={rot} accent={accent} isStart={el.id === entrance?.id} />
+          <Feature key={el.id} el={el} rot={rot} isStart={el.id === entrance?.id} />
         ))}
 
         {floor.tables.map((t) => (
-          <Table key={t.id} t={t} rot={rot} accent={accent} highlighted={t.id === targetId} />
+          <Table key={t.id} t={t} rot={rot} highlighted={t.id === targetId} />
         ))}
 
         {d && (
@@ -216,7 +257,7 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
         )}
         {start && (
           <g transform={`translate(${start.x} ${start.y})`}>
-            <circle r={1.5} fill="#fff" stroke={accent} strokeWidth={0.45} />
+            <circle r={1.5} fill={colors.floor} stroke={accent} strokeWidth={0.45} />
             <circle r={0.6} fill={accent} />
           </g>
         )}
@@ -225,12 +266,12 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
         {d && (
           <g ref={walkerRef} data-testid="seat-map-walker" style={{ opacity: 0 }} aria-hidden>
             <circle r={2.1} fill={accent} opacity={0.18} />
-            <circle r={1.1} fill={accent} stroke="#fff" strokeWidth={0.4} />
+            <circle r={1.1} fill={accent} stroke={colors.floor} strokeWidth={0.4} />
           </g>
         )}
 
         {start && (
-          <Label at={start} rot={rot} dy={-2.6} size={1.45} weight={600} color={accent} halo>
+          <Label at={start} rot={rot} dy={-2.6} size={1.45} weight={600} color={colors.lineText} halo>
             You are here
           </Label>
         )}
@@ -244,18 +285,20 @@ export default function SeatMap({ floor, targetId, route, entrance, accent, focu
         @media (prefers-reduced-motion: reduce) { .sf-dot, .sf-pulse { animation: none; } }
       `}</style>
     </svg>
+    </MapTheme.Provider>
   );
 }
 
 /** Text that stays upright however the map and the table are turned. */
 function Label({
-  at, rot, spin = 0, dy = 0, size, weight = 500, color = INK_VARIANT, halo, children,
+  at, rot, spin = 0, dy = 0, size, weight = 500, color, halo, children,
 }: {
   at: Pt; rot: Rot; spin?: number; dy?: number; size: number; weight?: number; color?: string;
   /** Outline in this colour (true = the floor colour), so text stays readable off its shape. */
   halo?: boolean | string;
   children: React.ReactNode;
 }) {
+  const colors = useColors();
   return (
     <g transform={`translate(${at.x} ${at.y}) rotate(${-rot - spin})`}>
       <text
@@ -264,8 +307,8 @@ function Label({
         dominantBaseline="central"
         fontSize={size}
         fontWeight={weight}
-        fill={color}
-        stroke={halo ? (halo === true ? FLOOR : halo) : undefined}
+        fill={color ?? colors.inkVariant}
+        stroke={halo ? (halo === true ? colors.floor : halo) : undefined}
         strokeWidth={halo ? 0.55 : undefined}
         paintOrder="stroke"
         strokeLinejoin="round"
@@ -310,7 +353,9 @@ function FittedLabel({
   );
 }
 
-function Feature({ el, rot, accent, isStart }: { el: VenueElement; rot: Rot; accent: string; isStart: boolean }) {
+function Feature({ el, rot, isStart }: { el: VenueElement; rot: Rot; isStart: boolean }) {
+  const colors = useColors();
+  const accent = colors.line;
   const c = centreOf(el);
   const r = el.rotation ?? 0;
   const fill = el.kind === "danceFloor" ? "url(#sf-dance)" : el.kind === "stage" ? "url(#sf-stage)" : undefined;
@@ -323,7 +368,7 @@ function Feature({ el, rot, accent, isStart }: { el: VenueElement; rot: Rot; acc
   const small = Math.min(el.w, el.h) < 3.2;
   return (
     <g>
-      <g transform={`translate(${c.x} ${c.y}) rotate(${r})`} fill={isStart ? accent : "#F3EAEA"} fillOpacity={isStart ? 0.14 : 1} stroke={isStart ? accent : HAIRLINE} strokeWidth={0.25}>
+      <g transform={`translate(${c.x} ${c.y}) rotate(${r})`} fill={isStart ? accent : colors.feature} fillOpacity={isStart ? 0.14 : 1} stroke={isStart ? accent : colors.hairline} strokeWidth={0.25}>
         {shape}
         {fill && (
           <g fill={fill} stroke="none">
@@ -338,7 +383,7 @@ function Feature({ el, rot, accent, isStart }: { el: VenueElement; rot: Rot; acc
           rot={rot}
           box={{ w: el.w, h: el.h, angle: r + rot }}
           size={Math.min(1.5, Math.max(1.05, el.h * 0.32))}
-          color={isStart ? accent : INK_VARIANT}
+          color={isStart ? colors.lineText : colors.inkVariant}
           weight={isStart ? 600 : 500}
         />
       )}
@@ -346,13 +391,15 @@ function Feature({ el, rot, accent, isStart }: { el: VenueElement; rot: Rot; acc
   );
 }
 
-function Table({ t, rot, accent, highlighted }: { t: FinderTable; rot: Rot; accent: string; highlighted: boolean }) {
+function Table({ t, rot, highlighted }: { t: FinderTable; rot: Rot; highlighted: boolean }) {
+  const colors = useColors();
+  const accent = colors.hi;
   const { w, h } = tableSize(t);
   const c = centreOf(t);
   const spin = t.rotation ?? 0;
   const seats = seatPoints(t);
-  const fill = highlighted ? accent : "#FFFFFF";
-  const stroke = highlighted ? accent : HAIRLINE;
+  const fill = highlighted ? accent : colors.table;
+  const stroke = highlighted ? accent : colors.hairline;
   const body =
     t.shape === "round" ? (
       <circle cx={w / 2} cy={h / 2} r={w / 2} />
@@ -379,7 +426,7 @@ function Table({ t, rot, accent, highlighted }: { t: FinderTable; rot: Rot; acce
             cx={p.x}
             cy={p.y}
             r={SEAT / 2 - 0.15}
-            fill={highlighted ? accent : "#F1E7E6"}
+            fill={highlighted ? accent : colors.chair}
             fillOpacity={highlighted ? 0.28 : 1}
             stroke={highlighted ? accent : "none"}
             strokeWidth={0.18}
@@ -397,8 +444,8 @@ function Table({ t, rot, accent, highlighted }: { t: FinderTable; rot: Rot; acce
         box={t.shape === "curve" ? { w: 11, h: 4, angle: rot } : { w, h: t.shape === "arc" ? h * 0.8 : h, angle: spin + rot }}
         size={highlighted ? 1.9 : 1.35}
         weight={highlighted ? 600 : 500}
-        color={highlighted ? "#FFFFFF" : INK_VARIANT}
-        halo={highlighted ? accent : "#FFFFFF"}
+        color={highlighted ? colors.onHi : colors.inkVariant}
+        halo={highlighted ? accent : colors.table}
       />
     </g>
   );

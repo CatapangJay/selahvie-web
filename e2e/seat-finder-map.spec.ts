@@ -306,13 +306,16 @@ test.describe("Find your table: map and animation", () => {
     await ctx.close();
   });
 
-  test("FIND-21 a pale couple colour falls back to ink so buttons stay readable", async ({ browser }) => {
+  test("FIND-21 the couple's colour is used as chosen, with readable text on it", async ({ browser }) => {
     await setPlan(HALL_TABLES, HALL_ELEMENTS, "t2");
     const { ctx, page } = await phone(browser);
     await updateWebsite(weddingId, { primary_color: "#F3E3C6" });
     try {
       await page.goto(`/wedding/${slug}/seat`);
-      await expect(page.getByRole("button", { name: "Find my table" })).toHaveCSS("background-color", "rgb(47, 30, 38)");
+      // A pale colour stays the couple's colour; the text on it turns dark instead.
+      const button = page.getByRole("button", { name: "Find my table" });
+      await expect(button).toHaveCSS("background-color", "rgb(243, 227, 198)");
+      await expect(button).toHaveCSS("color", "rgb(23, 18, 26)");
       await updateWebsite(weddingId, { primary_color: "#1F4E5A" });
       await page.reload();
       await expect(page.getByRole("button", { name: "Find my table" })).toHaveCSS("background-color", "rgb(31, 78, 90)");
