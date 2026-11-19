@@ -224,38 +224,50 @@ export function stripFromAudiences(
   };
 }
 
-// ─── Name lookup (fuzzy) ─────────────────────────────────────────────────────
+// ─── Name lookup ──────────────────────────────────────────────────────────────
+// Names match exactly once they're tidied up, never by guesswork: a partial word
+// ("Ana Cru") or a typo is not a name on the list. Mirrored in SQL by
+// app.normalize_name / app.name_score (db/migrations/0014_strict_name_matching.sql).
 
+/** Letters NFD doesn't split into a base letter and an accent. */
+const SPECIAL_LETTERS: Record<string, string> = { æ: "ae", œ: "oe", ø: "o", ß: "ss", đ: "d", ð: "d", ł: "l", þ: "th", ı: "i" };
+/** Generational suffixes guests often leave off (or add): "Jose Rizal Jr." = "Jose Rizal". */
+const NAME_SUFFIXES = new Set(["jr", "sr", "ii", "iii", "iv"]);
+
+/**
+ * "  José  Muñoz-O'Brien Jr. " → "jose munoz obrien jr". Accents and ñ fold to
+ * plain letters, apostrophes drop, other punctuation becomes a space.
+ */
 export function normalizeName(s: string): string {
   return s
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // strip accents: "José" → "jose"
+    .replace(/[\u0300-\u036f]/g, "") // "José" → "jose", "Muñoz" → "munoz"
     .toLowerCase()
+    .replace(/[æœøßđðłþı]/g, (c) => SPECIAL_LETTERS[c] ?? c)
+    .replace(/['’`´]/g, "") // "O'Brien" → "obrien"
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
-function levenshtein(a: string, b: string): number {
-  if (a === b) return 0;
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    const curr = [i];
-    for (let j = 1; j <= b.length; j++) {
-      curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-    }
-    prev = curr;
-  }
-  return prev[b.length];
-}
+const nameTokens = (normalized: string) => normalized.split(" ").filter((t) => t && !NAME_SUFFIXES.has(t));
 
-function nameScore(query: string, candidate: string): number {
-  if (query === candidate) return 1;
-  const q = query.split(" ");
-  const c = candidate.split(" ");
-  // "maria santos" should find "Maria Clara Santos".
-  if (q.length >= 2 && q.every((t) => c.includes(t))) return 0.92;
-  return 1 - levenshtein(query, candidate) / Math.max(query.length, candidate.length);
+/**
+ * How well a typed name fits a name on the list (both normalized):
+ *  1   the same name ("Dela Cruz" and "Delacruz" count as the same);
+ *  0.9 the first and last name, middle names left out ("Maria Santos" → "Maria Clara Santos");
+ *  0   anything else: a partial word, a typo, a first name alone.
+ */
+export function nameScore(query: string, candidate: string): number {
+  const q = nameTokens(query);
+  const c = nameTokens(candidate);
+  if (!q.length || !c.length) return 0;
+  if (q.join("") === c.join("")) return 1;
+  if (q.length < 2 || c.length < 2 || q[0] !== c[0]) return 0;
+  // What follows the first name must be the candidate's last name(s), in whole words.
+  const rest = q.slice(1).join("");
+  for (let k = 1; k < c.length; k++) if (c.slice(k).join("") === rest) return 0.9;
+  return 0;
 }
 
 const MATCH_THRESHOLD = 0.8;
@@ -267,9 +279,10 @@ export type NameMatch =
   | { status: "none" };
 
 /**
- * Tolerates typos, accents, and middle names. When two guests are equally
- * plausible (e.g. two "Maria Santos"), returns `needs-code` rather than guess,
- * and never reveals which names exist.
+ * Exact after tidying (accents, ñ, punctuation, spacing, Jr./Sr.), or first and
+ * last name with middle names left out. No partial words or typos. When two
+ * guests fit equally well (e.g. two "Maria Santos"), returns `needs-code` rather
+ * than guess, and never reveals which names exist.
  */
 export function matchGuestByName(query: string, guests: GuestListEntry[]): NameMatch {
   const match = matchByName(query, guests, (g) => g.name, (g) => g.id);

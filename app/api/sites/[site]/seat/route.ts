@@ -65,6 +65,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     weddingDate: config.weddingDate || undefined,
     theme: weddingTheme(config),
     venueName: (receptionVenue(config)?.name || config.venueName)?.trim() || undefined,
+    heroImageUrl: config.heroImageUrl?.trim() || undefined,
     // Entrance names only matter (and are only sent) when the finder is on.
     entrances: enabled ? entrancesOf(planOf(config)) : [],
   };

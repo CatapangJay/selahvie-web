@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { FROM_PARAM, type FinderResult, type FinderSite } from "@/lib/seatFinder";
 import { weddingTheme, type GuestTheme } from "@/lib/weddingTheme";
+import { loadThemeFonts } from "@/lib/themeFonts";
 import SeatMap from "./SeatMap";
 import { directions, findRoute, type Step } from "./wayfinding";
 
@@ -60,6 +61,8 @@ const theDoor = (label: string) => (/^the\s/i.test(label) ? label : `the ${label
 const PAGE_CSS = `
   .sf-rise { animation: sf-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes sf-rise { from { transform: translateY(0.16em); } }
+  .sf-settle { animation: sf-settle 1800ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+  @keyframes sf-settle { from { transform: scale(1.06); } }
   .sf-sheet { animation: sf-sheet 560ms cubic-bezier(0.22, 1, 0.36, 1) both; }
   @keyframes sf-sheet { from { transform: translateY(14px); } }
   .sf-spin { animation: sf-spin 0.9s linear infinite; }
@@ -73,7 +76,7 @@ const PAGE_CSS = `
      and the name field shows its own themed glow instead. */
   .sf-root :focus-visible { outline-color: var(--sf-link); }
   .sf-root input:focus-visible { outline: none; }
-  @media (prefers-reduced-motion: reduce) { .sf-rise, .sf-sheet, .sf-skeleton, .sf-spin { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .sf-rise, .sf-settle, .sf-sheet, .sf-skeleton, .sf-spin { animation: none; } }
 `;
 
 export default function SeatFinder({ site }: { site: string }) {
@@ -102,6 +105,11 @@ export default function SeatFinder({ site }: { site: string }) {
   // Until the site loads, the house theme; then the couple's.
   const theme = info?.theme ?? HOUSE_THEME;
 
+  // The template's own fonts (some templates ship their own stylesheet).
+  useEffect(() => {
+    if (info) void loadThemeFonts(info.theme);
+  }, [info]);
+
   if (loadError) {
     return (
       <Shell theme={theme}>
@@ -127,7 +135,7 @@ export default function SeatFinder({ site }: { site: string }) {
     <Shell theme={theme}>
       {!info.enabled ? (
         <div className="mx-auto max-w-md">
-          <Welcome names={names} meta={metaLine(info)} />
+          <Welcome names={names} meta={metaLine(info)} photo={info.heroImageUrl} script={info.theme.script} />
           <Notice title="Table finder opens soon">
             The couple hasn&apos;t opened table lookups yet. Please ask the welcome table for your seat.
           </Notice>
@@ -200,25 +208,75 @@ function TopBar({ names, action }: { names: string; action?: React.ReactNode }) 
  * the day and place beneath, and the round-table motif from the result screen.
  * Full width on phones, a rounded panel from `sm`.
  */
-function Welcome({ names, meta }: { names: string; meta?: string }) {
+function Welcome({ names, meta, photo, script, tall }: { names: string; meta?: string; photo?: string; script?: string; tall?: boolean }) {
+  // A photo that fails to load falls back to the colour band.
+  const [failed, setFailed] = useState(false);
+  const withPhoto = Boolean(photo) && !failed;
   return (
     <header
-      className="relative -mx-4 overflow-hidden px-6 pb-14 pt-9 sm:mx-0 sm:mt-4 sm:rounded-[28px] sm:px-8"
-      style={{ background: PRIMARY, color: ON_PRIMARY }}
+      className="relative -mx-4 overflow-hidden sm:mx-0 sm:mt-4 sm:rounded-[28px] lg:mt-0 lg:rounded-[32px]"
+      style={{ background: PRIMARY, color: withPhoto ? "#FFFFFF" : ON_PRIMARY }}
     >
-      <TableMotif />
-      <p className="relative text-[0.9375rem]" style={{ color: fade(ON_PRIMARY, 88) }}>
-        Welcome to the wedding of
-      </p>
-      <p className="sf-rise relative mt-1.5 text-[2.375rem] leading-[1.05] tracking-[-0.01em]" style={{ ...SERIF, textWrap: "balance" }}>
-        {names || "the happy couple"}
-      </p>
-      {meta && (
-        <p className="relative mt-3 text-[0.9375rem] leading-snug" style={{ color: fade(ON_PRIMARY, 88) }}>
-          {meta}
-        </p>
+      {withPhoto ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element -- the couple's own photo, any host */}
+          <img
+            src={photo}
+            alt=""
+            onError={() => setFailed(true)}
+            className="sf-settle absolute inset-0 h-full w-full object-cover"
+            style={{ objectPosition: "50% 35%" }}
+          />
+          {/* Clear at the top, dark where the names sit, so they read on any photo. */}
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{ background: "linear-gradient(180deg, rgb(0 0 0 / 0.1) 0%, rgb(0 0 0 / 0) 32%, rgb(0 0 0 / 0.66) 100%)" }}
+          />
+        </>
+      ) : (
+        <TableMotif />
       )}
+      <div
+        // Phones: a band with the form rising over it. Desktop: a tall panel beside the form.
+        className={`relative flex flex-col justify-end px-6 pb-14 sm:px-8 ${tall ? "lg:min-h-[min(84dvh,780px)] lg:px-12 lg:pb-12" : ""} ${withPhoto ? "min-h-[min(40svh,340px)] pt-20" : "pt-9"}`}
+        style={{ textShadow: withPhoto ? "0 1px 14px rgb(0 0 0 / 0.35)" : undefined }}
+      >
+        <p className={`text-[0.9375rem] ${tall ? "lg:text-[1.0625rem]" : ""}`} style={{ opacity: 0.9 }}>
+          Welcome to the wedding of
+        </p>
+        <p className={`sf-rise mt-1.5 text-[2.5rem] leading-[1.05] tracking-[-0.01em] ${tall ? "lg:mt-3 lg:text-[3.75rem]" : ""}`} style={{ ...SERIF, textWrap: "balance" }}>
+          <CoupleNames names={names || "the happy couple"} script={script} />
+        </p>
+        {meta && (
+          <p className={`mt-3 text-[0.9375rem] leading-snug ${tall ? "lg:mt-4 lg:text-[1.0625rem]" : ""}`} style={{ opacity: 0.9 }}>
+            {meta}
+          </p>
+        )}
+      </div>
     </header>
+  );
+}
+
+/**
+ * "Isabel & Marco" with the ampersand as the one flourish: in the template's
+ * script face when it has one, otherwise the display face in italic.
+ */
+function CoupleNames({ names, script }: { names: string; script?: string }) {
+  const parts = names.split(/\s+&\s+/);
+  if (parts.length !== 2) return <>{names}</>;
+  return (
+    <>
+      {parts[0]}{" "}
+      <span
+        aria-hidden
+        className="inline-block"
+        style={script ? { fontFamily: script, fontSize: "1.15em", lineHeight: 0.8, padding: "0 0.06em" } : { fontStyle: "italic" }}
+      >
+        &amp;
+      </span>
+      <span className="sr-only">and</span> {parts[1]}
+    </>
   );
 }
 
@@ -360,15 +418,16 @@ function Finder({
   const isCode = phase.step === "code";
   const Lead = isCode ? KeyRound : UserRound;
   return (
-    <div className="mx-auto max-w-md">
-      <Welcome names={names} meta={metaLine(info)} />
+    // Phones and tablets: one column. Desktop: the welcome beside the form.
+    <div className="mx-auto max-w-md lg:grid lg:max-w-6xl lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:py-8">
+      <Welcome names={names} meta={metaLine(info)} photo={info.heroImageUrl} script={info.theme.script} tall />
 
-      {/* The form sits on a sheet that rises over the welcome, like a card set down on a table. */}
+      {/* Phones: a sheet rising over the welcome, like a card set down on a table. Desktop: beside it. */}
       <section
-        className="sf-sheet relative -mx-4 -mt-7 px-5 pb-2 pt-7 sm:mx-0 sm:px-2"
-        style={{ background: SURFACE, borderRadius: "28px 28px 0 0" }}
+        className="sf-sheet relative -mx-4 -mt-7 rounded-t-[28px] px-5 pb-2 pt-7 sm:mx-0 sm:px-2 lg:mt-0 lg:max-w-[30rem] lg:rounded-none lg:px-0 lg:py-6"
+        style={{ background: SURFACE }}
       >
-        <h1 className="text-[2rem] leading-[1.1]" style={{ ...SERIF, color: INK, textWrap: "balance" }}>
+        <h1 className="text-[2rem] leading-[1.1] lg:text-[2.75rem]" style={{ ...SERIF, color: INK, textWrap: "balance" }}>
           {isCode ? "Enter your invitation code" : "Find your table"}
         </h1>
         <p className="mt-2 text-[1rem] leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
@@ -466,7 +525,7 @@ function Result({
 
   return (
     // Phone: table, door, map, steps. Desktop: the map on the left, the rest beside it.
-    <div className="lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(340px,1fr)] lg:gap-x-10">
+    <div className="lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(340px,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10">
       <TableBand name={table?.name.trim() || "Your table"} guest={firstName(result.guestName)} partySize={result.partySize} />
 
       {entrances.length > 1 && (
@@ -573,7 +632,8 @@ function Wayfinder({
   const route = useMemo(() => (entrance ? findRoute(floor, entrance, tableId) : null), [floor, entrance, tableId]);
   const steps = useMemo(() => (route ? directions(route, floor, entranceLabel, tableId) : []), [route, floor, entranceLabel, tableId]);
 
-  const [focus, setFocus] = useState(true);
+  // The whole room by default: a crop can hide where you are in the room.
+  const [focus, setFocus] = useState(false);
   const [replay, setReplay] = useState(0);
   const [turns, setTurns] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -584,14 +644,14 @@ function Wayfinder({
       {/* Edge to edge on phones: the room gets the whole width. */}
       <section
         aria-label="Floor plan"
-        className="-mx-4 mt-4 px-2 pb-3 pt-2 sm:mx-0 sm:px-4 lg:sticky lg:top-6 lg:col-start-1 lg:row-span-4 lg:row-start-1 lg:mt-0 lg:self-start"
+        className="-mx-4 mt-4 px-2 pb-3 pt-2 sm:mx-0 sm:px-4 lg:sticky lg:top-6 lg:col-start-1 lg:row-span-3 lg:row-start-1 lg:mt-0 lg:self-start"
         style={{ background: SURFACE_1, borderRadius: 28 }}
       >
         <div className="flex items-center justify-between gap-2 px-2 pb-2">
           <div className="inline-flex p-1" style={{ background: fade(INK, 7), borderRadius: 999 }} role="group" aria-label="Map view">
             {[
-              { on: true, label: "My route" },
               { on: false, label: "Whole room" },
+              { on: true, label: "My route" },
             ].map((o) => {
               const pressed = focus === o.on;
               return (
@@ -670,7 +730,7 @@ function Wayfinder({
         )}
       </section>
 
-      <section aria-labelledby="sf-steps" className="mt-7 lg:col-start-2 lg:row-start-3 lg:mt-8">
+      <section aria-labelledby="sf-steps" className="mt-7 lg:col-start-2 lg:row-start-3 lg:mt-8 lg:self-start">
         <h2 id="sf-steps" className="text-[1rem] font-medium" style={{ color: INK }}>
           {steps.length > 0 ? "How to get there" : "Finding your way"}
         </h2>

@@ -116,6 +116,12 @@ test.describe("Find your table (Premium)", () => {
     await guest.getByRole("button", { name: "Find my table" }).click();
     await expect(guest.getByText("We couldn't find that name")).toBeVisible();
 
+    // A partial name is not a name on the list ("Ana Cru" must not find Ana Cruz).
+    await guest.getByLabel("Your name").fill("Ana Cru");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByText("We couldn't find that name")).toBeVisible();
+    await expect(guest.getByRole("heading", { name: "Welcome, Ana" })).toHaveCount(0);
+
     // Two "Sam Lee"s: ask for the code instead of guessing.
     await guest.getByLabel("Your name").fill("Sam Lee");
     await guest.getByRole("button", { name: "Find my table" }).click();

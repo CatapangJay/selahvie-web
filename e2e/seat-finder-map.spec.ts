@@ -187,20 +187,25 @@ test.describe("Find your table: map and animation", () => {
     await ctx.close();
   });
 
-  test("FIND-13 'My route' crops to the walk, 'Whole room' shows the whole plan", async ({ browser }) => {
+  test("FIND-13 the map opens on the whole room; 'My route' crops to the walk", async ({ browser }) => {
     await setPlan(HALL_TABLES, HALL_ELEMENTS, "t8");
     const { ctx, page } = await phone(browser);
     await lookUp(page, "Lena Ortiz", "south");
 
-    const [, , w, h] = (await viewBox(page)).split(" ").map(Number);
-    expect(w * h).toBeLessThan(100 * 62.5);
-    await page.getByRole("button", { name: "Whole room" }).click();
+    // Whole room by default, so guests see where they are in it.
     await expect(page.getByRole("button", { name: "Whole room" })).toHaveAttribute("aria-pressed", "true");
     await expect.poll(() => viewBox(page)).toBe("0 0 100 62.5");
     await page.waitForTimeout(1_500);
     await map(page).screenshot({ path: "test-results/seat-finder/whole-room.png" });
+
     await page.getByRole("button", { name: "My route" }).click();
-    await expect.poll(() => viewBox(page)).not.toBe("0 0 100 62.5");
+    await expect(page.getByRole("button", { name: "My route" })).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(async () => {
+      const [, , w, h] = (await viewBox(page)).split(" ").map(Number);
+      return w * h < 100 * 62.5;
+    }).toBe(true);
+    await page.getByRole("button", { name: "Whole room" }).click();
+    await expect.poll(() => viewBox(page)).toBe("0 0 100 62.5");
     await ctx.close();
   });
 

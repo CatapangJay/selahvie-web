@@ -41,6 +41,8 @@ export interface FinderSite {
   theme: GuestTheme;
   /** Where the reception is, for the header. */
   venueName?: string;
+  /** The couple's hero photo from their website, for the welcome. */
+  heroImageUrl?: string;
   entrances: { id: string; label: string }[];
 }
 

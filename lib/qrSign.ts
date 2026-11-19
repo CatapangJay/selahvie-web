@@ -12,6 +12,7 @@
 import { canvasToBlob, drawQr, qrExtent, qrMatrix } from "@/lib/qr";
 import { mix } from "@/lib/color";
 import type { GuestTheme } from "@/lib/weddingTheme";
+import { loadThemeFonts } from "@/lib/themeFonts";
 
 // ─── Formats ──────────────────────────────────────────────────────────────────
 
@@ -89,17 +90,8 @@ type Rect = { x: number; y: number; w: number; h: number };
 
 // ─── Fonts and photos ─────────────────────────────────────────────────────────
 
-/** First family in a CSS stack, for `document.fonts.load`. */
-const firstFamily = (stack: string) => stack.split(",")[0].trim().replace(/^['"]|['"]$/g, "");
-
-/** Loads the theme's fonts so canvas can draw them. Call before drawing. */
-export async function prepareSign(theme: GuestTheme) {
-  const serif = firstFamily(theme.serif);
-  const sans = firstFamily(theme.sans);
-  await Promise.all(
-    [`400 120px ${serif}`, `italic 400 120px ${serif}`, `500 60px ${sans}`, `400 60px ${sans}`].map((f) => document.fonts?.load(f).catch(() => undefined))
-  );
-}
+/** Loads the theme's fonts (the template's own type) so canvas can draw them. Call before drawing. */
+export const prepareSign = (theme: GuestTheme) => loadThemeFonts(theme);
 
 const photoCache = new Map<string, Promise<HTMLImageElement | null>>();
 
