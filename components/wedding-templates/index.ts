@@ -12,7 +12,7 @@ import { OPTIONAL_SECTIONS } from "./_shared/sections";
 
 export interface TemplateComponentProps {
   config: WeddingConfig;
-  /** Show the "Created with Selah Vie" footer branding. Default: true */
+  /** Show the "Created with Be My Guest" footer branding. Default: true */
   showBranding?: boolean;
 }
 

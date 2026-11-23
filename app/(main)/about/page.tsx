@@ -8,9 +8,9 @@ import { weddingImages } from "@/lib/weddingImages";
 import { formatPrice } from "@/lib/utils";
 
 export const metadata = {
-  title: "About Us — Selah Vie",
+  title: "About Us — Be My Guest",
   description:
-    "The story behind Selah Vie — beautifully crafted wedding websites, made simple for the modern couple.",
+    "The story behind Be My Guest — beautifully crafted wedding websites, made simple for the modern couple.",
 };
 
 const VALUES = [
@@ -61,7 +61,7 @@ export default function AboutPage() {
           </Reveal>
           <Reveal index={1}>
             <p className="mx-auto mt-7 max-w-xl text-base font-light leading-relaxed sm:text-lg" style={{ color: "rgba(253,248,247,0.82)" }}>
-              Selah Vie was born from a simple idea — that a couple should be able to share their day
+              Be My Guest was born from a simple idea — that a couple should be able to share their day
               in a way that feels as personal and considered as the celebration itself.
             </p>
           </Reveal>

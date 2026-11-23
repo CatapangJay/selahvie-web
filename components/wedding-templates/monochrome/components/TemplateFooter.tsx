@@ -53,7 +53,7 @@ export default function TemplateFooter({ config, palette: p, showBranding }: Pro
         <p style={{ fontFamily: BODY, fontSize: 15, letterSpacing: "0.04em", color: "rgba(255,255,255,.72)", marginTop: "2rem" }}>
           Created with{" "}
           <Link href="/" className="font-semibold text-white underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
-            Selah Vie
+            Be My Guest
           </Link>{" "}
           · Monochrome
         </p>

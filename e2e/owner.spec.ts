@@ -73,10 +73,12 @@ test.describe("Owner: website and guest management", () => {
     const weddingId = await buyWebsite(page);
 
     await page.goto(`/dashboard/manage/${weddingId}?tab=guests`);
+    // A new website starts on the empty state; its first action opens the add form.
+    await page.getByRole("button", { name: "Add a guest" }).click();
     const form = page.locator("form").filter({ has: page.getByLabel("Guest name") });
     await form.getByLabel("Guest name").fill("Sarah Johnson");
     await form.getByLabel("Email (optional)").fill("sarah@example.com");
-    await form.getByRole("button", { name: "Add guest" }).click();
+    await form.getByRole("button", { name: "Add to list" }).click();
 
     await expect(page.getByText("Sarah Johnson").first()).toBeVisible();
     await expect

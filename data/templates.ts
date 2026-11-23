@@ -567,6 +567,7 @@ export const templates: WeddingTemplate[] = [
       { id: "ef1", name: "Olive & Rust",     primary: "#39432F", accent: "#A4532F", background: "#EEE8DA" },
       { id: "ef2", name: "Eucalyptus & Clay", primary: "#3E5450", accent: "#B0744E", background: "#EEE8DA" },
       { id: "ef3", name: "Bark & Ochre",     primary: "#463A2E", accent: "#B98A36", background: "#EEE8DA" },
+      { id: "ef4", name: "Moss & Champagne", primary: "#54513A", accent: "#76663A", background: "#F6E7D3" },
     ],
     isFeatured: true,
     createdAt: "2026-11-06",

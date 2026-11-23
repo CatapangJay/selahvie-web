@@ -269,6 +269,13 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
     const next = { ...albums, [key]: urls };
     update({ galleryAlbums: next, galleryImageUrls: flattenAlbums(next) });
   };
+  // Photos the couple has already uploaded; the hero can reuse one instead of a fresh upload.
+  const sitePhotos = flattenAlbums(albums);
+  /** Files an album must not delete when a photo leaves it: the hero and the other albums' photos. */
+  const keptOutside = (key: GalleryAlbumKey) => [
+    ...(config.heroImageUrl ? [config.heroImageUrl] : []),
+    ...GALLERY_ALBUMS.filter((a) => a.key !== key).flatMap((a) => albums[a.key] ?? []),
+  ];
   const entourageCount = config.weddingParty?.filter(isNamed).length ?? 0;
   /** One line shown under a collapsed step, so the couple can scan what's set. */
   const summaries: Record<StepId, string> = {
@@ -765,6 +772,7 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                       scope={config.id}
                       value={config.heroImageUrl}
                       onChange={(url) => update({ heroImageUrl: url })}
+                      library={sitePhotos}
                       hint="The big photo guests see first. A landscape photo works best."
                     />
 
@@ -783,6 +791,7 @@ function CustomizeStudio({ config }: { config: WeddingConfig }) {
                                 scope={config.id}
                                 value={albums[album.key] ?? []}
                                 onChange={(urls) => setAlbum(album.key, urls)}
+                                keep={keptOutside(album.key)}
                               />
                             ))}
                           </div>

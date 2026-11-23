@@ -94,6 +94,11 @@ interface WeddingState {
   addGuest: (entry: NewGuest) => string;
   updateGuest: (id: string, data: Partial<GuestListEntry>) => void;
   removeGuest: (id: string) => void;
+  /** Bulk versions: one optimistic update, one chunked save. */
+  removeGuests: (ids: string[]) => void;
+  updateGuests: (ids: string[], data: Pick<Partial<GuestListEntry>, "status" | "side">) => void;
+  /** Add (member=true) or take (false) these guests in/out of one group. */
+  setGroupMembership: (ids: string[], groupId: string, member: boolean) => void;
   getGuests: (weddingId: string) => GuestListEntry[];
   /** Bulk add from CSV. Creates missing groups by name; skips rows already on the list. */
   importGuests: (weddingId: string, rows: ImportGuestRow[]) => ImportResult;
@@ -106,6 +111,8 @@ interface WeddingState {
 
 const SAVE_DELAY_MS = 600;
 const CHUNK = 500;
+/** Ids per `.in()` filter: they travel in the URL, so keep each request well under its length limit. */
+const ID_CHUNK = 150;
 const UNIQUE_VIOLATION = "23505";
 const SAVE_ERROR = "We couldn't save your last change. Your websites were reloaded — please try again.";
 /** Where websites lived before they moved to Supabase (zustand persist blob). */
@@ -424,6 +431,87 @@ export const useWeddingStore = create<WeddingState>()((set, get) => {
         });
       }
       enqueue(() => must(createClient().from("guests").delete().eq("id", id)));
+    },
+
+    removeGuests: (ids) => {
+      const gone = new Set(ids);
+      const removed = get().guests.filter((g) => gone.has(g.id));
+      if (removed.length === 0) return;
+      set((state) => ({
+        guests: state.guests.filter((g) => !gone.has(g.id)),
+        rsvps: state.rsvps.map((r) => (r.guestId && gone.has(r.guestId) ? { ...r, guestId: undefined } : r)),
+      }));
+      // Free seats and audience entries only for guests whose delete actually went through,
+      // so a failed chunk (which reloads) never leaves surviving guests unseated.
+      const releaseConfigFor = (deleted: GuestListEntry[]) => {
+        for (const weddingId of new Set(deleted.map((g) => g.weddingId))) {
+          const config = get().configs[weddingId];
+          if (!config) continue;
+          let next: WeddingConfig = config;
+          let seatsChanged = false;
+          for (const g of deleted.filter((x) => x.weddingId === weddingId)) {
+            const seatingPlan = stripGuest(next.seatingPlan, g.id);
+            if (seatingPlan) seatsChanged = true;
+            next = { ...next, ...stripFromAudiences(next, { guestId: g.id }), ...(seatingPlan ? { seatingPlan } : {}) };
+          }
+          get().updateConfig(weddingId, {
+            privateSections: next.privateSections,
+            sectionAudiences: next.sectionAudiences,
+            ...(seatsChanged ? { seatingPlan: next.seatingPlan } : {}),
+          });
+        }
+      };
+      enqueue(async () => {
+        const supabase = createClient();
+        for (let i = 0; i < removed.length; i += ID_CHUNK) {
+          const chunk = removed.slice(i, i + ID_CHUNK);
+          await must(supabase.from("guests").delete().in("id", chunk.map((g) => g.id)));
+          releaseConfigFor(chunk);
+        }
+      });
+    },
+
+    updateGuests: (ids, data) => {
+      const targets = new Set(ids);
+      if (targets.size === 0) return;
+      set((state) => ({ guests: state.guests.map((g) => (targets.has(g.id) ? { ...g, ...data } : g)) }));
+      const columns = guestColumns(data);
+      if (Object.keys(columns).length === 0) return;
+      const list = [...targets];
+      enqueue(async () => {
+        const supabase = createClient();
+        for (let i = 0; i < list.length; i += ID_CHUNK) {
+          await must(supabase.from("guests").update(columns).in("id", list.slice(i, i + ID_CHUNK)));
+        }
+      });
+    },
+
+    setGroupMembership: (ids, groupId, member) => {
+      const targets = new Set(ids);
+      // Only touch guests whose membership actually changes.
+      const changing = get().guests.filter((g) => targets.has(g.id) && g.groupIds.includes(groupId) !== member);
+      if (changing.length === 0) return;
+      const changed = new Set(changing.map((g) => g.id));
+      set((state) => ({
+        guests: state.guests.map((g) =>
+          changed.has(g.id)
+            ? { ...g, groupIds: member ? [...g.groupIds, groupId] : g.groupIds.filter((id) => id !== groupId) }
+            : g
+        ),
+      }));
+      enqueue(async () => {
+        if (member) {
+          await insertChunked("guest_group_members", changing.flatMap((g) => memberRows(g, [groupId])));
+          return;
+        }
+        const supabase = createClient();
+        const list = [...changed];
+        for (let i = 0; i < list.length; i += ID_CHUNK) {
+          await must(
+            supabase.from("guest_group_members").delete().eq("group_id", groupId).in("guest_id", list.slice(i, i + ID_CHUNK))
+          );
+        }
+      });
     },
 
     getGuests: (weddingId) => get().guests.filter((g) => g.weddingId === weddingId),

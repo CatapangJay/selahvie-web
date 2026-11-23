@@ -7,11 +7,14 @@ import type { VenueElement } from "@/types/wedding";
 import type { Room } from "@/lib/seating";
 import { ensureContrast, mix } from "@/lib/color";
 import type { GuestTheme } from "@/lib/weddingTheme";
+import { ELEMENT_ICON } from "@/components/manage/seating/shared";
 import { centreOf, facingFrom, headsUpRotation, routeDots, routePath, type Pt, type Route } from "./wayfinding";
 
 interface Props {
   floor: FinderFloor;
   targetId: string;
+  /** The guest's own chairs at the target table (0-based), when the couple chose them. */
+  chairs?: number[];
   route: Route | null;
   entrance: VenueElement | null;
   /** The wedding's look: the highlighted table and route use the couple's colour. */
@@ -105,7 +108,7 @@ const subscribeReduced = (cb: () => void) => {
 const usePrefersReducedMotion = () =>
   useSyncExternalStore(subscribeReduced, () => window.matchMedia(REDUCED_QUERY).matches, () => false);
 
-export default function SeatMap({ floor, targetId, route, entrance, theme, focus, replayKey, turns = 0, onProgress }: Props) {
+export default function SeatMap({ floor, targetId, chairs, route, entrance, theme, focus, replayKey, turns = 0, onProgress }: Props) {
   const colors = useMemo(() => mapColors(theme), [theme]);
   const accent = colors.line;
   const target = floor.tables.find((t) => t.id === targetId);
@@ -233,7 +236,7 @@ export default function SeatMap({ floor, targetId, route, entrance, theme, focus
         ))}
 
         {floor.tables.map((t) => (
-          <Table key={t.id} t={t} rot={rot} highlighted={t.id === targetId} />
+          <Table key={t.id} t={t} rot={rot} highlighted={t.id === targetId} mine={t.id === targetId ? chairs : undefined} />
         ))}
 
         {d && (
@@ -365,7 +368,18 @@ function Feature({ el, rot, isStart }: { el: VenueElement; rot: Rot; isStart: bo
     ) : (
       <rect x={-el.w / 2} y={-el.h / 2} width={el.w} height={el.h} rx={0.5} />
     );
-  const small = Math.min(el.w, el.h) < 3.2;
+  const mode = el.labelMode ?? "upright";
+  const text = el.label.trim();
+  // On screen the feature is turned by its own rotation plus the map's.
+  const a = ((((r + rot) % 180) + 180) % 180);
+  const sideways = a > 45 && a < 135;
+  const screenW = sideways ? el.h : el.w;
+  const screenH = sideways ? el.w : el.h;
+  const along = el.w >= el.h ? { len: el.w, cross: el.h, extra: 0 } : { len: el.h, cross: el.w, extra: 90 };
+  // Room across the text: too little for a line of it, and the icon stands in.
+  const cross = mode === "along" ? along.cross : mode === "down" ? screenW : screenH;
+  const showIcon = mode === "icon" || !text || cross < 1.8;
+  const base = Math.min(1.5, Math.max(1.05, Math.min(el.w, el.h) * 0.32));
   return (
     <g>
       <g transform={`translate(${c.x} ${c.y}) rotate(${r})`} fill={isStart ? accent : colors.feature} fillOpacity={isStart ? 0.14 : 1} stroke={isStart ? accent : colors.hairline} strokeWidth={0.25}>
@@ -376,13 +390,27 @@ function Feature({ el, rot, isStart }: { el: VenueElement; rot: Rot; isStart: bo
           </g>
         )}
       </g>
-      {!small && el.label.trim() && (
+      {showIcon ? (
+        <FeatureIcon el={el} at={c} rot={rot} color={isStart ? colors.lineText : colors.inkVariant} />
+      ) : mode === "upright" ? (
         <FittedLabel
-          text={el.label.trim()}
+          text={text}
           at={c}
           rot={rot}
           box={{ w: el.w, h: el.h, angle: r + rot }}
-          size={Math.min(1.5, Math.max(1.05, el.h * 0.32))}
+          size={base}
+          color={isStart ? colors.lineText : colors.inkVariant}
+          weight={isStart ? 600 : 500}
+        />
+      ) : (
+        // "along" turns with the feature on its long side; "down" reads top to bottom on screen.
+        <LineLabel
+          text={text}
+          at={c}
+          rot={rot}
+          spin={mode === "along" ? -(r + rot + along.extra) : -90}
+          length={mode === "along" ? along.len : screenH}
+          size={base}
           color={isStart ? colors.lineText : colors.inkVariant}
           weight={isStart ? 600 : 500}
         />
@@ -391,7 +419,32 @@ function Feature({ el, rot, isStart }: { el: VenueElement; rot: Rot; isStart: bo
   );
 }
 
-function Table({ t, rot, highlighted }: { t: FinderTable; rot: Rot; highlighted: boolean }) {
+/** A label on a set line (`spin`), shrunk to fit `length`, then cut short if it still can't. */
+function LineLabel({ text, length, size, ...rest }: { text: string; length: number; size: number } & Omit<Parameters<typeof Label>[0], "size" | "children">) {
+  const room = length - 0.8;
+  const fits = room / (CHAR_W * text.length);
+  const s = Math.min(size, Math.max(MIN_LABEL, fits));
+  const shown = fits >= MIN_LABEL ? text : `${text.slice(0, Math.max(1, Math.floor(room / (MIN_LABEL * CHAR_W)) - 1)).trimEnd()}…`;
+  return (
+    <Label {...rest} size={s}>
+      {shown}
+    </Label>
+  );
+}
+
+/** The feature's symbol, upright on screen, sized to the feature. */
+function FeatureIcon({ el, at, rot, color }: { el: VenueElement; at: Pt; rot: Rot; color: string }) {
+  const Icon = ELEMENT_ICON[el.kind];
+  const size = Math.max(1.2, Math.min(3, Math.min(el.w, el.h) * 0.6));
+  return (
+    <g transform={`translate(${at.x} ${at.y}) rotate(${-rot})`} aria-hidden>
+      <Icon x={-size / 2} y={-size / 2} width={size} height={size} color={color} strokeWidth={2} />
+    </g>
+  );
+}
+
+function Table({ t, rot, highlighted, mine }: { t: FinderTable; rot: Rot; highlighted: boolean; mine?: number[] }) {
+  const own = new Set(mine ?? []);
   const colors = useColors();
   const accent = colors.hi;
   const { w, h } = tableSize(t);
@@ -421,15 +474,17 @@ function Table({ t, rot, highlighted }: { t: FinderTable; rot: Rot; highlighted:
           </g>
         )}
         {seats.map((p, i) => (
+          // The guest's own chairs, when chosen, are solid; the rest of their table is tinted.
           <circle
             key={i}
+            data-own-chair={own.has(i) || undefined}
             cx={p.x}
             cy={p.y}
-            r={SEAT / 2 - 0.15}
+            r={SEAT / 2 - (own.has(i) ? 0 : 0.15)}
             fill={highlighted ? accent : colors.chair}
-            fillOpacity={highlighted ? 0.28 : 1}
-            stroke={highlighted ? accent : "none"}
-            strokeWidth={0.18}
+            fillOpacity={highlighted ? (own.has(i) ? 1 : 0.28) : 1}
+            stroke={own.has(i) ? colors.floor : highlighted ? accent : "none"}
+            strokeWidth={own.has(i) ? 0.35 : 0.18}
           />
         ))}
         <g fill={fill} stroke={stroke} strokeWidth={highlighted ? 0.35 : 0.25}>

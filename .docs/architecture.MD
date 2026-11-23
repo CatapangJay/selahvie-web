@@ -1,4 +1,4 @@
-# Selah Vie — System Architecture
+# Be My Guest — System Architecture
 
 > Updated for the **redesign** (soft & romantic, product-primary, V1 mock backend).
 > Reflects the **actual shipped structure** (route groups, template registry, real data
@@ -9,7 +9,7 @@
 
 ## 1. System Overview
 
-Selah Vie is a **wedding website + guest-management platform**. Couples browse, purchase,
+Be My Guest is a **wedding website + guest-management platform**. Couples browse, purchase,
 and fully customize a wedding website, publish it for guests, and then run **RSVP and guest
 management** from a single dashboard. V1 is a **monolithic Next.js 14 (App Router)
 application** with client-side persistence (`localStorage` via Zustand) and mock payments —

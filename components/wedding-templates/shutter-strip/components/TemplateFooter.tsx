@@ -62,7 +62,7 @@ export default function TemplateFooter({ config, palette: p, date, showBranding 
           <p style={{ fontFamily: MONO, fontSize: 14, color: "rgba(241,234,223,.75)", margin: "2.5rem 0 0" }}>
             Created with{" "}
             <Link href="/" className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2" style={{ color: p.paper, outlineColor: p.stamp }}>
-              Selah Vie
+              Be My Guest
             </Link>{" "}
             · Shutter &amp; Strip
           </p>

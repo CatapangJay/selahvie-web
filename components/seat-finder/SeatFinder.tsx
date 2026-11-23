@@ -3,28 +3,27 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  ArrowUp,
-  ArrowUpLeft,
-  ArrowUpRight,
   CircleAlert,
-  CornerUpLeft,
-  CornerUpRight,
+  Armchair,
   DoorOpen,
   HandHeart,
   KeyRound,
   Loader2,
   MapPin,
+  Navigation,
   Play,
   RotateCwSquare,
   Search,
   UserRound,
   Users,
 } from "lucide-react";
-import { FROM_PARAM, type FinderResult, type FinderSite } from "@/lib/seatFinder";
+import { FROM_PARAM, type FinderResult, type FinderSite, type Seatmate } from "@/lib/seatFinder";
+import type { FinderLookup } from "@/types/wedding";
+import { initials } from "@/lib/seating";
 import { weddingTheme, type GuestTheme } from "@/lib/weddingTheme";
 import { loadThemeFonts } from "@/lib/themeFonts";
 import SeatMap from "./SeatMap";
-import { directions, findRoute, type Step } from "./wayfinding";
+import { describeTablePlace, findRoute } from "./wayfinding";
 
 // The wedding's theme (lib/weddingTheme), set as CSS variables on the page shell.
 const INK = "var(--sf-ink)";
@@ -72,7 +71,7 @@ const PAGE_CSS = `
   .sf-chips { scrollbar-width: none; }
   .sf-chips::-webkit-scrollbar { display: none; }
   .sf-focus:focus-visible { outline: 2px solid var(--sf-link); outline-offset: 2px; }
-  /* The app's global ring is Selah Vie rose; here focus follows the wedding's colour,
+  /* The app's global ring is Be My Guest rose; here focus follows the wedding's colour,
      and the name field shows its own themed glow instead. */
   .sf-root :focus-visible { outline-color: var(--sf-link); }
   .sf-root input:focus-visible { outline: none; }
@@ -163,7 +162,7 @@ export default function SeatFinder({ site }: { site: string }) {
   );
 }
 
-/** Selah Vie's own rose, used only while the wedding's theme loads (and on errors). */
+/** Be My Guest's own rose, used only while the wedding's theme loads (and on errors). */
 const HOUSE_THEME = weddingTheme({});
 
 /** Sets the wedding's theme as CSS variables for everything inside. */
@@ -317,8 +316,33 @@ function Notice({ title, children, icon: Icon = MapPin }: { title: string; child
   );
 }
 
+/** What the name field asks for, per the couple's choice in the Share tab. */
+const LOOKUP_COPY: Record<FinderLookup, { label: string; placeholder: string; hint: string; lede: string; notFound: string }> = {
+  full: {
+    label: "Your name",
+    placeholder: "e.g. Maria Santos",
+    hint: "Your full name, as it's written on your invitation. A plus-one's name works too.",
+    lede: "Type your name and we'll show you the room, your table, and the way there.",
+    notFound: "We couldn't find that name. Try your full name as it appears on your invitation.",
+  },
+  first: {
+    label: "Your first name",
+    placeholder: "e.g. Maria",
+    hint: "Just your first name. If someone shares it, we'll ask for your last name too.",
+    lede: "Type your first name and we'll show you the room, your table, and the way there.",
+    notFound: "We couldn't find that first name. Try it as it's written on your invitation, or add your last name.",
+  },
+  nickname: {
+    label: "Your nickname",
+    placeholder: "e.g. Mia",
+    hint: "The name the couple calls you. If someone shares it, we'll ask for your last name too.",
+    lede: "Type your nickname and we'll show you the room, your table, and the way there.",
+    notFound: "We couldn't find that name. Try the name on your invitation, or add your last name.",
+  },
+};
+
 type Phase =
-  | { kind: "ask"; step: "lookup" | "code"; message?: string }
+  | { kind: "ask"; step: "lookup" | "code"; message?: string; offerCode?: boolean }
   | { kind: "unseated"; guestName: string }
   | { kind: "found"; result: Found };
 
@@ -330,6 +354,8 @@ function Finder({
   const [phase, setPhase] = useState<Phase>({ kind: "ask", step: "lookup" });
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
+  const lookup = info.lookup ?? "full";
+  const copy = LOOKUP_COPY[lookup];
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -349,8 +375,14 @@ function Finder({
       } else if (result.status === "unseated") {
         setPhase({ kind: "unseated", guestName: result.guestName });
       } else if (result.status === "needs-code") {
-        setQuery("");
-        setPhase({ kind: "ask", step: "code", message: "More than one guest has a name like that. Enter the code from your invitation, or ask the welcome table." });
+        // A shared first name or nickname: ask for the last name first; a shared full name needs the code.
+        const oneWord = query.trim().split(/\s+/).length === 1;
+        if (lookup !== "full" && oneWord && phase.step === "lookup") {
+          setPhase({ kind: "ask", step: "lookup", offerCode: true, message: `More than one guest goes by ${query.trim()}. Add your last name, or use the code from your invitation.` });
+        } else {
+          setQuery("");
+          setPhase({ kind: "ask", step: "code", message: "More than one guest has a name like that. Enter the code from your invitation, or ask the welcome table." });
+        }
       } else {
         setPhase({
           kind: "ask",
@@ -358,7 +390,7 @@ function Finder({
           message:
             phase.step === "code"
               ? "That code didn't match. Check it against your invitation, or ask the welcome table."
-              : "We couldn't find that name. Try your full name as it appears on your invitation.",
+              : copy.notFound,
         });
       }
     } catch {
@@ -431,12 +463,12 @@ function Finder({
           {isCode ? "Enter your invitation code" : "Find your table"}
         </h1>
         <p className="mt-2 text-[1rem] leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
-          {isCode ? "It's on your invitation, or at the end of your invite link." : "Type your name and we'll show you the room, your table, and the way there."}
+          {isCode ? "It's on your invitation, or at the end of your invite link." : copy.lede}
         </p>
 
         <form onSubmit={submit} className="mt-7" noValidate>
           <label htmlFor="sf-query" className="block text-[0.9375rem] font-medium" style={{ color: INK }}>
-            {isCode ? "Invitation code" : "Your name"}
+            {isCode ? "Invitation code" : copy.label}
           </label>
           <div className="relative mt-2">
             <Lead aria-hidden size={19} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2" style={{ color: INK_VARIANT }} />
@@ -444,12 +476,12 @@ function Finder({
               id="sf-query"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              autoComplete={isCode ? "off" : "name"}
+              autoComplete={isCode ? "off" : lookup === "first" ? "given-name" : lookup === "nickname" ? "nickname" : "name"}
               autoCapitalize={isCode ? "characters" : "words"}
               spellCheck={false}
               autoFocus
               maxLength={80}
-              placeholder={isCode ? "K7QM-24PX" : "e.g. Maria Santos"}
+              placeholder={isCode ? "K7QM-24PX" : copy.placeholder}
               aria-describedby="sf-hint"
               aria-invalid={phase.message ? true : undefined}
               className={`block min-h-[58px] w-full pl-12 pr-4 text-[1.0625rem] outline-none transition-[box-shadow,border-color] duration-150 placeholder:text-[var(--sf-ink-2)] focus:shadow-[0_0_0_4px_var(--sf-ring)] ${isCode ? "uppercase tracking-[0.12em]" : ""}`}
@@ -463,7 +495,7 @@ function Finder({
             />
           </div>
           <p id="sf-hint" className="mt-2 text-[0.875rem] leading-snug" style={{ color: INK_VARIANT }}>
-            {isCode ? "Letters and numbers; the dash is optional." : "As it's written on your invitation. A plus-one's name works too."}
+            {isCode ? "Letters and numbers; the dash is optional." : copy.hint}
           </p>
           {phase.message && (
             <p role="alert" className="mt-3 flex gap-2 text-[0.9375rem] leading-snug" style={{ color: ERROR }}>
@@ -490,6 +522,19 @@ function Finder({
               Search by name instead
             </button>
           )}
+          {!isCode && phase.kind === "ask" && phase.offerCode && (
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("");
+                setPhase({ kind: "ask", step: "code" });
+              }}
+              className="sf-focus mt-3 block min-h-[44px] w-full text-center text-[0.9375rem] underline underline-offset-4"
+              style={{ color: INK_VARIANT, borderRadius: 6 }}
+            >
+              Use my invitation code instead
+            </button>
+          )}
         </form>
 
         <p className="mt-8 flex items-start gap-3 py-4 text-[0.9375rem] leading-snug" style={{ color: INK_VARIANT, borderTop: `1px solid ${OUTLINE}` }}>
@@ -501,15 +546,150 @@ function Finder({
   );
 }
 
-const STEP_ICON: Record<Step["icon"], typeof ArrowUp> = {
-  enter: DoorOpen,
-  straight: ArrowUp,
-  left: CornerUpLeft,
-  right: CornerUpRight,
-  "slight-left": ArrowUpLeft,
-  "slight-right": ArrowUpRight,
-  arrive: MapPin,
-};
+/** "with Liza Reyes and Ben Lim", "with Liza Reyes and 1 more", "+2 guests". */
+function withWhom(plusOnes: string[], more: number): string {
+  if (!plusOnes.length) return more ? `+${more} ${more === 1 ? "guest" : "guests"}` : "";
+  const names = more ? [...plusOnes, `${more} more`] : plusOnes;
+  return `with ${names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`}`;
+}
+
+/**
+ * Who's at the guest's table, so they know their seatmates on sight: their own
+ * party, then people from their groups (family, friends, entourage) under the
+ * group's name, then everyone else.
+ */
+function TableMates({ party, seatmates, partySize }: { party: string[]; seatmates: Seatmate[]; partySize: number }) {
+  const [all, setAll] = useState(false);
+  const others = seatmates.reduce((n, m) => n + 1 + m.plusOnes.length + m.more, 0);
+  const yours = Math.max(partySize, 1 + party.length);
+  const beside = seatmates.filter((m) => m.beside);
+  const groups = [...new Set(seatmates.filter((m) => !m.beside).map((m) => m.group).filter((g): g is string => Boolean(g)))];
+  const rest = seatmates.filter((m) => !m.beside && !m.group);
+  const unnamedInParty = Math.max(0, yours - 1 - party.length);
+  // Long tables fold: the people you came with and your groups always show; the rest after ten.
+  const LIMIT = 10;
+  const shownRest = all ? rest : rest.slice(0, LIMIT);
+
+  return (
+    <section aria-labelledby="sf-mates" className="mt-7 lg:col-start-2 lg:row-start-3 lg:mt-8 lg:self-start">
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 id="sf-mates" className="text-[1.0625rem] font-medium" style={{ color: INK }}>
+          Who&apos;s at your table
+        </h2>
+        <p className="shrink-0 text-[0.875rem] tabular-nums" style={{ color: INK_VARIANT }}>
+          {others === 0 ? (yours > 1 ? `Your party of ${yours}` : "Just you so far") : `${yours + others} at this table`}
+        </p>
+      </div>
+
+      {(party.length > 0 || unnamedInParty > 0) && (
+        <MateGroup label="With you">
+          {party.map((name) => (
+            <Mate key={name} name={name} />
+          ))}
+          {unnamedInParty > 0 && <Mate name={`${unnamedInParty} ${unnamedInParty === 1 ? "guest" : "guests"} in your party`} quiet />}
+        </MateGroup>
+      )}
+
+      {beside.length > 0 && (
+        <MateGroup label="Beside you" highlight>
+          {beside.map((m) => (
+            <Mate key={m.name} name={m.name} plusOnes={m.plusOnes} more={m.more} highlight />
+          ))}
+        </MateGroup>
+      )}
+
+      {groups.map((group) => (
+        <MateGroup key={group} label={group} highlight>
+          {seatmates
+            .filter((m) => !m.beside && m.group === group)
+            .map((m) => (
+              <Mate key={m.name} name={m.name} plusOnes={m.plusOnes} more={m.more} highlight />
+            ))}
+        </MateGroup>
+      ))}
+
+      {rest.length > 0 && (
+        <MateGroup label={beside.length || groups.length || party.length || unnamedInParty ? "Also at your table" : undefined}>
+          {shownRest.map((m) => (
+            <Mate key={m.name} name={m.name} plusOnes={m.plusOnes} more={m.more} />
+          ))}
+          {rest.length > LIMIT && (
+            <li>
+              <button
+                type="button"
+                onClick={() => setAll((v) => !v)}
+                aria-expanded={all}
+                className="sf-focus inline-flex min-h-[40px] items-center px-3 text-[0.9375rem] font-medium underline underline-offset-4"
+                style={{ color: LINK, borderRadius: 999 }}
+              >
+                {all ? "Show fewer" : `Show ${rest.length - LIMIT} more`}
+              </button>
+            </li>
+          )}
+        </MateGroup>
+      )}
+
+      {seatmates.length === 0 && (
+        <p className="mt-3 text-[0.9375rem] leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
+          No one else is seated here yet. Others may join before the reception.
+        </p>
+      )}
+    </section>
+  );
+}
+
+function MateGroup({ label, highlight, children }: { label?: string; highlight?: boolean; children: React.ReactNode }) {
+  return (
+    <div className="mt-4">
+      {label && (
+        <p className="mb-2 flex items-center gap-1.5 text-[0.8125rem] font-medium" style={{ color: highlight ? LINK : INK_VARIANT }}>
+          {highlight && (label === "Beside you" ? <Armchair size={13} aria-hidden /> : <Users size={13} aria-hidden />)}
+          {label}
+        </p>
+      )}
+      <ul className="flex flex-wrap gap-1.5" aria-label={label ?? "At your table"}>
+        {children}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * One person as a compact pill: initials, full name, and "+2" for the guests they
+ * bring (named in the tooltip). Your groups' people carry your colour.
+ */
+function Mate({ name, plusOnes = [], more = 0, highlight, quiet }: { name: string; plusOnes?: string[]; more?: number; highlight?: boolean; quiet?: boolean }) {
+  const extra = plusOnes.length + more;
+  const detail = withWhom(plusOnes, more);
+  return (
+    <li
+      title={detail ? `${name}, ${detail}` : name}
+      className="inline-flex min-h-[36px] max-w-full items-center gap-2 py-1 pl-1 pr-3"
+      style={{
+        borderRadius: 999,
+        background: highlight ? tint(12) : quiet ? "transparent" : CARD,
+        border: `1px solid ${highlight ? tint(40) : OUTLINE}`,
+      }}
+    >
+      <span
+        aria-hidden
+        className="inline-flex h-7 w-7 shrink-0 items-center justify-center text-[0.6875rem] font-semibold"
+        style={{ borderRadius: 999, background: highlight ? PRIMARY : quiet ? "transparent" : tint(14), color: highlight ? ON_PRIMARY : LINK }}
+      >
+        {quiet ? <Users size={13} /> : initials(name)}
+      </span>
+      <span className="truncate text-[0.9375rem] leading-tight" style={{ color: quiet ? INK_VARIANT : INK }}>
+        {name}
+      </span>
+      {extra > 0 && (
+        <span className="shrink-0 text-[0.8125rem] font-medium tabular-nums" style={{ color: INK_VARIANT }}>
+          +{extra}
+          <span className="sr-only"> {extra === 1 ? "guest" : "guests"}{plusOnes.length ? `: ${plusOnes.join(", ")}` : ""}</span>
+        </span>
+      )}
+    </li>
+  );
+}
 
 function Result({
   result, info, from, onEntrance,
@@ -522,11 +702,13 @@ function Result({
   const entrance = entrances.find((e) => e.id === from) ?? entrances[0] ?? null;
   const labelOf = (id: string, fallback: string) => info.entrances.find((e) => e.id === id)?.label ?? fallback;
   const entranceLabel = entrance ? labelOf(entrance.id, entrance.label) : "the entrance";
+  // "3rd table from the left, 2nd row from the entrance" / "Next to the dance floor", as the guest walks in.
+  const place = describeTablePlace(floor, tableId, entrance, result.seat);
 
   return (
-    // Phone: table, door, map, steps. Desktop: the map on the left, the rest beside it.
+    // Phone: table, door, map, who's at your table. Desktop: the map on the left, the rest beside it.
     <div className="lg:grid lg:grid-cols-[minmax(0,1.4fr)_minmax(340px,1fr)] lg:grid-rows-[auto_auto_1fr] lg:gap-x-10">
-      <TableBand name={table?.name.trim() || "Your table"} guest={firstName(result.guestName)} partySize={result.partySize} />
+      <TableBand name={table?.name.trim() || "Your table"} guest={firstName(result.guestName)} partySize={result.partySize} {...place} />
 
       {entrances.length > 1 && (
         <div className="mt-4 lg:col-start-2 lg:row-start-2 lg:mt-5">
@@ -560,7 +742,9 @@ function Result({
       )}
 
       {/* Keyed by door: a new entrance starts from its own door-at-the-bottom view. */}
-      <Wayfinder key={entrance?.id ?? "none"} floor={floor} tableId={tableId} entranceId={entrance?.id ?? ""} entranceLabel={entranceLabel} theme={info.theme} />
+      <Wayfinder key={entrance?.id ?? "none"} floor={floor} tableId={tableId} chairs={result.chairs} entranceId={entrance?.id ?? ""} entranceLabel={entranceLabel} theme={info.theme} />
+
+      <TableMates party={result.party} seatmates={result.seatmates} partySize={result.partySize} />
     </div>
   );
 }
@@ -569,39 +753,47 @@ function Result({
  * The answer, in the couple's colour: "Table" small, the number large. Names that
  * aren't "Table N" (a sweetheart table, "Family") are set as one serif line.
  */
-function TableBand({ name, guest, partySize }: { name: string; guest: string; partySize: number }) {
+function TableBand({ name, guest, partySize, table, seat, near }: { name: string; guest: string; partySize: number; table?: string; seat?: string; near?: string }) {
   const numbered = /^table\s+(\S{1,4})$/i.exec(name);
+  // Each fact gets a short label, so "2nd from the left" reads as the table and "3rd from the left" as the seat.
+  const facts: { icon: typeof MapPin; label?: string; text: string }[] = [
+    ...(table ? [{ icon: Navigation, label: "Table", text: table }] : []),
+    ...(seat ? [{ icon: Armchair, label: "Your seat", text: seat }] : []),
+    ...(near ? [{ icon: MapPin, text: near }] : []),
+    ...(partySize > 1 ? [{ icon: Users, text: `Party of ${partySize}, seated together` }] : []),
+  ];
   return (
     <section
       aria-live="polite"
-      className="relative overflow-hidden px-6 pb-5 pt-4 lg:col-start-2 lg:row-start-1 lg:pb-6 lg:pt-5"
-      style={{ background: PRIMARY, color: ON_PRIMARY, borderRadius: 28 }}
+      className="px-5 pb-5 pt-4 sm:px-6 lg:col-start-2 lg:row-start-1"
+      style={{ background: PRIMARY, color: ON_PRIMARY, borderRadius: 24 }}
     >
-      <TableMotif />
-      <p className="relative text-[0.9375rem]" style={{ color: fade(ON_PRIMARY, 90) }}>
-        {guest}, you&apos;re seated at
+      <p className="text-[0.9375rem]" style={{ color: fade(ON_PRIMARY, 90) }}>
+        {guest}, you&apos;re at
       </p>
-      <div className="relative mt-1 flex flex-wrap items-end justify-between gap-x-4 gap-y-3">
-        <h1 style={{ ...SERIF, textWrap: "balance" }}>
-          {numbered ? (
-            <span className="flex items-baseline gap-3 leading-none">
-              <span className="text-[1.75rem]">Table</span>{" "}
-              <span className="sf-rise inline-block text-[5.25rem] leading-[0.9] tracking-[-0.02em] tabular-nums">{numbered[1]}</span>
-            </span>
-          ) : (
-            <span className="sf-rise inline-block pt-1 text-[2.5rem] leading-[1.05]">{name}</span>
-          )}
-        </h1>
-        {partySize > 1 && (
-          <p
-            className="mb-1 inline-flex min-h-[32px] shrink-0 items-center gap-1.5 px-3 text-[0.875rem] font-medium"
-            style={{ background: fade(ON_PRIMARY, 16), borderRadius: 999 }}
-          >
-            <Users size={15} aria-hidden />
-            Party of {partySize}
-          </p>
+      <h1 className="mt-1 leading-none" style={{ ...SERIF, textWrap: "balance" }}>
+        {numbered ? (
+          <span className="flex items-baseline gap-[0.35em]">
+            <span className="text-[1.625rem]">Table</span>{" "}
+            <span className="sf-rise inline-block text-[3.75rem] leading-[0.85] tracking-[-0.02em] tabular-nums lining-nums">{numbered[1]}</span>
+          </span>
+        ) : (
+          <span className="sf-rise inline-block text-[2.25rem] leading-[1.08]">{name}</span>
         )}
-      </div>
+      </h1>
+      {facts.length > 0 && (
+        <ul className="mt-4 space-y-2 pt-3.5" style={{ borderTop: `1px solid ${fade(ON_PRIMARY, 22)}` }}>
+          {facts.map((f) => (
+            <li key={f.text} className="flex items-start gap-2.5 text-[0.9375rem] leading-snug">
+              <f.icon size={17} aria-hidden className="mt-[0.1em] shrink-0" style={{ opacity: 0.85 }} />
+              <span style={{ textWrap: "pretty" }}>
+                {f.label && <span className="font-semibold">{f.label}: </span>}
+                {f.text}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
@@ -623,21 +815,18 @@ function TableMotif() {
 }
 
 function Wayfinder({
-  floor, tableId, entranceId, entranceLabel, theme,
+  floor, tableId, chairs, entranceId, entranceLabel, theme,
 }: {
-  floor: Found["floor"]; tableId: string; entranceId: string; entranceLabel: string; theme: GuestTheme;
+  floor: Found["floor"]; tableId: string; chairs?: number[]; entranceId: string; entranceLabel: string; theme: GuestTheme;
 }) {
   // The search runs once per table and entrance, not on every animation tick.
   const entrance = useMemo(() => floor.elements.find((e) => e.id === entranceId) ?? null, [floor, entranceId]);
   const route = useMemo(() => (entrance ? findRoute(floor, entrance, tableId) : null), [floor, entrance, tableId]);
-  const steps = useMemo(() => (route ? directions(route, floor, entranceLabel, tableId) : []), [route, floor, entranceLabel, tableId]);
 
   // The whole room by default: a crop can hide where you are in the room.
   const [focus, setFocus] = useState(false);
   const [replay, setReplay] = useState(0);
   const [turns, setTurns] = useState(0);
-  const [progress, setProgress] = useState(0);
-  const active = steps.reduce((a, s, i) => (progress >= s.at - 0.001 ? i : a), 0);
 
   return (
     <>
@@ -703,16 +892,21 @@ function Wayfinder({
           <SeatMap
             floor={floor}
             targetId={tableId}
+            chairs={chairs}
             route={route}
             entrance={entrance}
             theme={theme}
             focus={focus && Boolean(route)}
             replayKey={replay}
             turns={turns}
-            onProgress={setProgress}
           />
         </div>
-        {entrance && (
+        {!route && (
+          <p className="px-2 pt-2 text-center text-[0.8125rem] leading-snug" style={{ color: INK_VARIANT }}>
+            {entrance ? "We couldn't draw a route through the room, but your table is highlighted on the map." : "Your table is highlighted on the map."}
+          </p>
+        )}
+        {entrance && route && (
           <p className="flex min-h-[32px] items-center justify-center px-2 pt-2 text-center text-[0.8125rem] leading-snug" style={{ color: INK_VARIANT }} aria-live="polite">
             {turns === 0 ? (
               <>Turned so {theDoor(entranceLabel)} is behind you.</>
@@ -730,54 +924,6 @@ function Wayfinder({
         )}
       </section>
 
-      <section aria-labelledby="sf-steps" className="mt-7 lg:col-start-2 lg:row-start-3 lg:mt-8 lg:self-start">
-        <h2 id="sf-steps" className="text-[1rem] font-medium" style={{ color: INK }}>
-          {steps.length > 0 ? "How to get there" : "Finding your way"}
-        </h2>
-        {steps.length > 0 ? (
-          <ol className="mt-4" aria-label="Directions">
-            {steps.map((s, i) => {
-              const Icon = STEP_ICON[s.icon];
-              const on = i === active;
-              const done = i < active;
-              const last = i === steps.length - 1;
-              return (
-                <li key={i} aria-current={on ? "step" : undefined} className="relative grid grid-cols-[40px_1fr] gap-x-4 pb-5 last:pb-0">
-                  {!last && (
-                    <span
-                      aria-hidden
-                      className="absolute bottom-1 left-[19px] top-11 w-[2px] transition-colors duration-300"
-                      style={{ background: done ? tint(45) : OUTLINE, borderRadius: 2 }}
-                    />
-                  )}
-                  <span
-                    aria-hidden
-                    className="relative inline-flex h-10 w-10 items-center justify-center transition-[background-color,color,box-shadow] duration-300"
-                    style={{
-                      borderRadius: 999,
-                      background: on ? PRIMARY : done ? tint(14) : CARD,
-                      color: on ? ON_PRIMARY : done ? LINK : INK_VARIANT,
-                      boxShadow: on ? `0 0 0 5px ${tint(18)}` : `inset 0 0 0 1px ${done ? "transparent" : OUTLINE}`,
-                    }}
-                  >
-                    <Icon size={18} />
-                  </span>
-                  <span
-                    className="self-center text-[1rem] leading-snug transition-colors duration-300"
-                    style={{ color: on ? INK : INK_VARIANT, fontWeight: on ? 500 : 400, textWrap: "pretty" }}
-                  >
-                    {s.text}
-                  </span>
-                </li>
-              );
-            })}
-          </ol>
-        ) : (
-          <p className="mt-2 text-[1rem] leading-relaxed" style={{ color: INK_VARIANT }}>
-            {entrance ? "We couldn't draw a route through the room, but your table is highlighted on the map." : "Your table is highlighted on the map."}
-          </p>
-        )}
-      </section>
     </>
   );
 }

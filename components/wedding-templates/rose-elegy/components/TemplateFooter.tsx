@@ -104,7 +104,7 @@ export default function TemplateFooter({ config, primary, accent, weddingDateFor
               className="underline-offset-2 hover:underline"
               style={{ color: primary }}
             >
-              Selah Vie
+              Be My Guest
             </Link>{" "}
             · Rosé Elegy Template
           </p>

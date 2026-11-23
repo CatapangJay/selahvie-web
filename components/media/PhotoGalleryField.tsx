@@ -14,9 +14,11 @@ interface Props {
   scope: string;
   max?: number;
   hint?: string;
+  /** Photos still used elsewhere on the site (e.g. as the hero); removing them here keeps the file. */
+  keep?: string[];
 }
 
-export default function PhotoGalleryField({ label, value, onChange, scope, max = 8, hint }: Props) {
+export default function PhotoGalleryField({ label, value, onChange, scope, max = 8, hint, keep = [] }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const labelId = useId();
   const photos = value.filter(Boolean);
@@ -58,7 +60,7 @@ export default function PhotoGalleryField({ label, value, onChange, scope, max =
 
   const remove = (index: number) => {
     setError("");
-    deletePhoto(photos[index]);
+    if (!keep.includes(photos[index])) deletePhoto(photos[index]);
     commit(photos.filter((_, i) => i !== index));
   };
 

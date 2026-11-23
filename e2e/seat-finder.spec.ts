@@ -1,5 +1,5 @@
 import { test, expect, type Browser } from "@playwright/test";
-import { addGuest, adminClient, buyWebsite, createConfirmedAccount, logIn, publishWebsite, updateWebsite, type TestAccount } from "./support";
+import { addGroup, addGuest, adminClient, buyWebsite, createConfirmedAccount, logIn, publishWebsite, updateWebsite, type TestAccount } from "./support";
 
 // FIND-01 … FIND-07 in e2e/TEST_CASES.csv. The day-of "Find your table" page.
 
@@ -69,16 +69,18 @@ test.describe("Find your table (Premium)", () => {
     await expect(guest.getByRole("heading", { name: "Table 6" })).toBeVisible();
     await expect(guest.getByText("Party of 2")).toBeVisible();
     await expect(guest.getByRole("img", { name: /Table 6 highlighted and the way there/ })).toBeVisible();
-    const steps = guest.getByRole("list", { name: "Directions" }).getByRole("listitem");
-    await expect(steps.first()).toContainText("Come in through the main entrance");
-    await expect(steps.last()).toContainText("Table 6 is");
+    // No turn-by-turn list: who's at the table instead. Maria's plus-one (from her RSVP) sits with her.
+    await expect(guest.getByRole("list", { name: "Directions" })).toHaveCount(0);
+    await expect(guest.getByRole("heading", { name: "Who's at your table" })).toBeVisible();
+    await expect(guest.getByRole("list", { name: "With you" })).toContainText("Paolo Santos");
+    await expect(guest.getByText("Turned so the main entrance is behind you.")).toBeVisible();
     await guest.waitForTimeout(2500);
     await guest.screenshot({ path: "test-results/seat-finder/found-main.png", fullPage: true });
 
     // Switching entrance reroutes from the other door.
     await guest.getByRole("button", { name: "Garden door" }).click();
     await expect(guest).toHaveURL(/from=garden/);
-    await expect(steps.first()).toContainText("Come in through the garden door");
+    await expect(guest.getByText("Turned so the garden door is behind you.")).toBeVisible();
     await guest.waitForTimeout(2500);
     await guest.screenshot({ path: "test-results/seat-finder/found-garden.png", fullPage: true });
     await phone.close();
@@ -147,6 +149,46 @@ test.describe("Find your table (Premium)", () => {
     expect(text).not.toContain("José");
     expect(text).not.toContain("assignments");
     expect(text).not.toContain(jose.code);
+  });
+
+  test("FIND-24 seatmates: the guest's group first, then the rest of the table; no one from other tables", async ({ page, browser }) => {
+    const id = await buyWebsite(page, "premium");
+    const slug = await publishWebsite(id);
+    const lena = await addGuest(id, "Lena Ortiz", { status: "attending" });
+    const rico = await addGuest(id, "Rico Ortiz", { status: "attending", partySize: 3 });
+    const zoe = await addGuest(id, "Zoe Alvarez", { status: "attending" });
+    const declined = await addGuest(id, "Dana Declined", { status: "declined" });
+    const elsewhere = await addGuest(id, "Elias Elsewhere", { status: "attending" });
+    await addGroup(id, "Ortiz Family", [lena, rico, elsewhere]);
+    await updateWebsite(id, {
+      seating_plan: {
+        tables: [{ id: "t1", name: "Table 1", shape: "round", seats: 10, x: 30, y: 40 }, { id: "t2", name: "Table 2", shape: "round", seats: 8, x: 70, y: 40 }],
+        elements: [],
+        assignments: { [lena.id]: "t1", [rico.id]: "t1", [zoe.id]: "t1", [declined.id]: "t1", [elsewhere.id]: "t2" },
+        sides: {},
+        guestFinder: true,
+      },
+    });
+
+    const phone = await guestPhone(browser);
+    const guest = await phone.newPage();
+    await guest.goto(`/wedding/${slug}/seat`);
+    await guest.getByLabel("Your name").fill("Lena Ortiz");
+    await guest.getByRole("button", { name: "Find my table" }).click();
+    await expect(guest.getByRole("heading", { name: "Who's at your table" })).toBeVisible();
+
+    const family = guest.getByRole("list", { name: "Ortiz Family" });
+    await expect(family).toContainText("Rico Ortiz");
+    await expect(family).toContainText("+2 guests");
+    await expect(guest.getByRole("list", { name: "Also at your table" })).toContainText("Zoe Alvarez");
+    // The family comes before everyone else.
+    const order = await guest.getByRole("list").evaluateAll((lists) => lists.map((l) => l.getAttribute("aria-label")));
+    expect(order.indexOf("Ortiz Family")).toBeLessThan(order.indexOf("Also at your table"));
+    // Declined guests and other tables stay off the list (even a family member at another table).
+    await expect(guest.getByText("Dana Declined")).toHaveCount(0);
+    await expect(guest.getByText("Elias Elsewhere")).toHaveCount(0);
+    await guest.screenshot({ path: "test-results/seat-finder/seatmates.png", fullPage: true });
+    await phone.close();
   });
 
   test("FIND-05 the finder is open to guests on a published Premium website, with no switch to flip", async ({ page, browser }) => {

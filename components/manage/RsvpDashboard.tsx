@@ -5,40 +5,28 @@ import EmptyState from "@/components/ui/EmptyState";
 import ButtonSecondary from "@/components/ui/ButtonSecondary";
 import { downloadFile, toCsv } from "@/lib/utils";
 import type { RSVPEntry } from "@/types/wedding";
-import { Check, Download, X, MessageCircle, Phone, Utensils } from "lucide-react";
+import { Check, Download, X, MessageCircle, Phone, Utensils, MailCheck } from "lucide-react";
 
 interface Props {
   weddingId: string;
 }
 
-/** Small labelled stat used in the RSVP summary row. */
-function Stat({ label, value, accent }: { label: string; value: string | number; accent?: boolean }) {
+/** One figure in the RSVP summary panel. Numbers use the UI face (data, not display). */
+function Stat({ label, value, hint }: { label: string; value: string | number; hint?: string }) {
   return (
-    <div
-      className="flex flex-col gap-1 px-5 py-4"
-      style={{
-        background: "var(--color-surface-container)",
-        borderRadius: "var(--radius-md)",
-        border: "1px solid var(--color-outline)",
-      }}
-    >
-      <span
-        className="font-serif"
-        style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: "2rem",
-          fontWeight: 300,
-          lineHeight: 1,
-          color: accent ? "var(--color-primary)" : "var(--color-on-surface)",
-        }}
-      >
+    <div className="flex flex-col gap-1 px-5 py-4">
+      <dt className="text-sm" style={{ color: "var(--color-on-surface-variant)" }}>{label}</dt>
+      <dd className="text-[1.75rem] font-semibold leading-none tabular-nums" style={{ color: "var(--color-on-surface)", letterSpacing: "-0.02em" }}>
         {value}
-      </span>
-      <span className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>
-        {label}
-      </span>
+      </dd>
+      {hint && <dd className="text-xs" style={{ color: "var(--color-on-surface-variant)" }}>{hint}</dd>}
     </div>
   );
+}
+
+/** Section heading inside the RSVP tab. */
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h3 className="text-sm font-semibold" style={{ color: "var(--color-on-surface)" }}>{children}</h3>;
 }
 
 const guestsOf = (r: RSVPEntry) =>
@@ -73,9 +61,9 @@ export default function RsvpDashboard({ weddingId }: Props) {
   if (rsvps.length === 0) {
     return (
       <EmptyState
-        glyph="∅"
-        title="No responses yet"
-        body="When guests submit the RSVP form on your published wedding website, their responses appear here — with meal choices and plus-ones tallied automatically. Share your link to start collecting replies."
+        icon={<MailCheck size={20} strokeWidth={1.75} />}
+        title="No replies yet"
+        body="When guests send the RSVP form on your published website, each reply lands here, with meal choices and plus-ones already counted. Share your link from the Share tab to start collecting them."
       />
     );
   }
@@ -87,29 +75,30 @@ export default function RsvpDashboard({ weddingId }: Props) {
   return (
     <div className="space-y-8">
       {/* Summary row */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <dl
+        className="grid grid-cols-2 overflow-hidden sm:grid-cols-4 [&>div+div]:border-l [&>div]:border-[var(--color-outline)]! max-sm:[&>div:nth-child(3)]:border-l-0 max-sm:[&>div:nth-child(n+3)]:border-t"
+        style={{ background: "var(--color-surface-container-lowest)", border: "1px solid var(--color-outline)", borderRadius: "var(--radius-md)" }}
+      >
         <Stat label="Responses" value={summary.total} />
-        <Stat label="Attending" value={summary.attending} accent />
+        <Stat label="Attending" value={summary.attending} hint={summary.total ? `${Math.round((summary.attending / summary.total) * 100)}% of replies` : undefined} />
         <Stat label="Declined" value={summary.declined} />
-        <Stat label="Total guests" value={summary.guestCount} accent />
-      </div>
+        <Stat label="People coming" value={summary.guestCount} hint="Plus-ones included" />
+      </dl>
 
       {/* Meal tally */}
       {mealEntries.length > 0 && (
         <div>
-          <p className="label-luxury mb-3" style={{ color: "var(--color-on-surface-muted)" }}>
-            Meal preferences
-          </p>
-          <div className="flex flex-wrap gap-2">
+          <SectionTitle>Meal preferences</SectionTitle>
+          <div className="mt-3 flex flex-wrap gap-2">
             {mealEntries.map(([meal, count]) => (
               <span
                 key={meal}
-                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-light"
+                className="inline-flex min-h-[36px] items-center gap-2 px-3.5 text-sm"
                 style={{
-                  background: "var(--color-surface-container)",
+                  background: "var(--color-surface-container-lowest)",
                   border: "1px solid var(--color-outline)",
                   borderRadius: "var(--radius-full)",
-                  color: "var(--color-on-surface-variant)",
+                  color: "var(--color-on-surface)",
                 }}
               >
                 {meal}
@@ -132,10 +121,8 @@ export default function RsvpDashboard({ weddingId }: Props) {
       {/* Dietary needs, for the caterer */}
       {dietary.length > 0 && (
         <div>
-          <p className="label-luxury mb-1" style={{ color: "var(--color-on-surface-muted)" }}>
-            Dietary needs
-          </p>
-          <p className="mb-3 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
+          <SectionTitle>Dietary needs</SectionTitle>
+          <p className="mb-3 mt-0.5 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
             {dietary.length} attending {dietary.length === 1 ? "guest has" : "guests have"} a dietary note.
           </p>
           <ul className="text-sm" style={{ borderTop: "1px solid var(--color-outline)" }}>
@@ -156,38 +143,34 @@ export default function RsvpDashboard({ weddingId }: Props) {
       {/* Response list */}
       <div>
         <div className="mb-3 flex items-center justify-between gap-3">
-          <p className="label-luxury" style={{ color: "var(--color-on-surface-muted)" }}>
-            All responses
-          </p>
+          <SectionTitle>All responses</SectionTitle>
           <ButtonSecondary size="sm" onClick={() => exportCsv(sorted)}>
             <Download size={13} aria-hidden />
             Download CSV
           </ButtonSecondary>
         </div>
-        <ul className="flex flex-col gap-3">
-          {sorted.map((r) => (
+        <ul
+          className="overflow-hidden"
+          style={{ background: "var(--color-surface-container-lowest)", border: "1px solid var(--color-outline)", borderRadius: "var(--radius-md)" }}
+        >
+          {sorted.map((r, i) => (
             <li
               key={r.id}
-              className="flex flex-col gap-3 p-5 sm:flex-row sm:items-start sm:justify-between"
-              style={{
-                background: "var(--color-surface-container)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--color-outline)",
-              }}
+              className="flex flex-col gap-3 px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between"
+              style={{ borderTop: i ? "1px solid var(--color-outline)" : undefined }}
             >
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span
                     className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full"
                     style={{
-                      background: r.attending
-                        ? "var(--color-primary-container-strong)"
-                        : "var(--color-surface-container-highest)",
-                      color: r.attending ? "var(--color-primary-dim)" : "var(--color-on-surface-muted)",
+                      background: r.attending ? "#E6F0E8" : "var(--color-primary-container-strong)",
+                      color: r.attending ? "#2F5E3B" : "var(--color-primary-dim)",
                     }}
                     title={r.attending ? "Attending" : "Declined"}
                   >
-                    {r.attending ? <Check size={13} /> : <X size={13} />}
+                    {r.attending ? <Check size={13} aria-hidden /> : <X size={13} aria-hidden />}
+                    <span className="sr-only">{r.attending ? "Attending" : "Declined"}</span>
                   </span>
                   <p className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
                     {r.guestName}
@@ -195,7 +178,7 @@ export default function RsvpDashboard({ weddingId }: Props) {
                       const names = guestsOf(r);
                       const extra = r.additionalGuests ?? 1;
                       return (
-                        <span className="font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+                        <span className="font-normal" style={{ color: "var(--color-on-surface-variant)" }}>
                           {" "}
                           +{extra}{names.length > 0 ? ` · ${names.join(", ")}` : ""}
                         </span>
@@ -205,10 +188,10 @@ export default function RsvpDashboard({ weddingId }: Props) {
                 </div>
                 {r.message && (
                   <p
-                    className="mt-2 flex items-start gap-2 text-sm font-light leading-relaxed"
+                    className="mt-2 flex items-start gap-2 text-sm leading-relaxed"
                     style={{ color: "var(--color-on-surface-variant)" }}
                   >
-                    <MessageCircle size={13} className="mt-0.5 shrink-0" style={{ color: "var(--color-on-surface-muted)" }} />
+                    <MessageCircle size={13} aria-hidden className="mt-0.5 shrink-0" style={{ color: "var(--color-on-surface-variant)" }} />
                     <span className="italic">&ldquo;{r.message}&rdquo;</span>
                   </p>
                 )}
@@ -235,11 +218,15 @@ export default function RsvpDashboard({ weddingId }: Props) {
               </div>
               <div className="flex shrink-0 items-center gap-3 sm:flex-col sm:items-end">
                 {r.attending && r.mealChoice && (
-                  <span className="label-luxury" style={{ color: "var(--color-on-surface-variant)" }}>
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium"
+                    style={{ background: "var(--color-surface-container)", borderRadius: "var(--radius-sm)", color: "var(--color-on-surface)" }}
+                  >
+                    <Utensils size={11} aria-hidden />
                     {r.mealChoice}
                   </span>
                 )}
-                <span className="text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+                <span className="text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
                   {new Date(r.submittedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </span>
               </div>

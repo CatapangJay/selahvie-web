@@ -62,6 +62,11 @@
      Playfair/Outfit kept in the stack as graceful fallbacks. */
   --font-serif: "Fraunces", "Playfair Display", "Georgia", serif;
   --font-sans: "Inter", "Outfit", system-ui, sans-serif;
+  /* Be My Guest brand faces (marketing surfaces). Gloock = high-contrast
+     letterpress display serif; Bricolage Grotesque = warm, slightly quirky
+     grotesque for body + UI on brand pages. The app keeps --font-sans. */
+  --font-display: "Gloock", "Georgia", serif;
+  --font-brand: "Bricolage Grotesque", "Inter", system-ui, sans-serif;
 
   /* ─── Spacing ─── */
   --spacing-section: 6rem;
@@ -128,6 +133,8 @@ body::before {
   outline-offset: 2px;
   border-radius: var(--radius-sm);
 }
+/* On bordeaux surfaces rose is only 2.4:1, so the ring switches to gold (4.9:1). */
+.on-dark :focus-visible { outline-color: var(--gold); }
 /* Remove the UA default focus ring only where our :focus-visible replaces it */
 :focus:not(:focus-visible) {
   outline: none;
@@ -254,7 +261,7 @@ body::before {
   color: #FFFFFF;
   font-family: var(--font-sans);
   font-weight: 500;
-  letter-spacing: 0.04em;
+  /* Sentence-case labels (Be My Guest); the tracked uppercase style is retired. */
   /* Ease-out only — no bounce/overshoot (retired in redesign). */
   transition: background 200ms cubic-bezier(0.16, 1, 0.3, 1),
               transform 120ms cubic-bezier(0.16, 1, 0.3, 1),
@@ -274,7 +281,6 @@ body::before {
   border: 1px solid var(--color-outline);
   font-family: var(--font-sans);
   font-weight: 500;
-  letter-spacing: 0.04em;
   transition: border-color 200ms ease, color 200ms ease,
               background 200ms ease, transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -387,4 +393,82 @@ body::before {
 .card-hover:hover {
   transform: translateY(-3px);
   box-shadow: 0 16px 40px rgba(47, 30, 38, 0.10), 0 2px 8px rgba(47, 30, 38, 0.06);
+}
+
+
+/* The signed-in app (dashboard, studio, manage) uses the Be My Guest UI face.
+   Re-pointing --font-sans here, not on :root, leaves the published wedding
+   templates (which also read --font-sans) on the fonts they were designed with.
+   The studio's live preview is an iframe, so it never inherits this. */
+.bmg-app,
+/* Popovers and modals portal to <body>, outside the wrapper; on app routes they match it. */
+body:has(.bmg-app) {
+  --font-sans: var(--font-brand);
+  font-family: var(--font-brand);
+}
+/* Inside the app, the old tracked-uppercase label reads as sentence case
+   (DESIGN.md retires the uppercase eyebrow). Marketing pages keep theirs. */
+.bmg-app .label-luxury {
+  font-size: 0.75rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BE MY GUEST — landing page motion. Scroll-linked motion is transform
+   only and never hides content. The hero has one short page-load entrance
+   (done within ~1.6s, no scroll trigger) and none under reduced motion.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hero headline: each word rises out of its own line mask on load. */
+@keyframes bmg-word-rise {
+  from { transform: translateY(105%); }
+  to   { transform: translateY(0); }
+}
+.bmg-word { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.08em; margin-bottom: -0.08em; }
+.bmg-word > span { display: inline-block; animation: bmg-word-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes bmg-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.bmg-fade-up { animation: bmg-fade-up 800ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* The RSVP card drops in and settles onto the photo. */
+@keyframes bmg-card-settle {
+  from { opacity: 0; transform: translateY(28px) rotate(-6deg); }
+  to   { opacity: 1; transform: translateY(0) rotate(-2.5deg); }
+}
+.bmg-card { transform: rotate(-2.5deg); animation: bmg-card-settle 1000ms cubic-bezier(0.22, 1, 0.36, 1) 650ms both; }
+
+/* Tally number tick when a reply lands. */
+@keyframes bmg-tick {
+  0%   { transform: translateY(0.5em); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+.bmg-tick { display: inline-block; animation: bmg-tick 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes bmg-rise {
+  from { transform: translateY(40px); }
+  to   { transform: translateY(0); }
+}
+
+/* Scroll-linked rise for sections — CSS scroll timelines only, so content is
+   never gated on JS. Unsupported browsers simply show everything. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    /* Transform only: never opacity, so a page that is never scrolled
+       (screenshots, crawlers, link previews) still shows every block. */
+    .bmg-rise {
+      animation: bmg-rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+
+/* Reduced motion: no entrance at all. Delays would otherwise hold elements
+   hidden for up to ~0.9s before they pop in. */
+@media (prefers-reduced-motion: reduce) {
+  .bmg-word > span, .bmg-fade-up, .bmg-card, .bmg-tick { animation: none; }
 }

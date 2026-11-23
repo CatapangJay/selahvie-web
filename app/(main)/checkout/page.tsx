@@ -14,7 +14,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Lock, Smartphone, CreditCard, Check } from "lucide-react";
+import { ArrowLeft, Lock, Smartphone, CreditCard, Check, ShoppingBag } from "lucide-react";
 
 type Method = "gcash" | "maya" | "card";
 
@@ -119,7 +119,7 @@ export default function CheckoutPage() {
     return (
       <div className="mx-auto max-w-lg px-6" style={{ paddingTop: "var(--spacing-section)", paddingBottom: "var(--spacing-section-xl)" }}>
         <EmptyState
-          glyph="∅"
+          icon={<ShoppingBag size={20} strokeWidth={1.75} />}
           title="Your cart is empty"
           body="Browse the collection and add a template to get started — you'll personalize it and manage RSVPs right after checkout."
           actionLabel="Browse templates"

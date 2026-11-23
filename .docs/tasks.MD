@@ -1,4 +1,4 @@
-# Selah Vie — Redesign & Feature Task Breakdown
+# Be My Guest — Redesign & Feature Task Breakdown
 
 > **Complete redesign — soft & romantic, product-primary, V1 mock backend.**
 > Supersedes the original build plan. Strategy: [../PRODUCT.md](../PRODUCT.md).

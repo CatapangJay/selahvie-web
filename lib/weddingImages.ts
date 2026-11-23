@@ -24,6 +24,10 @@ export const weddingImages = {
   invitation: U("1607190074257-dd4b7af0309f", 800),
   rsvp: U("1519225421980-715cb0215aed", 800),
   story: U("1460978812857-470ed1c77af0", 800),
+  // Be My Guest hero: newlyweds kiss under a shower of petals from their guests
+  guestsPetals: U("1583939003579-730e3918a45a", 1200),
+  // Landing testimonial companion: peach-rose bridal bouquet
+  bouquet: U("1525258946800-98cfd641d0de", 900),
   // Testimonial
   testimonial: U("1591604466107-ec97de577aff", 900),
 } as const;

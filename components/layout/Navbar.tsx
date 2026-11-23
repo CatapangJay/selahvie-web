@@ -8,6 +8,7 @@ import { ShoppingBag, Menu, X, LayoutGrid, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { APP_NAME, NAV_LINKS } from "@/lib/constants";
 import { useHydrated } from "@/lib/useHydrated";
+import { BmgWordmark } from "@/components/brand/BmgMark";
 
 export default function Navbar() {
   const { itemCount, openCart } = useCartStore();
@@ -30,15 +31,25 @@ export default function Navbar() {
   // Only the landing page has the dark full-height hero the nav overlays.
   const isHome = pathname === "/";
 
-  // On home, the nav floats transparent over the hero and turns solid once the
-  // hero has mostly scrolled past. Elsewhere it's always solid.
+  // On home, the nav floats transparent over the hero at the very top and turns
+  // solid on the first scroll. Elsewhere it is always solid.
   useEffect(() => {
     if (!isHome) return;
-    const onScroll = () => setScrolled(window.scrollY > window.innerHeight * 0.8);
+    // Solid as soon as the page moves: on phones the hero is taller than the
+    // screen, so a transparent bar would sit on top of the hero copy.
+    const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, [isHome]);
+
+  // Escape closes the mobile menu.
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   // Transparent (light text over hero) only on home, at top, before mobile menu opens.
   const transparent = isHome && !scrolled && !menuOpen;
@@ -49,115 +60,83 @@ export default function Navbar() {
   const linkHover = transparent ? "#FDF8F7" : "var(--color-primary)";
   const iconColor = transparent ? "#FDF8F7" : "var(--color-on-surface)";
 
-  const navLinkProps = {
-    style: { color: linkColor, letterSpacing: "0.12em", transition: "color 200ms ease" },
-    onMouseEnter: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = linkHover),
-    onMouseLeave: (e: React.MouseEvent<HTMLAnchorElement>) => (e.currentTarget.style.color = linkColor),
-  };
-  // Two links sit left of the logo, the rest to its right (mirrors the reference).
-  const leftLinks = NAV_LINKS.slice(0, 2);
-  const rightLinks = NAV_LINKS.slice(2);
+  // Colours come from CSS variables on the header, so hover/focus stay correct
+  // even when the bar flips between transparent and solid mid-hover.
+  // No display class here: callers add inline-flex (or hidden md:inline-flex).
+  const linkClass =
+    "min-h-11 items-center text-[0.9375rem] text-[var(--nav-link)] transition-colors duration-200 hover:text-[var(--nav-link-hover)] focus-visible:text-[var(--nav-link-hover)]";
 
   return (
     <header
-      className={isHome ? "fixed top-0 w-full" : "sticky top-0 w-full"}
+      className={`${isHome ? "fixed top-0 w-full" : "sticky top-0 w-full"} ${transparent ? "on-dark" : ""}`}
       style={{
+        ["--nav-link" as string]: linkColor,
+        ["--nav-link-hover" as string]: linkHover,
         zIndex: "var(--z-sticky)",
+        fontFamily: "var(--font-brand)",
         transition: "background 300ms ease, border-color 300ms ease, box-shadow 300ms ease",
-        // Solid = glass token look; transparent = fully see-through, no border.
-        background: transparent ? "transparent" : "rgba(253, 248, 247, 0.85)",
+        // Solid = frosted surface; transparent = see-through over the bordeaux hero.
+        background: transparent ? "transparent" : "rgba(253, 248, 247, 0.88)",
         backdropFilter: transparent ? "none" : "blur(16px) saturate(1.6)",
         WebkitBackdropFilter: transparent ? "none" : "blur(16px) saturate(1.6)",
         borderBottom: `1px solid ${transparent ? "transparent" : "var(--color-outline)"}`,
-        boxShadow: transparent ? "none" : "inset 0 1px 0 rgba(255,255,255,0.85)",
       }}
     >
-      {/* Desktop: five evenly spaced cells — link · link · logo · link · actions.
-          Mobile: three cells — menu · logo · cart. */}
+      {/* Desktop: wordmark · links · actions. Mobile: menu · wordmark · cart. */}
       <nav
         aria-label="Main"
-        className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 py-4 md:grid-cols-5 md:py-5"
+        className="mx-auto grid max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-6 py-3 md:grid-cols-[auto_1fr_auto] md:gap-10 md:py-4"
       >
-        {leftLinks.map((link, i) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className={`label-luxury hidden md:inline-flex ${i === 0 ? "justify-self-start" : "justify-self-center"}`}
-            {...navLinkProps}
-          >
-            {link.label}
-          </Link>
-        ))}
-
-        {/* Mobile: menu toggle occupies the left cell so the logo stays centered */}
+        {/* Mobile: menu toggle occupies the left cell so the wordmark stays centered */}
         <button
           className="-ml-3 flex h-11 w-11 items-center justify-center justify-self-start md:hidden"
           style={{ color: iconColor }}
           onClick={() => setMenuOpen(!menuOpen)}
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
+          aria-controls="mobile-nav"
         >
-          {menuOpen ? <X size={20} strokeWidth={1.25} /> : <Menu size={20} strokeWidth={1.25} />}
+          {menuOpen ? <X size={22} strokeWidth={1.5} /> : <Menu size={22} strokeWidth={1.5} />}
         </button>
 
-        {/* Center: logo */}
         <Link
           href="/"
-          className="justify-self-center font-serif tracking-wide transition-opacity hover:opacity-75"
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "1.375rem",
-            fontWeight: 400,
-            color: logoColor,
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-            transition: "color 300ms ease",
-          }}
+          aria-label={`${APP_NAME}, home`}
+          className="justify-self-center transition-opacity duration-200 hover:opacity-80 md:justify-self-start"
+          style={{ transition: "color 300ms ease" }}
         >
-          {APP_NAME}
+          <BmgWordmark color={logoColor} markColor={transparent ? "var(--gold)" : "var(--color-primary)"} />
         </Link>
 
-        {rightLinks.map((link) => (
-          <Link
-            key={link.href}
-            href={link.href}
-            className="label-luxury hidden justify-self-center md:inline-flex"
-            {...navLinkProps}
-          >
-            {link.label}
-          </Link>
-        ))}
+        <div className="hidden items-center gap-8 md:flex">
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} className={`inline-flex ${linkClass}`}>
+              {link.label}
+            </Link>
+          ))}
+        </div>
 
         {/* Right cell: account + cart, flush to the right edge */}
-        <div className="flex items-center gap-5 justify-self-end">
-          {/* Auth control (desktop) */}
+        <div className="flex items-center gap-4 justify-self-end">
           {authed ? (
-            <div className="hidden items-center gap-4 md:flex">
-              <Link
-                href="/dashboard"
-                className="label-luxury inline-flex items-center gap-1.5"
-                {...navLinkProps}
-              >
-                <LayoutGrid size={13} />
+            <div className="hidden items-center gap-3 md:flex">
+              <Link href="/dashboard" className={`inline-flex gap-1.5 ${linkClass}`}>
+                <LayoutGrid size={15} strokeWidth={1.5} />
                 Dashboard
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex h-9 w-9 items-center justify-center transition-opacity hover:opacity-70"
+                className="flex h-11 w-11 items-center justify-center transition-opacity hover:opacity-70"
                 style={{ color: iconColor }}
                 aria-label="Sign out"
                 title="Sign out"
               >
-                <LogOut size={16} strokeWidth={1.5} />
+                <LogOut size={17} strokeWidth={1.5} />
               </button>
             </div>
           ) : (
             status === "anonymous" && (
-              <Link
-                href="/login"
-                className="label-luxury hidden md:inline-flex"
-                {...navLinkProps}
-              >
+              <Link href="/login" className={`${linkClass} hidden md:inline-flex`}>
                 Log in
               </Link>
             )
@@ -167,13 +146,13 @@ export default function Navbar() {
             onClick={openCart}
             className="relative -mr-3 flex h-11 w-11 items-center justify-center transition-opacity hover:opacity-70"
             style={{ color: iconColor, transition: "color 300ms ease" }}
-            aria-label="Open cart"
+            aria-label={count > 0 ? `Open cart, ${count} ${count === 1 ? "item" : "items"}` : "Open cart"}
           >
-            <ShoppingBag size={18} strokeWidth={1.25} />
+            <ShoppingBag size={19} strokeWidth={1.5} />
             {count > 0 && (
               <span
-                className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-bold"
-                style={{ background: "var(--color-primary)", color: "#FDF8F7" }}
+                className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                style={{ background: transparent ? "var(--gold)" : "var(--color-primary)", color: transparent ? "var(--bordeaux)" : "#FDF8F7" }}
               >
                 {count}
               </span>
@@ -185,27 +164,28 @@ export default function Navbar() {
       {/* Mobile Nav */}
       {menuOpen && (
         <nav
+          id="mobile-nav"
           aria-label="Mobile"
-          className="flex flex-col px-6 pb-6 gap-5 md:hidden"
-          style={{ borderTop: "1px solid var(--color-outline)", background: "var(--color-surface-container-low)", paddingTop: "1.25rem" }}
+          className="flex flex-col px-6 pb-5 md:hidden"
+          style={{ borderTop: "1px solid var(--color-outline)", background: "var(--color-surface-container-low)", paddingTop: "0.5rem" }}
         >
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className="label-luxury"
-              style={{ color: "var(--color-on-surface-variant)" }}
+              className="flex min-h-12 items-center text-base"
+              style={{ color: "var(--color-on-surface)" }}
               onClick={() => setMenuOpen(false)}
             >
               {link.label}
             </Link>
           ))}
-          <div className="mt-1 pt-4" style={{ borderTop: "1px solid var(--color-outline)" }}>
+          <div className="mt-1 pt-2" style={{ borderTop: "1px solid var(--color-outline)" }}>
             {authed ? (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col">
                 <Link
                   href="/dashboard"
-                  className="label-luxury"
+                  className="flex min-h-12 items-center text-base"
                   style={{ color: "var(--color-on-surface-variant)" }}
                   onClick={() => setMenuOpen(false)}
                 >
@@ -213,7 +193,7 @@ export default function Navbar() {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="label-luxury text-left"
+                  className="flex min-h-12 items-center text-left text-base"
                   style={{ color: "var(--color-on-surface-variant)" }}
                 >
                   Sign out
@@ -222,7 +202,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="label-luxury"
+                className="flex min-h-12 items-center text-base"
                 style={{ color: "var(--color-on-surface-variant)" }}
                 onClick={() => setMenuOpen(false)}
               >

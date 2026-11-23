@@ -62,6 +62,8 @@ test.describe("Guest list management", () => {
     const guest = await addGuest(id, "Amy Pond");
 
     await openGuests(page, id);
+    // Group management sits behind a disclosure next to the group filters.
+    await page.getByRole("button", { name: "Create a group" }).click();
     await page.getByLabel("New group name").fill("Family");
     await page.getByRole("button", { name: "Add", exact: true }).click();
     await expect(page.getByRole("button", { name: "Copy group invite link for Family" })).toBeVisible();
@@ -95,7 +97,10 @@ test.describe("Guest list management", () => {
 
     await openGuests(page, id);
     await page.getByRole("button", { name: "Remove Martha Jones" }).click();
-    await expect(page.getByText("Martha Jones")).toHaveCount(0);
+    // Removing asks once, inline.
+    await page.getByRole("group", { name: "Remove Martha Jones?" }).getByRole("button", { name: "Remove", exact: true }).click();
+    // The row is gone (the status line still mentions the name, so check the row's own control).
+    await expect(page.getByRole("button", { name: "Remove Martha Jones" })).toHaveCount(0);
 
     await expect.poll(async () => await guestRow(guest.id), { timeout: 15_000 }).toBeNull();
     await expect
@@ -151,7 +156,7 @@ test.describe("Guest list management", () => {
     await addGuest(id, "River Song", { status: "declined" });
 
     await openGuests(page, id);
-    await pick(page, "Filter by status", "Declined");
+    await page.getByRole("group", { name: "Filter by status" }).getByRole("button", { name: /^Declined/ }).click();
     await expect(page.getByRole("button", { name: "Remove River Song" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Remove Jack Harkness" })).toHaveCount(0);
   });

@@ -258,15 +258,18 @@ const nameTokens = (normalized: string) => normalized.split(" ").filter((t) => t
  *  0.9 the first and last name, middle names left out ("Maria Santos" → "Maria Clara Santos");
  *  0   anything else: a partial word, a typo, a first name alone.
  */
-export function nameScore(query: string, candidate: string): number {
+export function nameScore(query: string, candidate: string, opts: { firstNames?: boolean } = {}): number {
   const q = nameTokens(query);
   const c = nameTokens(candidate);
   if (!q.length || !c.length) return 0;
   if (q.join("") === c.join("")) return 1;
-  if (q.length < 2 || c.length < 2 || q[0] !== c[0]) return 0;
-  // What follows the first name must be the candidate's last name(s), in whole words.
-  const rest = q.slice(1).join("");
-  for (let k = 1; k < c.length; k++) if (c.slice(k).join("") === rest) return 0.9;
+  if (q.length >= 2 && c.length >= 2 && q[0] === c[0]) {
+    // What follows the first name must be the candidate's last name(s), in whole words.
+    const rest = q.slice(1).join("");
+    for (let k = 1; k < c.length; k++) if (c.slice(k).join("") === rest) return 0.9;
+  }
+  // First-name lookups: the whole words at the start of the name ("maria" or "maria clara").
+  if (opts.firstNames && q.length < c.length && q.every((t, i) => t === c[i])) return 0.85;
   return 0;
 }
 
@@ -298,12 +301,15 @@ export function matchByName<T>(
   query: string,
   items: T[],
   nameOf: (item: T) => string,
-  keyOf: (item: T) => string
+  keyOf: (item: T) => string,
+  /** Also accept a first name (or nickname listed as one) on its own. */
+  opts: { firstNames?: boolean } = {}
 ): { status: "match"; item: T } | { status: "needs-code" } | { status: "none" } {
   const q = normalizeName(query);
-  if (q.length < 3) return { status: "none" };
+  // A first name or nickname can be short ("Jo"); a full name can't.
+  if (q.length < (opts.firstNames ? 2 : 3)) return { status: "none" };
   const scored = items
-    .map((item) => ({ item, score: nameScore(q, normalizeName(nameOf(item))) }))
+    .map((item) => ({ item, score: nameScore(q, normalizeName(nameOf(item)), opts) }))
     .filter((x) => x.score >= MATCH_THRESHOLD)
     .sort((a, b) => b.score - a.score);
   if (scored.length === 0) return { status: "none" };

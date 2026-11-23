@@ -177,7 +177,28 @@ export type VenueElementKind =
   | "buffet"
   | "gifts"
   | "entrance"
+  | "ledWall"
+  | "techBooth"
+  | "coupleTable"
+  | "welcome"
+  | "dessert"
+  | "lounge"
+  | "kids"
+  | "backdrop"
+  | "restroom"
+  | "exit"
+  | "pillar"
   | "custom";
+
+/**
+ * How a feature's name is drawn: "upright" stays level on screen (default),
+ * "along" turns with the feature along its long side, "down" reads top to
+ * bottom, "icon" shows only the feature's symbol.
+ */
+export type FeatureLabelMode = "upright" | "along" | "down" | "icon";
+
+/** How guests look themselves up on the table finder (`SeatingPlan.finderLookup`). */
+export type FinderLookup = "full" | "first" | "nickname";
 
 export interface VenueElement {
   id: string;
@@ -192,6 +213,8 @@ export interface VenueElement {
   h: number;
   /** Degrees clockwise. Default 0. */
   rotation?: number;
+  /** How the name is drawn. Default "upright". */
+  labelMode?: FeatureLabelMode;
 }
 
 export interface SeatingPlan {
@@ -202,6 +225,18 @@ export interface SeatingPlan {
   assignments: Record<string, string>;
   /** Guest list entry id → side. Legacy: sides now live on the guest (`GuestListEntry.side`). */
   sides: Record<string, GuestSide>;
+  /**
+   * Guest list entry id → the chair their party starts at (0-based, numbered as
+   * the planner shows them: clockwise from the top on round tables). The rest of
+   * the party takes the next free chairs. Absent = placed automatically.
+   */
+  chairs?: Record<string, number>;
+  /**
+   * How guests look themselves up on the day-of table finder. "full" (default)
+   * needs the full name; "first" and "nickname" accept the first word(s) of the
+   * name on the guest list (so a nickname works when it's listed as the first name).
+   */
+  finderLookup?: FinderLookup;
   /**
    * Room size in plan units (about 15 cm each). Absent = the original 100 × 62.5
    * (about 15 × 9.4 m). Changing it never moves what's placed.

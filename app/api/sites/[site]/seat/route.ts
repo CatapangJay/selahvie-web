@@ -68,6 +68,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     heroImageUrl: config.heroImageUrl?.trim() || undefined,
     // Entrance names only matter (and are only sent) when the finder is on.
     entrances: enabled ? entrancesOf(planOf(config)) : [],
+    lookup: planOf(config).finderLookup ?? "full",
   };
   return NextResponse.json(body, { headers: NO_STORE });
 }

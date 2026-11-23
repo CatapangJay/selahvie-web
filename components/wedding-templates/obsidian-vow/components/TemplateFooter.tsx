@@ -105,7 +105,7 @@ export default function TemplateFooter({ config, accent, weddingDateFormatted, s
               className="hover:underline underline-offset-2"
               style={{ color: accent }}
             >
-              Selah Vie
+              Be My Guest
             </Link>
             {" "}· Obsidian Vow Template
           </p>

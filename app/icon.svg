@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="32" fill="#611C2A"/>
+  <circle cx="32" cy="32" r="27" fill="none" stroke="#C69D63" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="23.5" fill="none" stroke="#C69D63" stroke-width="0.8" opacity="0.5"/>
+  <text x="32" y="38.5" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="17" letter-spacing="0.5" fill="#FDF8F7">BMG</text>
+</svg>

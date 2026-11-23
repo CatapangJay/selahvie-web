@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { ChevronDown, Home, LogOut, ShoppingBag } from "lucide-react";
 import { APP_NAME } from "@/lib/constants";
+import { BmgWordmark } from "@/components/brand/BmgMark";
 import { useAuthStore } from "@/store/authStore";
 import { useCartStore } from "@/store/cartStore";
 import { useHydrated } from "@/lib/useHydrated";
@@ -74,17 +75,12 @@ export default function AppHeader() {
         <div className="flex min-w-0 items-center gap-4">
           <Link
             href="/"
-            title="Go to the Selah Vie homepage"
-            className="shrink-0 transition-opacity duration-200 hover:opacity-70"
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontSize: "1.125rem",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-              color: "var(--color-on-surface)",
-            }}
+            aria-label={`${APP_NAME} homepage`}
+            title={`Go to the ${APP_NAME} homepage`}
+            className="shrink-0 transition-opacity duration-200 hover:opacity-75"
           >
-            {APP_NAME}
+            {/* On phones only the seal shows, leaving room for the account menu. */}
+            <BmgWordmark color="var(--color-on-surface)" markColor="var(--color-primary)" compactOnMobile />
           </Link>
           <span aria-hidden className="h-5 w-px shrink-0" style={{ background: "var(--color-outline)" }} />
           <Link

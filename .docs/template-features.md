@@ -1,6 +1,6 @@
 # Template features catalogue
 
-The sections and features a Selah Vie wedding template may offer, and the data each one reads. A template is built from these pieces only. Anything a reference site has that is not listed here is either left out or mapped onto the closest entry below; it is never added as a new section.
+The sections and features a Be My Guest wedding template may offer, and the data each one reads. A template is built from these pieces only. Anything a reference site has that is not listed here is either left out or mapped onto the closest entry below; it is never added as a new section.
 
 Source of truth: `types/wedding.ts` (`WeddingConfig`), `lib/weddingDetails.ts`, `lib/entourage.ts`, `lib/invitations.ts`, `lib/tiers.ts`, `components/wedding-templates/_shared/`. Update this file whenever one of those changes what a guest can see.
 
@@ -82,7 +82,7 @@ Section key = the `AudienceSectionKey` used with `isSectionVisible(config, key)`
 - **UI:** `_shared/PrivateSections` (kinds: text, photo, extra event; audience-filtered already). Mount once near the end of the body with the template's accent and tone.
 
 ### Footer (no key)
-- **Data:** names, date, `hashtagOf`, `contactOf` (name, email, phone links), `socialLinksOf` (Instagram, Facebook, TikTok, X, YouTube, website), `InvitationDownloadLink` (renders only on Premium), "Created with Selah Vie" when `showBranding`.
+- **Data:** names, date, `hashtagOf`, `contactOf` (name, email, phone links), `socialLinksOf` (Instagram, Facebook, TikTok, X, YouTube, website), `InvitationDownloadLink` (renders only on Premium), "Created with Be My Guest" when `showBranding`.
 
 ### Background music (no key, Classic+)
 - **UI:** `_shared/AudioPlayer` with `resolveMusicSrc(config.musicTrackId, config.musicCustomUrl)`; mount after the opening is dismissed. Its floating toggle is the only music control; don't build a second player (a vinyl or cassette visual may start/stop it only if it drives the same audio).

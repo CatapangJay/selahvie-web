@@ -103,7 +103,7 @@ export default function TemplateFooter({ config, gold, accent, weddingDateFormat
         {/* Built-with tagline */}
         {showBranding && (
           <p className="text-xs mt-4" style={{ color: "rgba(255,255,255,0.2)", fontFamily: "var(--font-sans)" }}>
-            Created with Selah Vie
+            Created with Be My Guest
           </p>
         )}
       </motion.div>

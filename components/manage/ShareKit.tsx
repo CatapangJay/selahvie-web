@@ -102,12 +102,12 @@ function tableFinderCodes(config: WeddingConfig, origin: string): ShareCode[] {
         ? "Add an Entrance to the floor plan (Seating → room features) so guests get directions too."
         : undefined;
   if (entrances.length === 0) {
-    return [{ id: "table-finder", label: "Find your table", hint: "Guests type their name and see their table on the floor plan.", url: `${origin}${seatFinderPath(config)}`, sign: {}, note }];
+    return [{ id: "table-finder", label: "Find your table", hint: "Guests type their name and see their table on the floor plan, and who else is sitting there.", url: `${origin}${seatFinderPath(config)}`, sign: {}, note }];
   }
   return entrances.map((e, i) => ({
     id: entrances.length > 1 ? `table-finder-${i + 1}-${fileStem(e.label)}` : "table-finder",
     label: entrances.length > 1 ? `Find your table: ${e.label}` : "Find your table",
-    hint: `For ${e.label.toLowerCase().startsWith("the ") ? e.label : `the ${e.label.toLowerCase()}`}. Guests type their name and get a route to their table from there.`,
+    hint: `For ${e.label.toLowerCase().startsWith("the ") ? e.label : `the ${e.label.toLowerCase()}`}. Guests type their name and get a route to their table from there, and see who else is sitting at it.`,
     url: `${origin}${seatFinderPath(config, e.id)}`,
     sign: { entrance: e.label },
     note,
@@ -172,9 +172,9 @@ function signPurposes(config: WeddingConfig, codes: ShareCode[], finderCodes: Sh
     purposes.push({
       id: "table-finder",
       label: "Table finder",
-      hint: "For the entrance on the day. Guests type their name and see their table and the way there.",
+      hint: "For the entrance on the day. Guests type their name and see their table, the way there, and who's sitting with them. Only their own table's guests are shown.",
       headline: "Find your table",
-      message: "Scan with your phone camera and type your name. We'll show you your table and the way there.",
+      message: "Scan with your phone camera and type your name. We'll show you your table, the way there, and who's sitting with you.",
       pick: "Which entrance",
       codes: finderCodes.map((c) => ({ id: c.id, label: c.sign?.entrance ?? "Find your table", entrance: c.sign?.entrance, url: c.url })),
     });

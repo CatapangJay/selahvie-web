@@ -48,7 +48,7 @@ function LoginContent() {
         {isSignup ? "Get started" : "Welcome back"}
       </p>
       <h1 className="headline-md" style={{ fontWeight: 300 }}>
-        {isSignup ? "Create your account" : "Log in to Selah Vie"}
+        {isSignup ? "Create your account" : "Log in to Be My Guest"}
       </h1>
       <p className="mt-4 text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
         {isSignup

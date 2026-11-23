@@ -481,7 +481,7 @@ function RoomFeatures({ disabled, onAdd }: { disabled: boolean; onAdd: (preset: 
             <p className="text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>Add to the room</p>
             <p className="mt-0.5 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>Drag it into place, then resize from the corner.</p>
           </div>
-          <ul className="grid grid-cols-2 gap-1">
+          <ul className="grid max-h-[min(60vh,28rem)] grid-cols-2 gap-1 overflow-y-auto">
             {[...ELEMENT_PRESETS, CUSTOM_PRESETS.rect].map((item, i) => {
               const Icon = ELEMENT_ICON[item.kind];
               return (

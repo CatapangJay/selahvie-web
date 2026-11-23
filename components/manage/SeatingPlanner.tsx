@@ -16,6 +16,10 @@ import {
   addTable,
   addTables,
   assign,
+  chairLabel,
+  chairLayout,
+  chairsOf,
+  placeInChair,
   duplicateElement,
   duplicateTable,
   elementsOf,
@@ -182,8 +186,9 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
     };
   }, [expanded]);
 
-  const seatGuest = (guestId: string, tableId: string | null) => {
-    save(assign(plan, guestId, tableId));
+  /** Seat a guest at a table: in a chosen chair, or (no chair) in the next free ones. */
+  const seatGuest = (guestId: string, tableId: string | null, chair?: number) => {
+    save(tableId && chair !== undefined ? placeInChair(plan, guestId, tableId, chair) : assign(plan, guestId, tableId));
     setPickedId(null);
   };
 
@@ -228,10 +233,14 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
   const exportCsv = () => {
     const rows: (string | number)[][] = [];
     for (const t of plan.tables) {
-      for (const g of byTable.get(t.id) ?? []) rows.push([t.name, g.name, g.partySize, sideName(sideOf(g)), g.status, t.tag ?? ""]);
+      const layout = chairLayout(t, byTable.get(t.id) ?? [], plan.chairs);
+      for (const g of byTable.get(t.id) ?? []) {
+        const seats = chairsOf(layout, g.id).map((c) => c + 1).join(" ");
+        rows.push([t.name, g.name, g.partySize, sideName(sideOf(g)), g.status, t.tag ?? "", seats]);
+      }
     }
-    for (const g of unseated) rows.push(["Not seated", g.name, g.partySize, sideName(sideOf(g)), g.status, ""]);
-    downloadFile(`${fileStem(coupleLabel)}-seating.csv`, toCsv(["Table", "Guest", "Party size", "Side", "RSVP", "Tag"], rows));
+    for (const g of unseated) rows.push(["Not seated", g.name, g.partySize, sideName(sideOf(g)), g.status, "", ""]);
+    downloadFile(`${fileStem(coupleLabel)}-seating.csv`, toCsv(["Table", "Guest", "Party size", "Side", "RSVP", "Tag", "Seats"], rows));
   };
 
   const sideOptions: SelectOption[] = buildSideOptions(config);
@@ -474,6 +483,7 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
                   onQuery={setTableQuery}
                   onSelect={setSelection}
                   onTableClick={(id) => (pickedId ? seatGuest(pickedId, id) : setSelection({ type: "table", id }))}
+                  onChairClick={(id, chair) => pickedId && seatGuest(pickedId, id, chair)}
                   onMoveTable={(id, x, y, rotation) =>
                     save(patchTable(plan, id, rotation === undefined ? { x, y } : { x, y, rotation: rotation || undefined }))
                   }
@@ -490,6 +500,7 @@ export default function SeatingPlanner({ config, coupleLabel, onUpgrade, onOpenG
                         <TableCard
                           table={t}
                           seated={byTable.get(t.id) ?? []}
+                          seatLabel={(id) => chairLabel(chairsOf(chairLayout(t, byTable.get(t.id) ?? [], plan.chairs), id))}
                           sideOf={sideOf}
                           onGuest={(id) => setCardGuest({ tableId: t.id, guestId: id })}
                           onClose={() => setSelection(null)}

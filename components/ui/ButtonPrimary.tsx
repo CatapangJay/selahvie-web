@@ -17,9 +17,9 @@ export default function ButtonPrimary({
   ...props
 }: Props) {
   const sizes = {
-    sm: "px-4 py-2 text-xs gap-1.5 min-h-[36px]",
-    md: "px-5 py-2.5 text-xs gap-2 min-h-[44px]",
-    lg: "px-7 py-3 text-xs gap-2 min-h-[48px]",
+    sm: "px-3.5 py-2 text-[0.8125rem] gap-1.5 min-h-[36px]",
+    md: "px-4 py-2.5 text-sm gap-2 min-h-[44px]",
+    lg: "px-6 py-3 text-[0.9375rem] gap-2 min-h-[48px]",
   };
 
   return (
@@ -27,7 +27,6 @@ export default function ButtonPrimary({
       className={cn(
         "btn-primary inline-flex items-center justify-center cursor-pointer",
         "disabled:opacity-40 disabled:cursor-not-allowed",
-        "label-luxury",
         sizes[size],
         fullWidth && "w-full",
         className

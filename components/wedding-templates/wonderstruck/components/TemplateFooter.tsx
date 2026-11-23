@@ -134,7 +134,7 @@ export default function TemplateFooter({ config, accent, gold, weddingDateFormat
         {show && (
           <p className="text-xs" style={{ color: `${accent}80`, letterSpacing: "0.12em" }}>
             Created with{" "}
-            <span style={{ color: gold }}>Selah Vie</span>
+            <span style={{ color: gold }}>Be My Guest</span>
           </p>
         )}
       </motion.div>

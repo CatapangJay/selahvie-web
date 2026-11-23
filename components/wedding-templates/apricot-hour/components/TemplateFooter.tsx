@@ -70,7 +70,7 @@ export default function TemplateFooter({ config, palette: p, date, showBranding 
         <p style={{ position: "relative", fontFamily: SANS, fontSize: 14, color: "rgba(255,246,236,.72)", marginTop: "2.25rem" }}>
           Created with{" "}
           <Link href="/" className="font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2" style={{ color: p.butter, outlineColor: p.butter }}>
-            Selah Vie
+            Be My Guest
           </Link>{" "}
           · Apricot Hour
         </p>

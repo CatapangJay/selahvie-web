@@ -11,7 +11,7 @@ export default function ButtonTertiary({ children, className, ...props }: Props)
   return (
     <button
       className={cn(
-        "label-luxury inline-flex items-center gap-1.5 transition-colors duration-200 cursor-pointer",
+        "inline-flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 cursor-pointer",
         "border-b pb-0.5 disabled:opacity-40",
         className
       )}

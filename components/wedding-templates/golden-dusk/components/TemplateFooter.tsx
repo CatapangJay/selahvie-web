@@ -127,7 +127,7 @@ export default function TemplateFooter({ config, accent, showBranding = true }: 
               className="text-xs mt-2"
               style={{ color: "rgba(255,255,255,0.18)", fontFamily: "var(--font-sans)" }}
             >
-              Wedding Design by Selah Vie
+              Wedding Design by Be My Guest
             </p>
           )}
         </motion.div>

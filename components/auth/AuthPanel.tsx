@@ -137,7 +137,7 @@ export default function AuthPanel({
         {pending ? (isSignup ? "Creating account…" : "Logging in…") : isSignup ? "Create account" : "Log in"}
       </ButtonPrimary>
       <p className="text-center text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-        {isSignup ? "Already have an account?" : "New to Selah Vie?"}{" "}
+        {isSignup ? "Already have an account?" : "New to Be My Guest?"}{" "}
         <button
           type="button"
           onClick={switchMode}

@@ -16,7 +16,7 @@ The secondary audience is the **wedding guest** visiting a published site. They 
 
 ## Product Purpose
 
-Selah Vie lets couples browse, buy, and fully customize a wedding website — invitations, story, schedule, gallery, registry, travel details — and then run RSVP and guest management from a single dashboard through the wedding. It exists because the alternatives force a false choice: generic template builders that look templated, or bespoke sites that cost too much and take too long. Selah Vie's job is to make a site that looks handcrafted feel effortless to produce and effortless to run.
+Be My Guest lets couples browse, buy, and fully customize a wedding website — invitations, story, schedule, gallery, registry, travel details — and then run RSVP and guest management from a single dashboard through the wedding. It exists because the alternatives force a false choice: generic template builders that look templated, or bespoke sites that cost too much and take too long. Be My Guest's job is to make a site that looks handcrafted feel effortless to produce and effortless to run.
 
 Success looks like: a couple completes customization and publishes without hitting a wall, shares the link with confidence, and returns repeatedly to watch RSVPs land and manage their list — the dashboard becoming the calm home base for the guest side of their wedding.
 
@@ -52,7 +52,7 @@ Warm, romantic, and quietly confident. The voice is that of a thoughtful friend 
 - **The tool disappears into the task.** For the couple, earned familiarity beats novelty: standard affordances, one consistent component vocabulary, every interactive state defined. Surprise is saved for moments, not pages.
 - **Warmth is carried by identity, not by beige.** A committed rose palette, editorial typography, and generous rhythm do the emotional work — the body surface stays disciplined so content leads.
 - **Every state is a designed state.** Loading (skeletons), empty ("teach the interface, not 'nothing here'"), error, and success are first-class. A couple mid-planning meets a helpful screen at every turn, never a dead end.
-- **The published site is the couple's, not ours.** Customization is real and legible; Selah Vie branding is restrained on guest-facing output. The couple's names, colors, and story are the star.
+- **The published site is the couple's, not ours.** Customization is real and legible; Be My Guest branding is restrained on guest-facing output. The couple's names, colors, and story are the star.
 - **Accessible by default, because guests are everyone.** Contrast, focus, reduced motion, and keyboard support are requirements, not polish — guest-facing sites especially reach an unpredictable, all-ages audience on every device.
 
 ## Accessibility & Inclusion

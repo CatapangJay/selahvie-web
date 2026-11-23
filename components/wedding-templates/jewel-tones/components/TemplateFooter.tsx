@@ -72,7 +72,7 @@ export default function TemplateFooter({ config, palette: p, date, showBranding 
         <p style={{ fontFamily: SERIF, fontSize: "1rem", color: "rgba(251,246,236,.8)", marginTop: "2.5rem" }}>
           Created with{" "}
           <Link href="/" className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f3dc9a]" style={{ color: p.goldLight }}>
-            Selah Vie
+            Be My Guest
           </Link>{" "}
           · Jewel Tones
         </p>

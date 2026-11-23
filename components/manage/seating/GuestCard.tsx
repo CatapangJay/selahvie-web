@@ -16,7 +16,7 @@ function seatLine(g: GuestListEntry) {
   return { icon: Clock, text: `No reply yet · ${plural(n, "seat")}`, color: "var(--color-on-surface-variant)" };
 }
 
-function GuestLine({ guest, side, onClick }: { guest: GuestListEntry; side: GuestSide | undefined; onClick: () => void }) {
+function GuestLine({ guest, side, seat, onClick }: { guest: GuestListEntry; side: GuestSide | undefined; seat?: string; onClick: () => void }) {
   const line = seatLine(guest);
   return (
     <li>
@@ -34,6 +34,11 @@ function GuestLine({ guest, side, onClick }: { guest: GuestListEntry; side: Gues
             {line.text}
           </span>
         </span>
+        {seat && (
+          <span className="shrink-0 text-xs tabular-nums" style={{ color: "var(--color-on-surface-variant)" }}>
+            {seat}
+          </span>
+        )}
       </button>
     </li>
   );
@@ -78,9 +83,11 @@ function IconButton({ label, onClick, children }: { label: string; onClick: () =
 // ─── Table ───────────────────────────────────────────────────────────────────
 
 /** Who's at a table. Click someone to see their details. */
-export function TableCard({ table, seated, sideOf, onGuest, onClose }: {
+export function TableCard({ table, seated, sideOf, seatLabel, onGuest, onClose }: {
   table: SeatingTable;
   seated: GuestListEntry[];
+  /** "Seat 3" / "Seats 3–4" for a guest at this table. */
+  seatLabel?: (guestId: string) => string;
   sideOf: (g: GuestListEntry) => GuestSide | undefined;
   onGuest: (id: string) => void;
   onClose: () => void;
@@ -100,10 +107,10 @@ export function TableCard({ table, seated, sideOf, onGuest, onClose }: {
         onClose={onClose}
       />
       {list.length === 0 ? (
-        <p className="px-3 py-3 text-xs" style={MUTED}>No one seated yet. Drag a guest here, or pick one in the table details below.</p>
+        <p className="px-3 py-3 text-xs" style={MUTED}>No one seated yet. Drag a guest onto the table, or onto a chair to choose their seat.</p>
       ) : (
         <ul className="max-h-72 overflow-y-auto p-1.5">
-          {list.map((g) => <GuestLine key={g.id} guest={g} side={sideOf(g)} onClick={() => onGuest(g.id)} />)}
+          {list.map((g) => <GuestLine key={g.id} guest={g} side={sideOf(g)} seat={seatLabel?.(g.id)} onClick={() => onGuest(g.id)} />)}
         </ul>
       )}
     </>

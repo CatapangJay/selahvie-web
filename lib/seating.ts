@@ -190,17 +190,29 @@ export interface ElementPreset {
 }
 
 /** Sizes are in floor-plan width units, sized against an 8-seat round table (~10.6 wide). */
+/** Grouped as a couple would think of the room: the front, food and drink, guest areas, the building. ~15 cm per unit. */
 export const ELEMENT_PRESETS: ElementPreset[] = [
   { kind: "stage", label: "Stage", shape: "rect", w: 34, h: 8 },
+  { kind: "ledWall", label: "LED wall", shape: "rect", w: 30, h: 2 },
+  { kind: "coupleTable", label: "Couple table", shape: "rect", w: 14, h: 5 },
   { kind: "danceFloor", label: "Dance floor", shape: "rect", w: 20, h: 14 },
-  { kind: "grazing", label: "Grazing table", shape: "rect", w: 18, h: 5 },
-  { kind: "photobooth", label: "Photo booth", shape: "rect", w: 9, h: 7 },
-  { kind: "bar", label: "Bar", shape: "rect", w: 14, h: 4.5 },
-  { kind: "cake", label: "Cake table", shape: "ellipse", w: 6, h: 6 },
   { kind: "music", label: "DJ / band", shape: "rect", w: 11, h: 6 },
+  { kind: "techBooth", label: "Tech booth", shape: "rect", w: 12, h: 7 },
+  { kind: "cake", label: "Cake table", shape: "ellipse", w: 6, h: 6 },
+  { kind: "dessert", label: "Dessert table", shape: "rect", w: 14, h: 5 },
+  { kind: "grazing", label: "Grazing table", shape: "rect", w: 18, h: 5 },
   { kind: "buffet", label: "Buffet", shape: "rect", w: 22, h: 4.5 },
+  { kind: "bar", label: "Bar", shape: "rect", w: 14, h: 4.5 },
+  { kind: "welcome", label: "Welcome table", shape: "rect", w: 12, h: 4.5 },
   { kind: "gifts", label: "Gift table", shape: "rect", w: 9, h: 4 },
+  { kind: "photobooth", label: "Photo booth", shape: "rect", w: 9, h: 7 },
+  { kind: "backdrop", label: "Photo backdrop", shape: "rect", w: 16, h: 2.5 },
+  { kind: "lounge", label: "Lounge", shape: "rect", w: 18, h: 12 },
+  { kind: "kids", label: "Kids' corner", shape: "rect", w: 16, h: 14 },
+  { kind: "restroom", label: "Restrooms", shape: "rect", w: 12, h: 10 },
   { kind: "entrance", label: "Entrance", shape: "rect", w: 10, h: 2.5 },
+  { kind: "exit", label: "Exit", shape: "rect", w: 10, h: 2.5 },
+  { kind: "pillar", label: "Pillar", shape: "ellipse", w: 4, h: 4 },
 ];
 
 export const CUSTOM_PRESETS: Record<VenueElement["shape"], ElementPreset> = {
@@ -220,11 +232,13 @@ export const elementsOf = (plan: SeatingPlan): VenueElement[] => plan.elements ?
 export function addElement(plan: SeatingPlan, id: string, preset: ElementPreset): SeatingPlan {
   const elements = elementsOf(plan);
   if (elements.length >= MAX_ELEMENTS) return plan;
-  // Stages and entrances belong at the room's edges; everything else starts in the middle, staggered.
+  // The front of the room (stage, LED wall) and doors belong at the edges; everything else starts in the middle, staggered.
   const room = roomOf(plan);
   const yMax = roomYMax(room);
   const mid = yMax / 2;
-  const y = preset.kind === "stage" ? 10 : preset.kind === "entrance" ? yMax - 5 : mid;
+  const front = preset.kind === "stage" || preset.kind === "ledWall";
+  const door = preset.kind === "entrance" || preset.kind === "exit";
+  const y = front ? (preset.kind === "ledWall" ? 4 : 10) : door ? yMax - 5 : mid;
   const offset = (elements.length % 5) * 3;
   const element: VenueElement = { id, ...preset, x: clampX(room.w / 2 + offset, room), y: clampY(y + (y === mid ? offset : 0), room) };
   return { ...plan, elements: [...elements, element] };
@@ -250,21 +264,109 @@ export function patchTable(plan: SeatingPlan, id: string, data: Partial<SeatingT
   return { ...plan, tables: plan.tables.map((t) => (t.id === id ? { ...t, ...data } : t)) };
 }
 
-/** Delete a table; its guests go back to the unseated list. */
+/** Delete a table; its guests go back to the unseated list (and lose their chosen chairs). */
 export function removeTable(plan: SeatingPlan, id: string): SeatingPlan {
+  const leaving = new Set(Object.entries(plan.assignments).filter(([, tableId]) => tableId === id).map(([g]) => g));
   return {
     ...plan,
     tables: plan.tables.filter((t) => t.id !== id),
     assignments: Object.fromEntries(Object.entries(plan.assignments).filter(([, tableId]) => tableId !== id)),
+    ...(plan.chairs ? { chairs: Object.fromEntries(Object.entries(plan.chairs).filter(([g]) => !leaving.has(g))) } : {}),
   };
 }
 
-/** Seat a guest at a table, or unseat them with `tableId = null`. */
+const withoutChair = (plan: SeatingPlan, guestId: string): SeatingPlan => {
+  if (!plan.chairs || !(guestId in plan.chairs)) return plan;
+  const chairs = { ...plan.chairs };
+  delete chairs[guestId];
+  return { ...plan, chairs };
+};
+
+/**
+ * Seat a guest at a table (in the next free chairs), or unseat them with
+ * `tableId = null`. Either way any chair chosen for them is cleared.
+ */
 export function assign(plan: SeatingPlan, guestId: string, tableId: string | null): SeatingPlan {
   const assignments = { ...plan.assignments };
   if (tableId) assignments[guestId] = tableId;
   else delete assignments[guestId];
-  return { ...plan, assignments };
+  return withoutChair({ ...plan, assignments }, guestId);
+}
+
+// ─── Chairs ───────────────────────────────────────────────────────────────────
+
+const validChair = (n: unknown, seats: number): n is number => Number.isInteger(n) && (n as number) >= 0 && (n as number) < seats;
+
+/**
+ * Who sits in each chair of a table (null = free). Guests with a chosen chair
+ * sit exactly there, then their party takes the next free chairs clockwise;
+ * everyone else fills the remaining chairs in order. Guests who don't fit (over
+ * capacity) are left out.
+ */
+export function chairLayout(table: Pick<SeatingTable, "seats">, seated: GuestListEntry[], chairs?: Record<string, number>): (GuestListEntry | null)[] {
+  const seats = Math.max(0, table.seats);
+  const out: (GuestListEntry | null)[] = Array(seats).fill(null);
+  const place = (g: GuestListEntry, start: number) => {
+    let left = seatsFor(g);
+    for (let k = 0; k < seats && left > 0; k++) {
+      const i = (start + k) % seats;
+      if (!out[i]) {
+        out[i] = g;
+        left--;
+      }
+    }
+  };
+  const coming = seated.filter(needsSeat);
+  const pinned = coming.filter((g) => validChair(chairs?.[g.id], seats)).sort((a, b) => chairs![a.id] - chairs![b.id]);
+  // 1. Everyone given a chair sits in exactly that chair (a chair you chose beats someone's plus-one).
+  const heads = new Set<string>();
+  for (const g of pinned) {
+    const c = chairs![g.id];
+    if (!out[c]) {
+      out[c] = g;
+      heads.add(g.id);
+    }
+  }
+  // 2. Their parties take the next free chairs clockwise; 3. everyone else fills what's left.
+  for (const g of pinned) {
+    if (!heads.has(g.id)) place(g, chairs![g.id]);
+    else if (seatsFor(g) > 1) place({ ...g, partySize: seatsFor(g) - 1 } as GuestListEntry, chairs![g.id]);
+  }
+  for (const g of coming) if (!pinned.includes(g)) place(g, 0);
+  // The party copies above stand in for the guest; map them back to the guest themselves.
+  const byId = new Map(coming.map((g) => [g.id, g]));
+  return out.map((g) => (g ? byId.get(g.id) ?? g : null));
+}
+
+/** The chairs (0-based) a guest's party has in a layout. */
+export const chairsOf = (layout: (GuestListEntry | null)[], guestId: string) =>
+  layout.flatMap((g, i) => (g?.id === guestId ? [i] : []));
+
+/** "Seat 3", "Seats 3–4", "Seats 2, 5": 1-based, for people. */
+export function chairLabel(chairs: number[]): string {
+  if (!chairs.length) return "";
+  const n = chairs.map((c) => c + 1).sort((a, b) => a - b);
+  if (n.length === 1) return `Seat ${n[0]}`;
+  const run = n.every((v, i) => i === 0 || v === n[i - 1] + 1);
+  return `Seats ${run ? `${n[0]}–${n[n.length - 1]}` : n.join(", ")}`;
+}
+
+/**
+ * Put a guest (and their party) in a specific chair at a table. A guest whose
+ * chair was chosen there before moves to this guest's old chair when both are at
+ * the same table (a swap); otherwise they go back to being placed automatically.
+ */
+export function placeInChair(plan: SeatingPlan, guestId: string, tableId: string, chair: number): SeatingPlan {
+  const chairs = { ...(plan.chairs ?? {}) };
+  const sameTable = plan.assignments[guestId] === tableId;
+  const previous = sameTable ? chairs[guestId] : undefined;
+  for (const [other, c] of Object.entries(chairs)) {
+    if (other === guestId || c !== chair || plan.assignments[other] !== tableId) continue;
+    if (previous !== undefined) chairs[other] = previous;
+    else delete chairs[other];
+  }
+  chairs[guestId] = chair;
+  return { ...plan, assignments: { ...plan.assignments, [guestId]: tableId }, chairs };
 }
 
 export function setSide(plan: SeatingPlan, guestId: string, side: GuestSide | null): SeatingPlan {
@@ -276,7 +378,7 @@ export function setSide(plan: SeatingPlan, guestId: string, side: GuestSide | nu
 
 /** Drop a deleted guest from the plan. Returns null when they weren't in it. */
 export function stripGuest(plan: SeatingPlan | undefined, guestId: string): SeatingPlan | null {
-  if (!plan || (!(guestId in plan.assignments) && !(guestId in plan.sides))) return null;
+  if (!plan || (!(guestId in plan.assignments) && !(guestId in plan.sides) && !(guestId in (plan.chairs ?? {})))) return null;
   return setSide(assign(plan, guestId, null), guestId, null);
 }
 

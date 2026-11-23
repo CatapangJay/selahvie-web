@@ -3,7 +3,9 @@ import type { ReactNode } from "react";
 import ButtonPrimary from "@/components/ui/ButtonPrimary";
 
 interface Props {
-  /** Decorative glyph or icon (rendered large, muted). */
+  /** An icon (e.g. a lucide icon at size 20) shown in a soft circle above the title. */
+  icon?: ReactNode;
+  /** Legacy: a decorative character. Shown in the same circle when there's no icon. */
   glyph?: ReactNode;
   title: string;
   /** One or two sentences that teach the next action, not "nothing here." */
@@ -12,56 +14,60 @@ interface Props {
   actionLabel?: string;
   actionHref?: string;
   onAction?: () => void;
+  /** Custom actions (e.g. a primary and a secondary button), shown instead of the single action. */
+  children?: ReactNode;
 }
 
 /**
  * Teach-the-interface empty state (DESIGN.md: "empty states teach, not 'nothing
- * here'"). Used across dashboard, guest list, and RSVP views.
+ * here'"). Used across dashboard, guest list, RSVP, seating and checkout.
  */
-export default function EmptyState({ glyph, title, body, actionLabel, actionHref, onAction }: Props) {
-  const action = actionLabel && (
-    actionHref ? (
-      <Link href={actionHref}>
-        <ButtonPrimary size="lg">{actionLabel}</ButtonPrimary>
-      </Link>
-    ) : (
-      <ButtonPrimary size="lg" onClick={onAction}>{actionLabel}</ButtonPrimary>
-    )
-  );
+export default function EmptyState({ icon, glyph, title, body, actionLabel, actionHref, onAction, children }: Props) {
+  const action =
+    children ??
+    (actionLabel &&
+      (actionHref ? (
+        <Link href={actionHref}>
+          <ButtonPrimary size="lg">{actionLabel}</ButtonPrimary>
+        </Link>
+      ) : (
+        <ButtonPrimary size="lg" onClick={onAction}>
+          {actionLabel}
+        </ButtonPrimary>
+      )));
+  const mark = icon ?? glyph;
 
   return (
     <div
-      className="flex flex-col items-start justify-center gap-4 px-8 py-16 sm:px-12 sm:py-20"
+      className="flex flex-col items-start justify-center gap-3 px-6 py-12 sm:px-10 sm:py-16"
       style={{
-        background: "var(--color-surface-container)",
+        background: "var(--color-surface-container-lowest)",
         borderRadius: "var(--radius-md)",
-        border: "1px solid var(--color-outline)",
+        border: "1px dashed var(--color-outline)",
       }}
     >
-      {glyph && (
+      {mark && (
         <div
-          className="font-serif"
-          style={{
-            fontFamily: "var(--font-serif)",
-            fontSize: "3rem",
-            fontWeight: 300,
-            lineHeight: 1,
-            color: "var(--color-outline)",
-            fontStyle: "italic",
-          }}
           aria-hidden
+          className="mb-1 flex h-12 w-12 items-center justify-center rounded-full"
+          style={{
+            background: "var(--color-primary-container-strong)",
+            color: "var(--color-primary-dim)",
+            fontFamily: "var(--font-display)",
+            fontSize: "1.375rem",
+            lineHeight: 1,
+          }}
         >
-          {glyph}
+          {mark}
         </div>
       )}
-      <h2 className="headline-sm" style={{ fontWeight: 300 }}>{title}</h2>
-      <p
-        className="max-w-md text-sm font-light leading-relaxed"
-        style={{ color: "var(--color-on-surface-variant)" }}
-      >
+      <h2 className="text-lg font-semibold" style={{ color: "var(--color-on-surface)", textWrap: "balance" }}>
+        {title}
+      </h2>
+      <p className="max-w-md text-sm leading-relaxed" style={{ color: "var(--color-on-surface-variant)", textWrap: "pretty" }}>
         {body}
       </p>
-      {action && <div className="mt-2">{action}</div>}
+      {action && <div className="mt-3 flex flex-wrap gap-2">{action}</div>}
     </div>
   );
 }

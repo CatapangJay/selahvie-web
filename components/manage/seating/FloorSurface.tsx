@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
-import { Y_SCALE, clampElementSize, clampRotation, clampX, clampY, elementsOf, fitInside, fourSideCounts, initials, needsSeat, roomOf, roomYMax, seatsFor, seatsTaken, type Room } from "@/lib/seating";
+import { Y_SCALE, chairLabel, chairLayout, chairsOf, clampElementSize, clampRotation, clampX, clampY, elementsOf, fitInside, fourSideCounts, initials, needsSeat, roomOf, roomYMax, seatsTaken, type Room } from "@/lib/seating";
 import type { GuestListEntry, GuestSide, SeatingPlan, SeatingTable, VenueElement } from "@/types/wedding";
 import { ELEMENT_ICON, GUEST_MIME, SEAT_FILL, isGuestDrag, plural } from "./shared";
 
@@ -293,6 +293,17 @@ function labelWidth(w: number, h: number, rotation: number): number {
   return Math.min(w, h) * 1.15;
 }
 
+/**
+ * Where a feature's name sits in its box: the text's angle relative to the box
+ * (which is itself turned by `rot`), the room along the text, and the room across it.
+ */
+export function featureLabelLayout(mode: VenueElement["labelMode"], w: number, h: number, rot: number): { angle: number; width: number; cross: number } {
+  if (mode === "along") return w >= h ? { angle: 0, width: w, cross: h } : { angle: 90, width: h, cross: w };
+  // Reads top to bottom on screen; the room is the box's height on screen.
+  if (mode === "down") return { angle: 90 - rot, width: labelWidth(h, w, rot), cross: labelWidth(w, h, rot) };
+  return { angle: -rot, width: labelWidth(w, h, rot), cross: labelWidth(h, w, rot) };
+}
+
 const ELEMENT_PATTERN: Partial<Record<VenueElement["kind"], string>> = {
   stage: "repeating-linear-gradient(135deg, transparent 0 0.55cqw, rgb(47 30 38 / 0.07) 0.55cqw 0.65cqw)",
   danceFloor:
@@ -324,7 +335,10 @@ interface Props {
   /** Content pinned beside the selected table (who's there, guest details). */
   renderTableCard?: (t: SeatingTable) => ReactNode;
   onPatchElement?: (id: string, data: Partial<VenueElement>) => void;
-  onDropGuest?: (guestId: string, tableId: string) => void;
+  /** A guest dropped on a table (`chair` omitted: next free chairs) or on a specific chair (0-based). */
+  onDropGuest?: (guestId: string, tableId: string, chair?: number) => void;
+  /** A chair clicked while a guest is waiting to be placed ("click a guest, then a chair"). */
+  onChairClick?: (tableId: string, chair: number) => void;
   onDeleteSelected?: () => void;
 }
 
@@ -348,7 +362,7 @@ const NUDGE: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight
 const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
   {
     plan, byTable, sideOf, readOnly, selection, picking, homeTableId, query = "", locked, style, emptyState, renderTableCard,
-    onSelect, onTableClick, onMoveTable, onPatchElement, onDropGuest, onDeleteSelected,
+    onSelect, onTableClick, onMoveTable, onPatchElement, onDropGuest, onChairClick, onDeleteSelected,
   },
   ref
 ) {
@@ -356,6 +370,8 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
   const dragRef = useRef<DragState | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [dropId, setDropId] = useState<string | null>(null);
+  /** The chair a guest is being dragged over, as "tableId:chair". */
+  const [dropChair, setDropChair] = useState<string | null>(null);
   const [hoverId, setHoverId] = useState<string | null>(null);
   const elements = elementsOf(plan);
   const room = roomOf(plan);
@@ -492,8 +508,10 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
         const rot = el.rotation ?? 0;
         const selected = isSel("element", el.id);
         const Icon = ELEMENT_ICON[el.kind];
-        const lw = labelWidth(w, h, rot);
-        const compact = Math.min(w, h) < 3.2;
+        const mode = el.labelMode ?? "upright";
+        const label = featureLabelLayout(mode, w, h, rot);
+        // Too little room across the text for a line of it: the icon alone.
+        const iconOnly = mode === "icon" || label.cross < 1.8;
         return (
           <div
             key={el.id}
@@ -536,14 +554,22 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
               <span
                 className="absolute left-1/2 top-1/2 flex items-center justify-center gap-[0.4cqw] overflow-hidden px-[0.4cqw] font-medium leading-tight"
                 style={{
-                  width: `${lw}cqw`,
-                  transform: `translate(-50%, -50%) rotate(${-rot}deg)`,
+                  width: `${label.width}cqw`,
+                  transform: `translate(-50%, -50%) rotate(${label.angle}deg)`,
                   fontSize: "max(8px, 0.95cqw)",
                   color: "var(--color-on-surface-variant)",
                 }}
               >
-                <Icon aria-hidden className="shrink-0" style={{ width: "max(10px, 1.15cqw)", height: "max(10px, 1.15cqw)" }} />
-                {!compact && <span className="truncate">{el.label}</span>}
+                <Icon
+                  aria-hidden
+                  className="shrink-0"
+                  style={
+                    mode === "icon"
+                      ? { width: `max(12px, ${Math.min(3, Math.min(w, h) * 0.55)}cqw)`, height: `max(12px, ${Math.min(3, Math.min(w, h) * 0.55)}cqw)` }
+                      : { width: "max(10px, 1.15cqw)", height: "max(10px, 1.15cqw)" }
+                  }
+                />
+                {!iconOnly && <span className="truncate">{el.label}</span>}
               </span>
             </button>
             {selected && interactive && !locked && (
@@ -579,7 +605,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
         const { w, h } = tableSize(t);
         const snapping = draft?.id === t.id && draft.snapped;
         const rot = (draft?.id === t.id ? draft.rotation : undefined) ?? t.rotation ?? 0;
-        const perSeat = seated.filter(needsSeat).flatMap((g) => Array<GuestListEntry>(seatsFor(g)).fill(g));
+        const perSeat = chairLayout(t, seated, plan.chairs);
         const selected = isSel("table", t.id);
         const isDrop = dropId === t.id;
         const isHome = homeTableId === t.id;
@@ -622,24 +648,62 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
           >
             {seatPositions(t).map((p, i) => {
               const g = perSeat[i];
+              const key = `${t.id}:${i}`;
+              const isDropChair = dropChair === key;
+              // Chairs take a guest dropped (or clicked while picking) on them; a seated chair can be dragged on.
+              const chairable = interactive && !locked;
               return (
                 <span
                   key={i}
                   aria-hidden
-                  className="pointer-events-none absolute flex items-center justify-center font-semibold tabular-nums leading-none"
+                  title={chairable ? (g ? `${g.name}, seat ${i + 1}. Drag to another seat.` : `Seat ${i + 1}`) : undefined}
+                  draggable={chairable && Boolean(g)}
+                  onDragStart={(e) => {
+                    if (!g) return;
+                    e.stopPropagation();
+                    e.dataTransfer.setData(GUEST_MIME, g.id);
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(e) => {
+                    if (!chairable || !isGuestDrag(e)) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = "move";
+                    setDropId(null);
+                    setDropChair(key);
+                  }}
+                  onDragLeave={() => setDropChair((cur) => (cur === key ? null : cur))}
+                  onDrop={(e) => {
+                    if (!chairable) return;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDropChair(null);
+                    setDropId(null);
+                    const id = e.dataTransfer.getData(GUEST_MIME);
+                    if (id) onDropGuest?.(id, t.id, i);
+                  }}
+                  onClick={(e) => {
+                    if (!chairable || !picking) return;
+                    e.stopPropagation();
+                    onChairClick?.(t.id, i);
+                  }}
+                  className={`absolute flex items-center justify-center font-semibold tabular-nums leading-none ${chairable ? "" : "pointer-events-none"}`}
                   style={{
                     ...p,
                     width: `${SEAT}cqw`,
                     height: `${SEAT}cqw`,
-                    transform: `translate(-50%, -50%) rotate(${-rot}deg)`,
+                    transform: `translate(-50%, -50%) rotate(${-rot}deg) scale(${isDropChair ? 1.3 : 1})`,
+                    cursor: chairable ? (picking ? "copy" : g ? "grab" : "default") : undefined,
+                    zIndex: isDropChair ? 3 : undefined,
+                    boxShadow: isDropChair ? "0 0 0 2px var(--color-surface-container-lowest), 0 0 0 4px var(--color-primary)" : undefined,
                     borderRadius: "var(--radius-full)",
-                    background: g ? SEAT_FILL[sideOf(g) ?? "none"] : "var(--color-surface-container-lowest)",
+                    background: g ? SEAT_FILL[sideOf(g) ?? "none"] : isDropChair ? "var(--color-primary-container-strong)" : "var(--color-surface-container-lowest)",
                     border: g ? "none" : "1px solid var(--color-outline)",
                     color: g ? "#fff" : "var(--color-on-surface-muted)",
                     fontSize: g ? "max(6px, 0.82cqw)" : "max(5px, 0.7cqw)",
                     fontWeight: g ? 600 : 400,
                     letterSpacing: "0.01em",
-                    transition: "background-color 200ms ease-out, border-color 200ms ease-out, color 200ms ease-out",
+                    transition: "background-color 200ms ease-out, border-color 200ms ease-out, color 200ms ease-out, transform 150ms ease-out, box-shadow 150ms ease-out",
                     printColorAdjust: "exact",
                     WebkitPrintColorAdjust: "exact",
                   }}
@@ -739,7 +803,7 @@ const FloorSurface = forwardRef<HTMLDivElement, Props>(function FloorSurface(
         );
       })}
 
-      {hovered && <HoverCard table={hovered} room={room} seated={byTable.get(hovered.id) ?? []} sideOf={sideOf} />}
+      {hovered && <HoverCard table={hovered} room={room} seated={byTable.get(hovered.id) ?? []} chairs={plan.chairs} sideOf={sideOf} />}
       {pinned && renderTableCard && (
         <CardFrame table={pinned} room={room} interactive>
           {renderTableCard(pinned)}
@@ -783,7 +847,8 @@ function CardFrame({ table, room, interactive, children }: { table: SeatingTable
 }
 
 /** Who's at a table, shown beside it on hover or keyboard focus. */
-function HoverCard({ table, room, seated, sideOf }: { table: SeatingTable; room: Room; seated: GuestListEntry[]; sideOf: (g: GuestListEntry) => GuestSide | undefined }) {
+function HoverCard({ table, room, seated, chairs, sideOf }: { table: SeatingTable; room: Room; seated: GuestListEntry[]; chairs?: Record<string, number>; sideOf: (g: GuestListEntry) => GuestSide | undefined }) {
+  const layout = chairLayout(table, seated, chairs);
   const list = seated.filter(needsSeat);
   const shown = list.slice(0, 10);
   const taken = seatsTaken(seated);
@@ -806,7 +871,9 @@ function HoverCard({ table, room, seated, sideOf }: { table: SeatingTable; room:
             <li key={g.id} className="flex items-center gap-2 text-xs" style={{ color: "var(--color-on-surface)" }}>
               <Avatar name={g.name} side={sideOf(g)} size={20} />
               <span className="min-w-0 flex-1 truncate">{g.name}</span>
-              {g.partySize > 1 && <span className="shrink-0 tabular-nums" style={{ color: "var(--color-on-surface-variant)" }}>×{g.partySize}</span>}
+              <span className="shrink-0 tabular-nums" style={{ color: "var(--color-on-surface-variant)" }}>
+                {chairLabel(chairsOf(layout, g.id)).replace(/^Seats? /, "#") || (g.partySize > 1 ? `×${g.partySize}` : "")}
+              </span>
             </li>
           ))}
           {list.length > shown.length && (

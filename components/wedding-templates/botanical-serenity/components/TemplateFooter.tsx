@@ -91,7 +91,7 @@ export default function TemplateFooter({ config, green, floral, textDeep }: Prop
           className="text-[10px] tracking-widest uppercase"
           style={{ color: "rgba(255,255,255,0.25)" }}
         >
-          Created with Selah Vie
+          Created with Be My Guest
         </p>
       </motion.div>
     </footer>

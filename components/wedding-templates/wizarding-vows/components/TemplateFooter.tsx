@@ -63,7 +63,7 @@ export default function TemplateFooter({ config, palette: p, date, showBranding 
         <p style={{ fontFamily: BOOK, fontSize: 15, color: `color-mix(in srgb, ${p.chalk} 72%, transparent)`, margin: "2.6rem 0 0" }}>
           Created with{" "}
           <Link href="/" className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2" style={{ color: p.chalk, outlineColor: p.gilt }}>
-            Selah Vie
+            Be My Guest
           </Link>{" "}
           · Wizarding Vows
         </p>

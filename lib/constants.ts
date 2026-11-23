@@ -1,5 +1,6 @@
-export const APP_NAME = "Selah Vie";
-export const APP_TAGLINE = "Your Dream Wedding, Online.";
+export const APP_NAME = "Be My Guest";
+export const APP_MONOGRAM = "BMG";
+export const APP_TAGLINE = "Invite beautifully. Host effortlessly.";
 
 // Public marketing nav. "Dashboard" is intentionally NOT here — it's an
 // authenticated surface, surfaced only once a user has an account/session.

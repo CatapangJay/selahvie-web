@@ -49,12 +49,11 @@ async function lookUp(page: Page, query = "Lena Ortiz", from?: string) {
   await page.goto(`/wedding/${slug}/seat${from ? `?from=${from}` : ""}`);
   await page.getByLabel("Your name").fill(query);
   await page.getByLabel("Your name").press("Enter");
-  await expect(page.getByText(/you're seated at/)).toBeVisible();
+  await expect(page.getByText(/, you're at$/)).toBeVisible();
 }
 
 const map = (page: Page) => page.getByTestId("seat-map");
 const walker = (page: Page) => page.getByTestId("seat-map-walker");
-const steps = (page: Page) => page.getByRole("list", { name: "Directions" }).getByRole("listitem");
 const walkerAt = (page: Page) => walker(page).evaluate((g) => g.getAttribute("transform") ?? "");
 const walkerOpacity = (page: Page) => walker(page).evaluate((g) => Number(getComputedStyle(g).opacity));
 /** Share of the route's dots that are showing (they appear one after another from the door). */
@@ -63,7 +62,6 @@ const dotsShown = (page: Page) =>
     const dots = [...g.querySelectorAll("circle")];
     return dots.filter((c) => Number(getComputedStyle(c).opacity) > 0.5).length / Math.max(1, dots.length);
   });
-const activeStep = (page: Page) => steps(page).evaluateAll((items) => items.findIndex((li) => li.getAttribute("aria-current") === "step"));
 const viewBox = (page: Page) => map(page).evaluate((svg) => svg.getAttribute("viewBox") ?? "");
 
 test.describe("Find your table: map and animation", () => {
@@ -102,36 +100,20 @@ test.describe("Find your table: map and animation", () => {
     await ctx.close();
   });
 
-  test("FIND-09 the highlighted direction follows the walker, step by step, to the table", async ({ browser }) => {
-    // A long buffet across the room forces a walk around its end, so there's a real turn.
-    const buffet: Element = { id: "buffet", kind: "buffet", label: "Buffet", shape: "rect", x: 56, y: 70, w: 64, h: 4 };
-    await setPlan(HALL_TABLES.filter((t) => !["t6", "t7"].includes(t.id)), [...HALL_ELEMENTS, buffet], "t3");
+  test("FIND-09 the table's other guests are listed instead of turn-by-turn directions", async ({ browser }) => {
+    // Marco is seated at Table 2; seat Lena there too.
+    await setPlan(HALL_TABLES, HALL_ELEMENTS, "t2");
     const { ctx, page } = await phone(browser);
     await lookUp(page, "Lena Ortiz", "south");
 
-    const count = await steps(page).count();
-    expect(count).toBeGreaterThanOrEqual(3);
-    expect(await activeStep(page)).toBe(0);
-    await expect(steps(page).first()).toContainText("Come in through the main entrance");
-    await expect(steps(page).nth(1)).toContainText(/(turn|bear) (left|right)/i);
-    await expect(steps(page).last()).toContainText(/Table 3 is (on your (left|right)|straight ahead)\./);
-
-    // Sample the highlighted step through one walk: it only moves forward, through every step.
-    const seen: number[] = [];
-    const deadline = Date.now() + 15_000;
-    while (Date.now() < deadline) {
-      const i = await activeStep(page);
-      if (seen[seen.length - 1] !== i) seen.push(i);
-      if (i === count - 1) break;
-      await page.waitForTimeout(100);
-    }
-    expect(seen[seen.length - 1]).toBe(count - 1);
-    expect(seen).toEqual([...seen].sort((a, b) => a - b));
-    expect(new Set(seen).size).toBeGreaterThanOrEqual(3);
-    await page.screenshot({ path: "test-results/seat-finder/anim-3-arrived.png", fullPage: true });
-
-    // Then the walk loops back to the start.
-    await expect.poll(() => activeStep(page), { timeout: 10_000 }).toBe(0);
+    await expect(page.getByRole("list", { name: "Directions" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Who's at your table" })).toBeVisible();
+    await expect(page.getByRole("list", { name: "Also at your table" })).toContainText("Marco Villanueva");
+    await expect(page.getByRole("list", { name: "With you" })).toContainText("2 guests in your party");
+    await expect(page.getByText("4 at this table")).toBeVisible();
+    // The map still shows the way there.
+    await expect(page.getByTestId("seat-map-route")).toHaveCount(1);
+    await page.screenshot({ path: "test-results/seat-finder/table-mates.png", fullPage: true });
     await ctx.close();
   });
 
@@ -161,7 +143,6 @@ test.describe("Find your table: map and animation", () => {
     );
     expect(animations.length).toBeGreaterThan(0);
     expect(animations.every((name) => name === "none")).toBe(true);
-    await expect(steps(page).last()).toHaveAttribute("aria-current", "step");
     await ctx.close();
   });
 
@@ -180,7 +161,7 @@ test.describe("Find your table: map and animation", () => {
       await expect(page).toHaveURL(new RegExp(`from=${from}`));
       await expect(page.getByRole("button", { name: label, exact: true })).toHaveAttribute("aria-pressed", "true");
       await expect(map(page)).toHaveAttribute("data-rotation", rotation);
-      await expect(steps(page).first()).toContainText(`Come in through the ${label.toLowerCase()}`);
+      await expect(page.getByText(`Turned so the ${label.toLowerCase()} is behind you.`)).toBeVisible();
       await page.waitForTimeout(2_200);
       await map(page).screenshot({ path: `test-results/seat-finder/rotate-${from}.png` });
     }
@@ -243,7 +224,7 @@ test.describe("Find your table: map and animation", () => {
     await lookUp(page, "Lena Ortiz", "not-a-door");
 
     await expect(page.getByRole("group", { name: "Which entrance did you use?" })).toHaveCount(0);
-    await expect(steps(page).first()).toContainText("Come in through the garden door");
+    await expect(page.getByText("Turned so the garden door is behind you.")).toBeVisible();
     await expect(map(page)).toHaveAttribute("data-rotation", "90");
     await ctx.close();
   });
@@ -277,7 +258,6 @@ test.describe("Find your table: map and animation", () => {
       await expect(page.getByRole("heading", { name })).toBeVisible();
       await expect(map(page).locator("[data-highlighted]")).toHaveAttribute("data-table-id", id);
       await expect(page.getByTestId("seat-map-route")).toHaveCount(1);
-      await expect(steps(page).last()).toContainText(`${name} is`);
       await page.waitForTimeout(2_200);
       await map(page).screenshot({ path: `test-results/seat-finder/shape-${id}.png` });
     }
@@ -294,7 +274,7 @@ test.describe("Find your table: map and animation", () => {
     const started = Date.now();
     await page.getByRole("button", { name: "Find my table" }).click();
     await expect(page.getByRole("heading", { name: "Table 1" })).toBeVisible();
-    await expect(page.getByRole("list", { name: "Directions" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Who's at your table" })).toBeVisible();
     await expect(page.getByTestId("seat-map-route")).toHaveCount(1);
     expect(Date.now() - started).toBeLessThan(5_000);
     await page.waitForTimeout(2_200);

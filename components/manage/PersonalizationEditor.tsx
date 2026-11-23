@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useWeddingStore } from "@/store/weddingStore";
 import { InputField, TextareaField } from "@/components/ui/InputField";
@@ -12,16 +12,18 @@ import { audienceSectionsFor } from "@/components/wedding-templates";
 import { DEFAULT_GREETING, emptyAudience, isAudienceEmpty } from "@/lib/invitations";
 import { TIER_INFO, configTier, hasModule, upgradePrice } from "@/lib/tiers";
 import { formatPrice } from "@/lib/utils";
+import { planOf } from "@/lib/seating";
 import type {
   Audience,
   AudienceSectionKey,
+  FinderLookup,
   GuestGroup,
   GuestListEntry,
   PrivateSection,
   PrivateSectionKind,
   WeddingConfig,
 } from "@/types/wedding";
-import { Calendar, ChevronDown, Eye, FileText, Image as ImageIcon, Lock, Plus, Search, Trash2, X } from "lucide-react";
+import { Calendar, Check, ChevronDown, Eye, FileText, HandHeart, Image as ImageIcon, Lock, LockKeyhole, Plus, Search, Trash2, UserSearch, X } from "lucide-react";
 
 interface Props {
   config: WeddingConfig;
@@ -100,7 +102,6 @@ export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests 
           </div>
         </div>
       )}
-
       {personalized && !hasAudience && (
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
@@ -112,255 +113,365 @@ export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests 
 
       {/* Locked features stay visible so Base couples can see what they'd get. */}
       <div inert={!personalized} className="space-y-12" style={{ opacity: personalized ? 1 : 0.5 }}>
-        {/* Greeting */}
-        <section aria-labelledby="greeting-heading">
-          <SectionHeading id="greeting-heading" title="Personal greeting" body="Guests who open their invite link are greeted by name at the top of your site." />
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm" style={{ color: "var(--color-on-surface)" }}>
-            <input
-              type="checkbox"
-              checked={greeting.enabled}
-              onChange={(e) => updateConfig(config.id, { inviteGreeting: { ...greeting, enabled: e.target.checked } })}
-              style={{ accentColor: "var(--color-primary)" }}
-              className="h-4 w-4"
-            />
-            Greet guests by name
-          </label>
-          {greeting.enabled && (
-            <div className="mt-3 max-w-xl">
-              <InputField
-                label="Message under their name"
-                id="greeting-message"
-                maxLength={140}
-                placeholder={DEFAULT_GREETING}
-                value={greeting.message}
-                onChange={(e) => updateConfig(config.id, { inviteGreeting: { ...greeting, message: e.target.value } })}
-              />
-            </div>
-          )}
-          <label className="mt-4 flex min-h-[44px] cursor-pointer items-start gap-3 text-sm" style={{ color: "var(--color-on-surface)" }}>
-            <input
-              type="checkbox"
-              checked={config.inviteLookupEnabled !== false}
-              onChange={(e) => updateConfig(config.id, { inviteLookupEnabled: e.target.checked })}
-              style={{ accentColor: "var(--color-primary)" }}
-              className="mt-0.5 h-4 w-4"
-            />
-            <span>
-              Let guests find their invitation by name or code
-              <span className="block text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
-                For guests who lost their link. If two guests share a name, they&apos;ll be asked for their code.
-              </span>
-            </span>
-          </label>
-        </section>
-
-        {/* Extra seats */}
-        <section aria-labelledby="seats-heading">
-          <SectionHeading
-            id="seats-heading"
-            title="Extra guests"
-            body="Give chosen guests room to bring friends or family. They name their additional guests when they RSVP, from their own link or by typing their name on your site. Everyone else follows your plus-one setting."
-          />
-          <label className="mb-5 flex min-h-[44px] cursor-pointer items-start gap-3 text-sm" style={{ color: "var(--color-on-surface)" }}>
-            <input
-              type="checkbox"
-              checked={config.openInviteMatching !== false}
-              onChange={(e) => updateConfig(config.id, { openInviteMatching: e.target.checked })}
-              style={{ accentColor: "var(--color-primary)" }}
-              className="mt-0.5 h-4 w-4"
-            />
-            <span>
-              Match names on the open invitation
-              <span className="block text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
-                Guests who RSVP without their link get their seats once their name matches your list. If two guests share a name, they&apos;ll be asked for their code. Names not on your list follow your plus-one setting.
-              </span>
-            </span>
-          </label>
-          {privileged.length === 0 ? (
-            <p className="text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-              No one has extra seats yet. Raise a guest&apos;s party size on the guest list to allow more.
-            </p>
-          ) : (
-            <ul style={{ borderTop: "1px solid var(--color-outline)" }}>
-              {privileged.map((g) => (
-                <li
-                  key={g.id}
-                  className="flex items-center justify-between gap-3 py-2 text-sm"
-                  style={{ borderBottom: "1px solid var(--color-outline)", color: "var(--color-on-surface)" }}
+        <nav aria-label="Personalize sections" className="flex flex-wrap items-center justify-between gap-3">
+          <ul className="flex flex-wrap gap-2">
+            {GROUPS.map((g) => (
+              <li key={g.id}>
+                <a
+                  href={`#${g.id}`}
+                  className="inline-flex min-h-[36px] items-center gap-1.5 px-3 text-sm transition-colors hover:bg-[var(--color-surface-container-low)]"
+                  style={{ borderRadius: "var(--radius-full)", border: "1px solid var(--color-outline)", color: "var(--color-on-surface)" }}
                 >
-                  <span className="min-w-0 truncate">{g.name}</span>
-                  <span className="shrink-0 font-light" style={{ color: "var(--color-on-surface-variant)" }}>
-                    +{g.partySize - 1} {g.partySize - 1 === 1 ? "guest" : "guests"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-          <div className="mt-3">
-            <ButtonSecondary size="sm" onClick={onOpenGuests}>Set party sizes on the guest list</ButtonSecondary>
-          </div>
-        </section>
-
-        {/* Private sections */}
-        <section aria-labelledby="private-heading">
-          <SectionHeading
-            id="private-heading"
-            title="Private sections"
-            body="Extra content only the guests or groups you choose will see. Nobody else knows it's there."
-          />
-          {sections.length > 0 && (
-            <ul className="mb-5 flex flex-col gap-2">
-              {sections.map((s) => {
-                const Icon = KIND_META[s.kind].icon;
-                const open = expandedId === s.id;
-                const panelId = `private-${s.id}`;
-                return (
-                  <li
-                    key={s.id}
-                    style={{ background: "var(--color-surface-container)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-outline)" }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => setExpandedId(open ? null : s.id)}
-                      aria-expanded={open}
-                      aria-controls={panelId}
-                      className="flex w-full min-h-[56px] items-center gap-3 px-4 py-3 text-left"
-                    >
-                      <Icon size={16} className="shrink-0" style={{ color: "var(--color-primary)" }} aria-hidden />
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
-                          {s.title.trim() || `Untitled ${KIND_META[s.kind].label.toLowerCase()}`}
-                        </span>
-                        <span className="block truncate text-xs font-light" style={{ color: isAudienceEmpty(s.audience) ? "var(--color-error)" : "var(--color-on-surface-muted)" }}>
-                          {isAudienceEmpty(s.audience) ? "Not shown to anyone yet" : `Visible to ${describeAudience(s.audience, groups, guests)}`}
-                        </span>
-                      </span>
-                      <ChevronDown size={16} style={{ color: "var(--color-on-surface-variant)", transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.2s ease-out" }} />
-                    </button>
-                    {open && (
-                      <div id={panelId} className="space-y-5 px-4 pb-5 pt-1">
-                        <InputField
-                          label="Title"
-                          id={`${panelId}-title`}
-                          maxLength={100}
-                          value={s.title}
-                          onChange={(e) => patchSection(s.id, { title: e.target.value })}
-                        />
-                        {s.kind === "photo" && (
-                          <PhotoField
-                            label="Photo"
-                            scope={config.id}
-                            aspect="4/3"
-                            value={s.photoUrl}
-                            onChange={(url) => patchSection(s.id, { photoUrl: url || undefined })}
-                          />
-                        )}
-                        {s.kind === "event" && (
-                          <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                            <DateField
-                              label="Date"
-                              id={`${panelId}-date`}
-                              value={s.eventDate ?? ""}
-                              onChange={(v) => patchSection(s.id, { eventDate: v || undefined })}
-                            />
-                            <InputField
-                              label="Time"
-                              id={`${panelId}-time`}
-                              placeholder="6:00 PM"
-                              maxLength={40}
-                              value={s.eventTime ?? ""}
-                              onChange={(e) => patchSection(s.id, { eventTime: e.target.value || undefined })}
-                            />
-                            <InputField
-                              label="Location"
-                              id={`${panelId}-location`}
-                              maxLength={160}
-                              value={s.eventLocation ?? ""}
-                              onChange={(e) => patchSection(s.id, { eventLocation: e.target.value || undefined })}
-                            />
-                          </div>
-                        )}
-                        <TextareaField
-                          label={s.kind === "event" ? "Details" : "Message"}
-                          id={`${panelId}-body`}
-                          maxLength={2000}
-                          value={s.body}
-                          onChange={(e) => patchSection(s.id, { body: e.target.value })}
-                        />
-                        <AudiencePicker
-                          idPrefix={panelId}
-                          label="Who can see this"
-                          audience={s.audience}
-                          onChange={(audience) => patchSection(s.id, { audience })}
-                          groups={groups}
-                          guests={guests}
-                        />
-                        <div className="flex justify-end">
-                          <button
-                            type="button"
-                            onClick={() => saveSections(sections.filter((x) => x.id !== s.id))}
-                            className="flex min-h-[44px] items-center gap-2 px-2 text-xs transition-opacity hover:opacity-70"
-                            style={{ color: "var(--color-error)" }}
-                          >
-                            <Trash2 size={13} />
-                            Delete section
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-          <div className="flex flex-wrap gap-2">
-            {(Object.keys(KIND_META) as PrivateSectionKind[]).map((kind) => (
-              <ButtonSecondary key={kind} size="sm" onClick={() => addSection(kind)} title={KIND_META[kind].hint}>
-                <Plus size={13} />
-                {KIND_META[kind].label}
-              </ButtonSecondary>
-            ))}
-          </div>
-        </section>
-
-        {/* Existing sections */}
-        <section aria-labelledby="audience-heading">
-          <SectionHeading
-            id="audience-heading"
-            title="Who sees each section"
-            body="Everyone sees every section by default. Restrict one to hide it from anyone outside the guests or groups you pick."
-          />
-          <ul style={{ borderTop: "1px solid var(--color-outline)" }}>
-            {restrictable.map(({ key, label }) => (
-              <SectionAudienceRow
-                key={key}
-                sectionKey={key}
-                label={label}
-                audience={config.sectionAudiences?.[key]}
-                onChange={(a) => setSectionAudience(key, a)}
-                groups={groups}
-                guests={guests}
-              />
+                  <g.icon size={14} aria-hidden style={{ color: "var(--color-primary)" }} />
+                  {g.title}
+                </a>
+              </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
-            Sections this template doesn&apos;t include aren&apos;t listed. Hidden content is left out of what guests see, but
-            it isn&apos;t encrypted, so keep truly private details like door codes off your site.
-          </p>
-        </section>
-
-        <div>
-          <Link href={`/wedding/${config.slug || config.id}`} target="_blank">
-            <ButtonSecondary size="md">
+          <Link href={`/wedding/${config.slug || config.id}`} target="_blank" title="Opens your site with a 'View as' picker, visible only to you.">
+            <ButtonSecondary size="sm">
               <Eye size={14} />
               Preview as a guest
             </ButtonSecondary>
           </Link>
-          <p className="mt-2 text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
-            Opens your site with a &ldquo;View as&rdquo; picker, visible only to you.
-          </p>
+        </nav>
+
+        {/* 1. What each guest sees when they arrive. */}
+        <SettingsGroup {...GROUPS[0]}>
+          <section aria-labelledby="greeting-heading">
+            <SectionHeading id="greeting-heading" title="Personal greeting" body="Guests who open their invite link are greeted by name at the top of your site." />
+            <label className="flex min-h-[44px] cursor-pointer items-center gap-3 text-sm" style={{ color: "var(--color-on-surface)" }}>
+              <input
+                type="checkbox"
+                checked={greeting.enabled}
+                onChange={(e) => updateConfig(config.id, { inviteGreeting: { ...greeting, enabled: e.target.checked } })}
+                style={{ accentColor: "var(--color-primary)" }}
+                className="h-4 w-4"
+              />
+              Greet guests by name
+            </label>
+            {greeting.enabled && (
+              <div className="mt-3 max-w-xl">
+                <InputField
+                  label="Message under their name"
+                  id="greeting-message"
+                  maxLength={140}
+                  placeholder={DEFAULT_GREETING}
+                  value={greeting.message}
+                  onChange={(e) => updateConfig(config.id, { inviteGreeting: { ...greeting, message: e.target.value } })}
+                />
+              </div>
+            )}
+          </section>
+
+          <section aria-labelledby="seats-heading">
+            <SectionHeading
+              id="seats-heading"
+              title="Extra guests"
+              body="Give chosen guests room to bring friends or family. They name their additional guests when they RSVP, from their own link or by typing their name on your site. Everyone else follows your plus-one setting."
+            />
+            {privileged.length === 0 ? (
+              <p className="text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
+                No one has extra seats yet. Raise a guest&apos;s party size on the guest list to allow more.
+              </p>
+            ) : (
+              <ul style={{ borderTop: "1px solid var(--color-outline)" }}>
+                {privileged.map((g) => (
+                  <li
+                    key={g.id}
+                    className="flex items-center justify-between gap-3 py-2 text-sm"
+                    style={{ borderBottom: "1px solid var(--color-outline)", color: "var(--color-on-surface)" }}
+                  >
+                    <span className="min-w-0 truncate">{g.name}</span>
+                    <span className="shrink-0 font-light" style={{ color: "var(--color-on-surface-variant)" }}>
+                      +{g.partySize - 1} {g.partySize - 1 === 1 ? "guest" : "guests"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="mt-3">
+              <ButtonSecondary size="sm" onClick={onOpenGuests}>Set party sizes on the guest list</ButtonSecondary>
+            </div>
+          </section>
+        </SettingsGroup>
+
+        {/* 2. How guests are recognised without their personal link. */}
+        <SettingsGroup {...GROUPS[1]}>
+          <ul className="divide-y" style={{ borderColor: "var(--color-outline)" }}>
+            <li className="py-3 first:pt-0">
+              <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-sm" style={{ color: "var(--color-on-surface)" }}>
+                <input
+                  type="checkbox"
+                  checked={config.inviteLookupEnabled !== false}
+                  onChange={(e) => updateConfig(config.id, { inviteLookupEnabled: e.target.checked })}
+                  style={{ accentColor: "var(--color-primary)" }}
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>
+                  Let guests find their invitation by name or code
+                  <span className="block text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+                    For guests who lost their link. If two guests share a name, they&apos;ll be asked for their code.
+                  </span>
+                </span>
+              </label>
+            </li>
+            <li className="py-3">
+              <label className="flex min-h-[44px] cursor-pointer items-start gap-3 text-sm" style={{ color: "var(--color-on-surface)" }}>
+                <input
+                  type="checkbox"
+                  checked={config.openInviteMatching !== false}
+                  onChange={(e) => updateConfig(config.id, { openInviteMatching: e.target.checked })}
+                  style={{ accentColor: "var(--color-primary)" }}
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>
+                  Match names on the open invitation
+                  <span className="block text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+                    Guests who RSVP without their link get their seats once their name matches your list. If two guests share a name, they&apos;ll be asked for their code. Names not on your list follow your plus-one setting.
+                  </span>
+                </span>
+              </label>
+            </li>
+          </ul>
+          {hasModule(config, "seating") && (
+            <section aria-labelledby="finder-lookup-heading">
+              <SectionHeading
+                id="finder-lookup-heading"
+                title="Table finder"
+                body="What guests type after scanning a table finder code at the venue. A full name always works too."
+              />
+              <FinderLookupChoice config={config} />
+            </section>
+          )}
+        </SettingsGroup>
+
+        {/* 3. Content only some guests see. */}
+        <SettingsGroup {...GROUPS[2]}>
+          <section aria-labelledby="private-heading">
+            <SectionHeading
+              id="private-heading"
+              title="Private sections"
+              body="Extra content only the guests or groups you choose will see. Nobody else knows it's there."
+            />
+            {sections.length > 0 && (
+              <ul className="mb-5 flex flex-col gap-2">
+                {sections.map((s) => {
+                  const Icon = KIND_META[s.kind].icon;
+                  const open = expandedId === s.id;
+                  const panelId = `private-${s.id}`;
+                  return (
+                    <li
+                      key={s.id}
+                      style={{ background: "var(--color-surface-container)", borderRadius: "var(--radius-md)", border: "1px solid var(--color-outline)" }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setExpandedId(open ? null : s.id)}
+                        aria-expanded={open}
+                        aria-controls={panelId}
+                        className="flex w-full min-h-[56px] items-center gap-3 px-4 py-3 text-left"
+                      >
+                        <Icon size={16} className="shrink-0" style={{ color: "var(--color-primary)" }} aria-hidden />
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
+                            {s.title.trim() || `Untitled ${KIND_META[s.kind].label.toLowerCase()}`}
+                          </span>
+                          <span className="block truncate text-xs font-light" style={{ color: isAudienceEmpty(s.audience) ? "var(--color-error)" : "var(--color-on-surface-muted)" }}>
+                            {isAudienceEmpty(s.audience) ? "Not shown to anyone yet" : `Visible to ${describeAudience(s.audience, groups, guests)}`}
+                          </span>
+                        </span>
+                        <ChevronDown size={16} style={{ color: "var(--color-on-surface-variant)", transform: open ? "rotate(180deg)" : undefined, transition: "transform 0.2s ease-out" }} />
+                      </button>
+                      {open && (
+                        <div id={panelId} className="space-y-5 px-4 pb-5 pt-1">
+                          <InputField
+                            label="Title"
+                            id={`${panelId}-title`}
+                            maxLength={100}
+                            value={s.title}
+                            onChange={(e) => patchSection(s.id, { title: e.target.value })}
+                          />
+                          {s.kind === "photo" && (
+                            <PhotoField
+                              label="Photo"
+                              scope={config.id}
+                              aspect="4/3"
+                              value={s.photoUrl}
+                              onChange={(url) => patchSection(s.id, { photoUrl: url || undefined })}
+                            />
+                          )}
+                          {s.kind === "event" && (
+                            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+                              <DateField
+                                label="Date"
+                                id={`${panelId}-date`}
+                                value={s.eventDate ?? ""}
+                                onChange={(v) => patchSection(s.id, { eventDate: v || undefined })}
+                              />
+                              <InputField
+                                label="Time"
+                                id={`${panelId}-time`}
+                                placeholder="6:00 PM"
+                                maxLength={40}
+                                value={s.eventTime ?? ""}
+                                onChange={(e) => patchSection(s.id, { eventTime: e.target.value || undefined })}
+                              />
+                              <InputField
+                                label="Location"
+                                id={`${panelId}-location`}
+                                maxLength={160}
+                                value={s.eventLocation ?? ""}
+                                onChange={(e) => patchSection(s.id, { eventLocation: e.target.value || undefined })}
+                              />
+                            </div>
+                          )}
+                          <TextareaField
+                            label={s.kind === "event" ? "Details" : "Message"}
+                            id={`${panelId}-body`}
+                            maxLength={2000}
+                            value={s.body}
+                            onChange={(e) => patchSection(s.id, { body: e.target.value })}
+                          />
+                          <AudiencePicker
+                            idPrefix={panelId}
+                            label="Who can see this"
+                            audience={s.audience}
+                            onChange={(audience) => patchSection(s.id, { audience })}
+                            groups={groups}
+                            guests={guests}
+                          />
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => saveSections(sections.filter((x) => x.id !== s.id))}
+                              className="flex min-h-[44px] items-center gap-2 px-2 text-xs transition-opacity hover:opacity-70"
+                              style={{ color: "var(--color-error)" }}
+                            >
+                              <Trash2 size={13} />
+                              Delete section
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {(Object.keys(KIND_META) as PrivateSectionKind[]).map((kind) => (
+                <ButtonSecondary key={kind} size="sm" onClick={() => addSection(kind)} title={KIND_META[kind].hint}>
+                  <Plus size={13} />
+                  {KIND_META[kind].label}
+                </ButtonSecondary>
+              ))}
+            </div>
+          </section>
+
+          <section aria-labelledby="audience-heading">
+            <SectionHeading
+              id="audience-heading"
+              title="Who sees each section"
+              body="Everyone sees every section by default. Restrict one to hide it from anyone outside the guests or groups you pick."
+            />
+            <ul style={{ borderTop: "1px solid var(--color-outline)" }}>
+              {restrictable.map(({ key, label }) => (
+                <SectionAudienceRow
+                  key={key}
+                  sectionKey={key}
+                  label={label}
+                  audience={config.sectionAudiences?.[key]}
+                  onChange={(a) => setSectionAudience(key, a)}
+                  groups={groups}
+                  guests={guests}
+                />
+              ))}
+            </ul>
+            <p className="mt-3 text-xs font-light" style={{ color: "var(--color-on-surface-muted)" }}>
+              Sections this template doesn&apos;t include aren&apos;t listed. Hidden content is left out of what guests see, but
+              it isn&apos;t encrypted, so keep truly private details like door codes off your site.
+            </p>
+          </section>
+        </SettingsGroup>
+      </div>
+    </div>
+  );
+}
+
+/** The page's three groups, in the order a couple thinks about them. */
+const GROUPS = [
+  { id: "welcome", title: "Welcoming each guest", body: "What a guest sees when they open their own link.", icon: HandHeart },
+  { id: "recognising", title: "Finding guests by name", body: "How guests are recognised when they don't have their link: on your site, at RSVP, and at the venue.", icon: UserSearch },
+  { id: "private", title: "Content for chosen guests", body: "Sections and details only the people you pick can see.", icon: LockKeyhole },
+] as const;
+
+/** A titled group of related settings. */
+function SettingsGroup({ id, title, body, icon: Icon, children }: { id: string; title: string; body: string; icon: typeof Eye; children: ReactNode }) {
+  return (
+    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-24">
+      <div className="mb-5 flex items-start gap-3 pb-4" style={{ borderBottom: "1px solid var(--color-outline)" }}>
+        <span
+          aria-hidden
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center"
+          style={{ background: "var(--color-primary-container)", color: "var(--color-primary-dim)", borderRadius: "var(--radius-sm)" }}
+        >
+          <Icon size={17} />
+        </span>
+        <div>
+          <h2 id={`${id}-title`} className="text-lg font-medium" style={{ color: "var(--color-on-surface)" }}>{title}</h2>
+          <p className="mt-0.5 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>{body}</p>
         </div>
       </div>
+      <div className="space-y-9">{children}</div>
+    </section>
+  );
+}
+
+const LOOKUP_OPTIONS: { id: FinderLookup; label: string; example: string; note: string }[] = [
+  { id: "full", label: "Full name", example: "Maria Santos", note: "Safest for big weddings: full names rarely clash." },
+  { id: "first", label: "First name", example: "Maria", note: "Quicker to type. If two guests share it, they're asked for their last name." },
+  { id: "nickname", label: "Nickname", example: "Mia", note: "Matches the first word of each name on your guest list, so list guests by the name they go by." },
+];
+
+/** How guests look themselves up on the table finder; saved with the seating plan. */
+function FinderLookupChoice({ config }: { config: WeddingConfig }) {
+  const updateConfig = useWeddingStore((s) => s.updateConfig);
+  const plan = planOf(config);
+  const value = plan.finderLookup ?? "full";
+  const set = (next: FinderLookup) => updateConfig(config.id, { seatingPlan: { ...plan, finderLookup: next === "full" ? undefined : next } });
+  return (
+    <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="What guests type on the table finder">
+      {LOOKUP_OPTIONS.map((o) => {
+        const on = o.id === value;
+        return (
+          <button
+            key={o.id}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => set(o.id)}
+            className="flex flex-col items-start gap-1 px-4 py-3 text-left transition-colors duration-150 hover:bg-[var(--color-surface-container-low)]"
+            style={{
+              borderRadius: "var(--radius-md)",
+              border: `1px solid ${on ? "var(--color-primary)" : "var(--color-outline)"}`,
+              background: on ? "var(--color-primary-container)" : "var(--color-surface-container-lowest)",
+              boxShadow: on ? "inset 0 0 0 1px var(--color-primary)" : undefined,
+            }}
+          >
+            <span className="flex w-full items-center justify-between gap-2 text-sm font-medium" style={{ color: "var(--color-on-surface)" }}>
+              {o.label}
+              {on && <Check size={15} aria-hidden style={{ color: "var(--color-primary)" }} />}
+            </span>
+            <span className="text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+              e.g. &ldquo;{o.example}&rdquo;
+            </span>
+            <span className="text-xs leading-snug" style={{ color: "var(--color-on-surface-variant)" }}>
+              {o.note}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -368,7 +479,7 @@ export default function PersonalizationEditor({ config, onUpgrade, onOpenGuests 
 function SectionHeading({ id, title, body }: { id: string; title: string; body: string }) {
   return (
     <div className="mb-5">
-      <h2 id={id} className="text-base font-medium" style={{ color: "var(--color-on-surface)" }}>{title}</h2>
+      <h3 id={id} className="text-base font-medium" style={{ color: "var(--color-on-surface)" }}>{title}</h3>
       <p className="mt-1 text-sm font-light" style={{ color: "var(--color-on-surface-variant)", maxWidth: "60ch" }}>{body}</p>
     </div>
   );

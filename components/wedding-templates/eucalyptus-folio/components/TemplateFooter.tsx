@@ -70,7 +70,7 @@ export default function TemplateFooter({ config, palette: p, date, showBranding 
           <p style={{ fontFamily: SANS, fontSize: 13, color: soft, margin: "2.6rem 0 0" }}>
             Created with{" "}
             <Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-2" style={link}>
-              Selah Vie
+              Be My Guest
             </Link>{" "}
             · Eucalyptus Folio
           </p>

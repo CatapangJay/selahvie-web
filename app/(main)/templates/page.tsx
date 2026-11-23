@@ -6,7 +6,7 @@ import { weddingImages } from "@/lib/weddingImages";
 
 
 export const metadata = {
-  title: "Wedding website templates — Selah Vie",
+  title: "Wedding website templates — Be My Guest",
   description: "Browse our curated collection of beautiful, customizable wedding website templates.",
 };
 

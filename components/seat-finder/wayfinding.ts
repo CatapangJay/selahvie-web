@@ -7,7 +7,7 @@
  * shortest aisle walk, line-of-sight pulling straightens it, and the turns are
  * described against landmarks the guest can see.
  */
-import { SEAT, SEAT_GAP, curveGeometry, tableSize } from "@/components/manage/seating/FloorSurface";
+import { SEAT, SEAT_GAP, curveGeometry, seatPoints, tableSize } from "@/components/manage/seating/FloorSurface";
 import { Y_SCALE, type Room } from "@/lib/seating";
 import type { FinderFloor, FinderTable } from "@/lib/seatFinder";
 import type { VenueElement, VenueElementKind } from "@/types/wedding";
@@ -41,7 +41,7 @@ const CHAIR_REACH = SEAT_GAP + SEAT / 2;
 const WALL_GAP = 1.5;
 
 /** Features guests walk across rather than around. */
-const WALKABLE: ReadonlySet<VenueElementKind> = new Set(["danceFloor", "entrance"]);
+const WALKABLE: ReadonlySet<VenueElementKind> = new Set(["danceFloor", "entrance", "exit"]);
 
 type Hit = { cx: number; cy: number; radius: number; rot: number; inside: (lx: number, ly: number) => boolean };
 
@@ -577,4 +577,133 @@ export function directions(route: Route, floor: FinderFloor, entranceLabel: stri
   const side = Math.abs(rel) < 35 ? "straight ahead" : sideOf(end, heading, tc) > 0 ? "on your right" : "on your left";
   steps.push({ text: `${tableName} is ${side}.`, icon: "arrive", at: 1 });
   return steps;
+}
+
+// ─── Where the table is, in words ────────────────────────────────────────────
+
+const ORDINALS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
+const ordinal = (n: number) => ORDINALS[n - 1] ?? `${n}th`;
+
+/** Kinds worth naming as "next to …" (doors, pillars and restrooms don't help find a table). */
+const UNHELPFUL: ReadonlySet<VenueElementKind> = new Set(["entrance", "exit", "pillar", "restroom", "custom"]);
+
+/**
+ * Where a table (and the guest's seat) is, the way you'd tell a guest at the door,
+ * with left and right as they face walking in:
+ *  - table: "2nd from the left, at the far end of the room"
+ *  - seat:  "3rd from the left, on the side nearest the entrance" (only for a chosen seat)
+ *  - near:  "Next to the dance floor"
+ * Without an entrance there's no left or right, so only `near` (and a plain seat number) is given.
+ */
+export function describeTablePlace(
+  floor: FinderFloor,
+  tableId: string,
+  entrance: VenueElement | null,
+  seat?: number
+): { table?: string; seat?: string; near?: string } {
+  const target = floor.tables.find((t) => t.id === tableId);
+  if (!target) return {};
+  const c = centreOf(target);
+
+  // The nearest named feature, edge to edge.
+  let near: string | undefined;
+  let best = 9;
+  for (const e of floor.elements) {
+    if (UNHELPFUL.has(e.kind) || !e.label.trim()) continue;
+    const p = centreOf(e);
+    const d = Math.hypot(p.x - c.x, p.y - c.y) - Math.max(e.w, e.h) / 2 - Math.max(...Object.values(tableSize(target))) / 2;
+    if (d < best) {
+      best = d;
+      near = `${d < 4 ? "Next to" : "Near"} ${theLabel(e.label)}`;
+    }
+  }
+
+  const validSeat = seat !== undefined && seat >= 0 && seat < target.seats;
+  if (!entrance) return { near, ...(validSeat ? { seat: `Seat ${seat + 1}, marked on the map` } : {}) };
+
+  // The guest's frame: forward from the door, right as they face in.
+  const door = centreOf(entrance);
+  const f = facingFrom(entrance, floor.room, [door, c]);
+  const right = { x: -f.y, y: f.x };
+  const toFrame = (p: Pt, from: Pt) => {
+    const d = { x: p.x - from.x, y: p.y - from.y };
+    return { fwd: d.x * f.x + d.y * f.y, side: d.x * right.x + d.y * right.y };
+  };
+
+  let table: string | undefined;
+  if (floor.tables.length > 1) {
+    const all = floor.tables.map((t) => ({ t, ...toFrame(centreOf(t), door) })).sort((x, y) => x.fwd - y.fwd);
+    // Rows: tables at about the same distance from the door.
+    const rows: (typeof all)[] = [];
+    for (const item of all) {
+      const row = rows[rows.length - 1];
+      if (row && item.fwd - row[row.length - 1].fwd < 7) row.push(item);
+      else rows.push([item]);
+    }
+    const r = rows.findIndex((row) => row.some((x) => x.t.id === tableId));
+    const row = rows[r].sort((x, y) => x.side - y.side);
+    const pos = row.findIndex((x) => x.t.id === tableId);
+
+    const across =
+      row.length === 1
+        ? Math.abs(row[0].side) < (floor.room.w + floor.room.h) / 12 ? "Straight ahead" : row[0].side < 0 ? "On your left" : "On your right"
+        : row.length === 2
+          ? pos === 0 ? "On the left" : "On the right"
+          : row.length % 2 === 1 && pos === (row.length - 1) / 2
+            ? "The middle one"
+            : pos < row.length / 2 ? `${ordinal(pos + 1)} from the left` : `${ordinal(row.length - pos)} from the right`;
+    const depth =
+      rows.length === 1 ? "" : r === 0 ? "nearest the entrance" : r === rows.length - 1 ? "at the far end of the room" : rows.length === 3 ? "in the middle of the room" : `${ordinal(r + 1)} row from the entrance`;
+    table = depth ? `${across}, ${depth}` : across;
+  }
+
+  let seatText: string | undefined;
+  if (validSeat) {
+    const { w, h } = tableSize(target as never);
+    const rot = ((target.rotation ?? 0) * Math.PI) / 180;
+    const toPlan = (p: Pt) => {
+      const dx = p.x - w / 2;
+      const dy = p.y - h / 2;
+      return { x: c.x + dx * Math.cos(rot) - dy * Math.sin(rot), y: c.y + dx * Math.sin(rot) + dy * Math.cos(rot) };
+    };
+    const local = seatPoints(target as never);
+    const chairs = local.map((p) => toFrame(toPlan(p), c));
+    // Which side of the table each chair is on, as the guest sees it walking in.
+    type Side = "near" | "far" | "left" | "right";
+    let sideOf: (i: number) => Side;
+    if (target.shape === "rect") {
+      // Long tables have real sides: classify by side, then name the side by where its outward normal points.
+      const normal = (p: Pt): Pt => (p.y < 0 ? { x: 0, y: -1 } : p.y > h ? { x: 0, y: 1 } : p.x < 0 ? { x: -1, y: 0 } : { x: 1, y: 0 });
+      sideOf = (i) => {
+        const n = normal(local[i]);
+        const pn = { x: n.x * Math.cos(rot) - n.y * Math.sin(rot), y: n.x * Math.sin(rot) + n.y * Math.cos(rot) };
+        const fwd = pn.x * f.x + pn.y * f.y;
+        if (fwd < -0.5) return "near";
+        if (fwd > 0.5) return "far";
+        return pn.x * right.x + pn.y * right.y < 0 ? "left" : "right";
+      };
+    } else {
+      // Round, half-moon and curved tables: the half nearest the door, the far half, or one of the two ends.
+      const reach = Math.max(...chairs.map((q) => Math.hypot(q.fwd, q.side)), 1);
+      sideOf = (i) => (chairs[i].fwd < -reach * 0.35 ? "near" : chairs[i].fwd > reach * 0.35 ? "far" : chairs[i].side < 0 ? "left" : "right");
+    }
+    const mine = sideOf(seat);
+    const same = chairs.map((q, i) => ({ q, i })).filter(({ i }) => sideOf(i) === mine);
+    if ((mine === "left" || mine === "right") && same.length <= 1) {
+      seatText = `At the ${mine} end of the table`;
+    } else if (mine === "left" || mine === "right") {
+      // Along a side running away from the door: count from the end nearest the entrance.
+      same.sort((x, y) => x.q.fwd - y.q.fwd);
+      const k = same.findIndex(({ i }) => i === seat);
+      const count = same.length % 2 === 1 && k === (same.length - 1) / 2 ? "The middle seat" : k < same.length / 2 ? `${ordinal(k + 1)} from the entrance end` : `${ordinal(same.length - k)} from the far end`;
+      seatText = `${count}, on the ${mine} side`;
+    } else {
+      same.sort((x, y) => x.q.side - y.q.side);
+      const k = same.findIndex(({ i }) => i === seat);
+      const count =
+        same.length === 1 ? "The seat" : same.length % 2 === 1 && k === (same.length - 1) / 2 ? "The middle seat" : k < same.length / 2 ? `${ordinal(k + 1)} from the left` : `${ordinal(same.length - k)} from the right`;
+      seatText = `${count}, ${mine === "near" ? "on the side nearest the entrance" : "on the far side"}`;
+    }
+  }
+  return { table, seat: seatText, near };
 }

@@ -93,26 +93,30 @@ export default function ManageHeader({ config, coupleLabel, compact = false }: P
   );
 
   const actions = (size: "md" | "sm") => {
-    const box = size === "md" ? "min-h-[40px] px-4 text-sm" : "min-h-[36px] px-3 text-[0.8125rem]";
+    const box = size === "md" ? "min-h-[40px] px-4 text-sm" : "min-h-[36px] min-w-[36px] px-2.5 text-[0.8125rem] sm:px-3";
+    // In the slim bar on phones, the two actions are icons so the couple's names keep the room.
+    const text = size === "sm" ? "sr-only sm:not-sr-only" : undefined;
     return (
       <>
         <Link
           href={editHref}
+          title={size === "sm" ? "Edit website" : undefined}
           className={`${ACTION} ${box} hover:brightness-[0.92]`}
           style={{ borderRadius: "var(--radius-sm)", background: theme.primary, color: theme.onPrimary }}
         >
           <Pencil size={14} aria-hidden />
-          Edit website
+          <span className={text}>Edit website</span>
         </Link>
         <Link
           href={siteHref}
           target="_blank"
           rel="noopener"
+          title={size === "sm" ? (published ? "View site" : "Preview") : undefined}
           className={`${ACTION} ${box} hover:bg-[var(--mh-hover)]`}
           style={{ borderRadius: "var(--radius-sm)", color: theme.ink, background: theme.card, boxShadow: `inset 0 0 0 1px ${theme.outline}` }}
         >
           <ExternalLink size={14} aria-hidden />
-          {published ? "View site" : "Preview"}
+          <span className={text}>{published ? "View site" : "Preview"}</span>
           <span className="sr-only"> (opens in a new tab)</span>
         </Link>
       </>

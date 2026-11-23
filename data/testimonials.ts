@@ -27,7 +27,7 @@ export const testimonials: Testimonial[] = [
   {
     id: "t-david",
     quote:
-      "The RSVP tracking saved our sanity. Meal counts, plus-ones, everything in one place. My planner asked which app we used — it was just Selah Vie.",
+      "The RSVP tracking saved our sanity. Meal counts, plus-ones, everything in one place. My planner asked which app we used — it was just our wedding website.",
     names: "David & Priya",
     detail: "Married in Manila · Feb 2026",
     avatarSeed: "love-david",

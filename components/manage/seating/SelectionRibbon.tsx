@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { Circle, Copy, RectangleHorizontal, RotateCw, Spline, Square, Trash2 } from "lucide-react";
+import { ArrowDown, Circle, Copy, RectangleHorizontal, RotateCw, Spline, Square, Trash2, Type } from "lucide-react";
 import Select, { type SelectOption } from "@/components/ui/Select";
 import {
   ELEMENT_MAX,
@@ -23,7 +23,7 @@ import {
 import type { GuestListEntry, SeatingTable, VenueElement } from "@/types/wedding";
 import { Stepper } from "./Editors";
 import { Group, Row, RibbonInput, SmallButton, Stack } from "./RibbonParts";
-import { HalfMoonIcon } from "./shared";
+import { ELEMENT_ICON, HalfMoonIcon } from "./shared";
 
 function RotationRows({ value, onChange }: { value: number; onChange: (deg: number) => void }) {
   return (
@@ -208,6 +208,16 @@ export function ElementRibbon({ element, canDuplicate, onPatch, onDuplicate, onD
             onBlur={(e) => !e.target.value.trim() && onPatch({ label: "Untitled area" })}
           />
         </div>
+      </Group>
+      <Group label="Name shows">
+        <Stack>
+          <SmallButton icon={Type} label="Upright" pressed={(element.labelMode ?? "upright") === "upright"} onClick={() => onPatch({ labelMode: undefined })} />
+          <SmallButton icon={RotateCw} label="Turns with it" pressed={element.labelMode === "along"} onClick={() => onPatch({ labelMode: "along" })} />
+        </Stack>
+        <Stack>
+          <SmallButton icon={ArrowDown} label="Reads down" pressed={element.labelMode === "down"} onClick={() => onPatch({ labelMode: "down" })} />
+          <SmallButton icon={ELEMENT_ICON[element.kind]} label="Icon only" pressed={element.labelMode === "icon"} onClick={() => onPatch({ labelMode: "icon" })} />
+        </Stack>
       </Group>
       <Group label="Shape">
         <Stack>

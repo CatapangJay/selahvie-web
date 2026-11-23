@@ -72,7 +72,7 @@ export default function TemplateFooter({ config, palette: p, date, showBranding 
           <p style={{ fontFamily: SERIF, fontSize: 16, color: "rgba(247,239,225,.78)", margin: "1.75rem 0 0" }}>
             Created with{" "}
             <Link href="/" className="underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2" style={{ color: p.capiz, outlineColor: p.brass }}>
-              Selah Vie
+              Be My Guest
             </Link>{" "}
             · Narra &amp; Kapis
           </p>

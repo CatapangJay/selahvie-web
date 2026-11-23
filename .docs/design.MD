@@ -1,4 +1,4 @@
-# Design System Specification: Selah Vie
+# Design System Specification: Be My Guest
 
 > **Redesign — soft & romantic.** This is the engineering-side design spec, kept in
 > sync with the root [DESIGN.md](../DESIGN.md) (canonical) and [PRODUCT.md](../PRODUCT.md).

@@ -125,4 +125,28 @@ test.describe("Seating chart (Premium)", () => {
     await expect(page.getByRole("option", { name: "Coming Guest" })).toBeVisible();
     await expect(page.getByRole("option", { name: "Declined Guest" })).toHaveCount(0);
   });
+
+  test("SEAT-09 a guest dragged onto a chair sits in that chair; a seated guest can be dragged to another", async ({ page }) => {
+    const id = await buyWebsite(page, "premium");
+    const ben = await addGuest(id, "Ben Lim", { partySize: 2 });
+    const ana = await addGuest(id, "Ana Cruz");
+    await updateWebsite(id, { seating_plan: { tables: [TABLE], assignments: { [ana.id]: TABLE.id }, sides: {} } });
+    const chairs = async () => (((await weddingRow(id)).seating_plan ?? {}) as { chairs?: Record<string, number> }).chairs ?? {};
+
+    await openSeating(page, id);
+    // From the guest list onto seat 5: Ben there, his plus-one in seat 6.
+    await page.getByRole("button", { name: /^Ben Lim, party of 2, not seated/ }).dragTo(page.getByTitle("Seat 5", { exact: true }));
+    await expect.poll(chairs, { timeout: 15_000 }).toMatchObject({ [ben.id]: 4 });
+    await expect(page.getByTitle("Ben Lim, seat 5. Drag to another seat.")).toBeVisible();
+    await expect(page.getByTitle("Ben Lim, seat 6. Drag to another seat.")).toBeVisible();
+
+    // Ana (placed automatically in seat 1) dragged from her chair to seat 3.
+    await page.getByTitle("Ana Cruz, seat 1. Drag to another seat.").dragTo(page.getByTitle("Seat 3", { exact: true }));
+    await expect.poll(chairs, { timeout: 15_000 }).toMatchObject({ [ana.id]: 2, [ben.id]: 4 });
+
+    // The table card lists the seats.
+    await tableButton(page).click();
+    await expect(page.getByRole("dialog", { name: "Table 1 guests" })).toContainText("Seat 3");
+    await expect(page.getByRole("dialog", { name: "Table 1 guests" })).toContainText("Seats 5–6");
+  });
 });

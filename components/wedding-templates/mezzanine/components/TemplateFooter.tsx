@@ -62,7 +62,7 @@ export default function TemplateFooter({ config, palette: p, date, showBranding 
           <p style={{ fontFamily: SANS, fontSize: 14, color: soft, margin: "2.6rem 0 0", paddingTop: "1.2rem", borderTop: rule }}>
             Created with{" "}
             <Link href="/" className="focus-visible:outline-2 focus-visible:outline-offset-2" style={link}>
-              Selah Vie
+              Be My Guest
             </Link>{" "}
             · Mezzanine
           </p>

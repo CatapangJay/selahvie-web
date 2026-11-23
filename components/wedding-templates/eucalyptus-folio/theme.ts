@@ -1,5 +1,8 @@
 import type { CSSProperties } from "react";
 import type { WeddingConfig } from "@/types/wedding";
+import { templates } from "@/data/templates";
+
+const template = templates.find((t) => t.id === "t18");
 
 /** A bookish transitional serif for names and headings, a quiet grotesk for text, a typewriter for specimen labels. */
 export const DISPLAY = "var(--wedding-serif, 'Newsreader'), 'Newsreader', 'Iowan Old Style', Georgia, serif";
@@ -30,16 +33,23 @@ export interface Palette {
 
 const mix = (color: string, pct: number, other: string) => `color-mix(in srgb, ${color} ${pct}%, ${other})`;
 
-/** Ink follows the couple's primary colour and rust their accent; the paper stays fixed. */
-export function makePalette(config: Pick<WeddingConfig, "primaryColor" | "accentColor">): Palette {
+const RAG = "#EEE8DA";
+
+/**
+ * Ink follows the couple's primary colour and rust their accent. The paper is
+ * the chosen palette's background (rag paper unless a palette sets another).
+ */
+export function makePalette(config: Pick<WeddingConfig, "primaryColor" | "accentColor" | "themePresetId">): Palette {
   const ink = config.primaryColor || "#39432F";
+  const preset = template?.colorPalettes.find((c) => c.id === config.themePresetId);
+  const paper = preset && /^#[0-9a-f]{6}$/i.test(preset.background) ? preset.background : RAG;
   return {
     ink,
     inkDeep: mix(ink, 72, "#0B0D09"),
-    inkSoft: mix(ink, 62, "#EEE8DA"),
+    inkSoft: mix(ink, 62, paper),
     rust: config.accentColor || "#A4532F",
-    paper: "#EEE8DA",
-    sheet: "#F7F3EA",
+    paper,
+    sheet: paper.toUpperCase() === RAG ? "#F7F3EA" : mix(paper, 42, "#FFFFFF"),
     tape: "rgba(226, 216, 192, 0.86)",
     text: "#262B22",
   };

@@ -7,7 +7,7 @@ test.describe("Authentication and access control", () => {
   test("AUTH-01 anonymous visitor to /dashboard is sent to login with a redirect back", async ({ page }) => {
     await page.goto("/dashboard");
     await expect(page).toHaveURL(/\/login\?redirect=%2Fdashboard/);
-    await expect(page.getByRole("heading", { name: "Log in to Selah Vie" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Log in to Be My Guest" })).toBeVisible();
   });
 
   test("AUTH-02 valid credentials log in and land on the dashboard", async ({ page }) => {

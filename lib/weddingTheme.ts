@@ -117,7 +117,10 @@ export function weddingTheme(source: Partial<ThemeSource>): GuestTheme {
 
   const white = contrast("#FFFFFF", primary);
   const black = contrast(INK_LIGHT, primary);
-  const onPrimary = white >= 4.5 || white >= black ? "#FFFFFF" : INK_LIGHT;
+  // Text on the primary colour: white or our dark ink when either reaches 4.5:1; for mid-tone
+  // primaries where neither does, whichever of pure white or pure black reads better.
+  const onPrimary =
+    white >= 4.5 ? "#FFFFFF" : black >= 4.5 ? INK_LIGHT : contrast("#000000", primary) > white ? "#000000" : "#FFFFFF";
 
   const font = resolveFontPreset(source.fontPresetId);
   // The couple's font preset wins over the template's own type, as on their website.

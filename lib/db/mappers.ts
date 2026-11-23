@@ -206,6 +206,8 @@ export function fromWeddingRow(row: WeddingRow, ownerEmail?: string): WeddingCon
       sides: row.seating_plan?.sides ?? {},
       ...(row.seating_plan?.guestFinder ? { guestFinder: true } : {}),
       ...(row.seating_plan?.room ? { room: row.seating_plan.room } : {}),
+      ...(row.seating_plan?.chairs ? { chairs: row.seating_plan.chairs } : {}),
+      ...(row.seating_plan?.finderLookup ? { finderLookup: row.seating_plan.finderLookup } : {}),
     },
   };
 }

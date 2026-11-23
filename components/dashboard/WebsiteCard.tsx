@@ -1,122 +1,102 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useWeddingStore } from "@/store/weddingStore";
-import ButtonPrimary from "@/components/ui/ButtonPrimary";
-import ButtonSecondary from "@/components/ui/ButtonSecondary";
-import { Pencil, Users, ExternalLink } from "lucide-react";
+import { useState } from "react";
+import { ExternalLink, Pencil, Users } from "lucide-react";
+import GuestBar from "@/components/dashboard/GuestBar";
+import { TIER_INFO, configTier } from "@/lib/tiers";
+import { countdownLabel, longDate, type GuestTally } from "@/lib/weddingOverview";
 import type { WeddingConfig } from "@/types/wedding";
 import type { WeddingTemplate } from "@/types/template";
-import { TIER_INFO, configTier } from "@/lib/tiers";
 
 interface Props {
   config: WeddingConfig;
   template: WeddingTemplate;
+  coupleLabel: string;
+  tally: GuestTally;
 }
 
-export default function WebsiteCard({ config, template }: Props) {
-  const summary = useWeddingStore((s) => s.getRsvpSummary)(config.id);
-  const isPublished = config.status === "published";
-  const hasRsvps = summary.total > 0;
-
-  // "RSVP active" once published and responses are arriving; else draft/published.
-  const badge = hasRsvps
-    ? { label: "RSVP active", bg: "var(--color-primary)", color: "#fff", border: "transparent" }
-    : isPublished
-    ? { label: "Published", bg: "var(--color-success)", color: "#fff", border: "transparent" }
-    : { label: "Draft", bg: "var(--color-surface-container-high)", color: "var(--color-on-surface-variant)", border: "var(--color-outline)" };
-
-  const coupleLabel =
-    config.partner1Name && config.partner2Name
-      ? `${config.partner1Name} & ${config.partner2Name}`
-      : template.name;
+/** One website in the "All websites" list: thumbnail, names, state, guests, and its actions. */
+export default function WebsiteCard({ config, template, coupleLabel, tally }: Props) {
+  const published = config.status === "published";
+  const photo = config.heroImageUrl?.trim() || template.previewImage;
+  const [photoOk, setPhotoOk] = useState(true);
+  const when = [longDate(config.weddingDate), countdownLabel(config.weddingDate)].filter(Boolean).join(" · ");
 
   return (
-    <div
-      className="group flex flex-col overflow-hidden transition-shadow duration-200 hover:shadow-[0_8px_24px_rgba(47,30,38,0.07)]"
-      style={{
-        background: "var(--color-surface-container)",
-        borderRadius: "var(--radius-md)",
-        border: "1px solid var(--color-outline)",
-      }}
+    <li
+      className="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3 p-3 sm:grid-cols-[5.5rem_minmax(0,1fr)_auto] sm:p-4"
+      style={{ background: "var(--color-surface-container-lowest)", border: "1px solid var(--color-outline)", borderRadius: "var(--radius-md)" }}
     >
-      {/* Preview */}
-      <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
-        <Image
-          src={config.heroImageUrl || template.previewImage}
-          alt={coupleLabel}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 33vw"
-          style={config.heroImageUrl ? undefined : { opacity: 0.6 }}
-        />
-        <span
-          className="absolute right-3 top-3 px-2.5 py-1 text-xs font-medium"
-          style={{
-            background: badge.bg,
-            color: badge.color,
-            borderRadius: "var(--radius-full)",
-            border: `1px solid ${badge.border}`,
-          }}
-        >
-          {badge.label}
-        </span>
-      </div>
-
-      {/* Info */}
-      <div className="flex flex-1 flex-col p-5">
-        <p
-          className="font-serif"
-          style={{ fontFamily: "var(--font-serif)", fontSize: "1.125rem", fontWeight: 400, color: "var(--color-on-surface)" }}
-        >
-          {coupleLabel}
-        </p>
-        <p className="mt-1 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
-          {config.weddingDate && (
-            <>
-              {new Date(config.weddingDate).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-              {" · "}
-            </>
-          )}
-          {TIER_INFO[configTier(config)].label} plan
-        </p>
-
-        {/* RSVP glance */}
-        {hasRsvps && (
-          <p className="mt-3 text-sm" style={{ color: "var(--color-on-surface-variant)" }}>
-            <span style={{ color: "var(--color-primary-dim)", fontWeight: 500 }}>{summary.attending}</span> attending
-            {" · "}
-            <span style={{ fontWeight: 500 }}>{summary.guestCount}</span> guests
-            {summary.declined > 0 && <> · {summary.declined} declined</>}
-          </p>
+      <div className="relative aspect-square overflow-hidden" style={{ borderRadius: "var(--radius-sm)", background: "var(--color-surface-container)" }}>
+        {photoOk && (
+          // eslint-disable-next-line @next/next/no-img-element -- the couple's own upload, any host
+          <img src={photo} alt="" onError={() => setPhotoOk(false)} className="h-full w-full object-cover" style={config.heroImageUrl ? undefined : { opacity: 0.75 }} />
         )}
-
-        <div
-          className="mt-auto flex flex-wrap gap-2 pt-4"
-          style={{ borderTop: "1px solid var(--color-outline)", marginTop: "1rem" }}
-        >
-          <Link href={`/dashboard/customize/${config.id}`} className="flex-1">
-            <ButtonPrimary size="sm" fullWidth>
-              <Pencil size={12} />
-              Customize
-            </ButtonPrimary>
-          </Link>
-          <Link href={`/dashboard/manage/${config.id}`} className="flex-1">
-            <ButtonSecondary size="sm" fullWidth>
-              <Users size={12} />
-              Guests
-            </ButtonSecondary>
-          </Link>
-          {isPublished && (
-            <Link href={`/wedding/${config.slug || config.id}`} target="_blank" aria-label="Open published website">
-              <ButtonSecondary size="sm">
-                <ExternalLink size={12} />
-              </ButtonSecondary>
-            </Link>
-          )}
-        </div>
       </div>
-    </div>
+
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <h3 className="truncate text-[1.125rem] leading-tight" style={{ fontFamily: "var(--font-display)", fontWeight: 400, color: "var(--color-on-surface)" }}>
+            {coupleLabel}
+          </h3>
+          <span
+            className="shrink-0 px-2 py-0.5 text-[0.6875rem] font-medium"
+            style={{
+              borderRadius: "var(--radius-full)",
+              background: published ? "#E6F0E8" : "var(--color-surface-container-high)",
+              color: published ? "#2F5E3B" : "var(--color-on-surface-variant)",
+            }}
+          >
+            {published ? "Live" : "Draft"}
+          </span>
+        </div>
+        <p className="mt-0.5 truncate text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+          {when || "No date yet"} · {template.name} · {TIER_INFO[configTier(config)].label}
+        </p>
+        {tally.invitations > 0 ? (
+          <div className="mt-2 flex items-center gap-3">
+            <div className="w-28 shrink-0 sm:w-36">
+              <GuestBar tally={tally} size="sm" />
+            </div>
+            <p className="truncate text-xs" style={{ color: "var(--color-on-surface-variant)" }}>
+              <span className="font-semibold" style={{ color: "var(--color-on-surface)" }}>{tally.attending}</span> of {tally.people} coming
+            </p>
+          </div>
+        ) : (
+          <p className="mt-2 text-xs" style={{ color: "var(--color-on-surface-variant)" }}>No guests yet</p>
+        )}
+      </div>
+
+      <div className="col-span-2 flex flex-wrap gap-2 sm:col-span-1 sm:justify-end">
+        <Link
+          href={`/dashboard/manage/${config.id}?tab=guests`}
+          className="btn-outline inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 px-3 text-sm sm:flex-none"
+          style={{ borderRadius: "var(--radius-sm)" }}
+        >
+          <Users size={14} aria-hidden />
+          Guests
+        </Link>
+        <Link
+          href={`/dashboard/customize/${config.id}`}
+          className="btn-outline inline-flex min-h-[40px] flex-1 items-center justify-center gap-1.5 px-3 text-sm sm:flex-none"
+          style={{ borderRadius: "var(--radius-sm)" }}
+        >
+          <Pencil size={13} aria-hidden />
+          Customize
+        </Link>
+        <Link
+          href={`/wedding/${config.slug || config.id}`}
+          target="_blank"
+          rel="noopener"
+          aria-label={`${published ? "View" : "Preview"} ${coupleLabel}'s website (opens in a new tab)`}
+          title={published ? "View site" : "Preview"}
+          className="btn-outline inline-flex h-10 w-10 items-center justify-center"
+          style={{ borderRadius: "var(--radius-sm)" }}
+        >
+          <ExternalLink size={14} aria-hidden />
+        </Link>
+      </div>
+    </li>
   );
 }
