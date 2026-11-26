@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import FloralSprig from "@/components/ui/FloralSprig";
 import { BmgMark } from "@/components/brand/BmgMark";
-import { APP_NAME, APP_TAGLINE, CONTACT_EMAIL } from "@/lib/constants";
+import { APP_NAME, CONTACT_EMAIL } from "@/lib/constants";
 
 const LINK_COLUMNS = [
   {
@@ -33,13 +34,13 @@ const LEGAL_LINKS = [
 ];
 
 const linkClass =
-  "inline-flex min-h-11 items-center text-[0.9375rem] text-[var(--color-on-surface-variant)] transition-colors duration-200 hover:text-[var(--color-primary)]";
+  "link-draw inline-flex min-h-11 items-center text-[0.6875rem] uppercase tracking-[0.12em] text-[var(--color-on-surface-variant)] transition-colors duration-200 hover:text-[var(--color-primary)]";
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer style={{ background: "var(--color-surface)", color: "var(--color-on-surface)", fontFamily: "var(--font-brand)" }}>
+    <footer style={{ background: "var(--color-surface)", color: "var(--color-on-surface)" }}>
       {/* Curved edge: the footer domes up into a tinted band (the landing page's
           contact section shares this tint, so the two read as one surface). */}
       <div
@@ -56,11 +57,15 @@ export default function Footer() {
           <path d="M0,120 L0,70 C360,4 1080,4 1440,70 L1440,120 Z" fill="var(--color-surface)" />
         </svg>
 
-        {/* The BMG seal sits on the crest of the curve, like a stamp on an envelope */}
-        <div className="absolute left-1/2 -translate-x-1/2" style={{ top: "1.5rem" }}>
-          <span className="flex rounded-full p-1.5" style={{ background: "var(--color-surface)" }}>
+        {/* The BMG seal on the crest of the curve, in a spray of sprigs, like a stamp on an envelope */}
+        <div className="absolute left-1/2 flex h-28 w-64 -translate-x-1/2 items-end justify-center" style={{ top: "1.25rem" }}>
+          <FloralSprig size={30} className="origin-bottom -rotate-[64deg] translate-x-8 opacity-80" />
+          <FloralSprig size={42} className="origin-bottom -rotate-[30deg] translate-x-3" />
+          <span className="relative z-10 mb-1 flex rounded-full p-1.5" style={{ background: "var(--color-surface)" }}>
             <BmgMark size={60} color="var(--color-primary)" />
           </span>
+          <FloralSprig size={42} className="origin-bottom rotate-[30deg] -translate-x-3" />
+          <FloralSprig size={30} className="origin-bottom rotate-[64deg] -translate-x-8 opacity-80" />
         </div>
       </div>
 
@@ -70,28 +75,26 @@ export default function Footer() {
           <div className="lg:col-span-6">
             <p
               style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "clamp(2.5rem, 6vw, 4.5rem)",
+                fontFamily: "var(--font-serif)",
+                fontSize: "clamp(1.6rem, 3.2vw, 2.4rem)",
                 fontWeight: 400,
-                lineHeight: 1,
-                letterSpacing: "-0.02em",
+                lineHeight: 1.2,
+                letterSpacing: "0.04em",
+                textTransform: "uppercase",
                 color: "var(--bordeaux)",
+                textWrap: "balance",
               }}
             >
-              {APP_NAME}
-            </p>
-            <p className="mt-4" style={{ fontFamily: "var(--font-display)", fontSize: "1.35rem", lineHeight: 1.25, color: "var(--color-primary-dim)" }}>
-              {APP_TAGLINE}
+              Let us be <strong style={{ fontWeight: 600 }}>the one</strong> who brings{" "}
+              <strong style={{ fontWeight: 600 }}>your love story</strong> to every{" "}
+              <strong style={{ fontWeight: 600 }}>guest.</strong>
             </p>
             <Link
               href="/templates"
-              className="group mt-8 inline-flex min-h-11 items-center gap-2 text-[0.95rem] font-medium"
-              style={{ color: "var(--color-primary-dim)" }}
+              className="arrow-nudge label-luxury mt-8 inline-flex items-center gap-2 transition-colors hover:text-[var(--color-primary-dim)]"
+              style={{ color: "var(--color-primary)", borderBottom: "1px solid var(--color-outline-variant)", paddingBottom: "0.35rem" }}
             >
-              <span className="underline decoration-[var(--color-outline-variant)] underline-offset-[6px] transition-colors group-hover:decoration-[var(--color-primary)]">
-                Find your template
-              </span>
-              <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+              Find your template <ArrowRight size={13} />
             </Link>
           </div>
 
@@ -99,7 +102,7 @@ export default function Footer() {
           <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:col-span-6 lg:pt-2">
             {LINK_COLUMNS.map((col) => (
               <div key={col.title}>
-                <p className="mb-3 text-sm font-semibold" style={{ color: "var(--color-on-surface)" }}>
+                <p className="label-luxury mb-5" style={{ color: "var(--color-on-surface)", fontWeight: 600 }}>
                   {col.title}
                 </p>
                 <ul className="flex flex-col">

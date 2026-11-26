@@ -22,6 +22,8 @@ import type { FinderLookup } from "@/types/wedding";
 import { initials } from "@/lib/seating";
 import { weddingTheme, type GuestTheme } from "@/lib/weddingTheme";
 import { loadThemeFonts } from "@/lib/themeFonts";
+import { BmgMark } from "@/components/brand/BmgMark";
+import { APP_NAME } from "@/lib/constants";
 import SeatMap from "./SeatMap";
 import { describeTablePlace, findRoute } from "./wayfinding";
 
@@ -183,10 +185,38 @@ function Shell({ theme, children }: { theme: GuestTheme; children: React.ReactNo
     colorScheme: theme.dark ? "dark" : "light",
   } as React.CSSProperties;
   return (
-    <main className="sf-root min-h-dvh px-4 pb-12 sm:px-6" style={{ ...vars, background: SURFACE, color: INK, fontFamily: "var(--sf-sans)" }}>
-      <div className="mx-auto w-full max-w-xl lg:max-w-6xl">{children}</div>
+    <main className="sf-root flex min-h-dvh flex-col px-4 pb-6 sm:px-6" style={{ ...vars, background: SURFACE, color: INK, fontFamily: "var(--sf-sans)" }}>
+      <div className="mx-auto w-full max-w-xl flex-1 lg:max-w-6xl">{children}</div>
+      <MadeWith />
       <style>{PAGE_CSS}</style>
     </main>
+  );
+}
+
+/**
+ * A quiet credit at the very bottom, after everything the guest came for. The
+ * link opens in a new tab so the guest's table stays on screen.
+ */
+function MadeWith() {
+  return (
+    <footer className="mx-auto mt-14 flex w-full max-w-xl flex-col items-center justify-center gap-x-2 gap-y-1 pt-5 sm:flex-row text-[0.8125rem] lg:max-w-6xl" style={{ color: INK_VARIANT, borderTop: `1px solid ${OUTLINE}` }}>
+      <span className="inline-flex items-center gap-2">
+        <BmgMark size={20} />
+        Made with {APP_NAME}
+      </span>
+      {/* Phones: two centred lines, no dangling dot. */}
+      <span aria-hidden className="hidden sm:inline">·</span>
+      <a
+        href="/"
+        target="_blank"
+        rel="noopener"
+        className="sf-focus inline-flex min-h-[32px] items-center font-medium underline decoration-1 underline-offset-4"
+        style={{ color: INK_VARIANT, borderRadius: 4 }}
+      >
+        Make your own wedding website
+        <span className="sr-only"> (opens in a new tab)</span>
+      </a>
+    </footer>
   );
 }
 

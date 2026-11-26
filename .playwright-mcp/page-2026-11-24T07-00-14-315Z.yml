@@ -1,0 +1,207 @@
+- generic [active] [ref=f37e1]:
+  - banner [ref=f37e2]:
+    - navigation "Main" [ref=f37e3]:
+      - link "Be My Guest, home" [ref=f37e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f37e5]:
+          - generic [ref=f37e7]: BMG
+          - generic [ref=f37e8]: Be My Guest
+      - generic [ref=f37e9]:
+        - link "Templates" [ref=f37e10] [cursor=pointer]:
+          - /url: /templates
+        - link "About Us" [ref=f37e11] [cursor=pointer]:
+          - /url: /about
+        - link "Contact" [ref=f37e12] [cursor=pointer]:
+          - /url: /#contact
+      - button "Open cart" [ref=f37e14]
+  - main [ref=f37e18]:
+    - generic [ref=f37e19]:
+      - generic [ref=f37e24]:
+        - heading "Invite beautifully, host effortlessly" [level=1] [ref=f37e25]:
+          - generic [ref=f37e26]: Invite beautifully,
+          - generic [ref=f37e28]: host effortlessly
+        - paragraph [ref=f37e30]: Wedding website templates you make your own, with RSVPs and your guest list built in.
+        - link "Get started" [ref=f37e32] [cursor=pointer]:
+          - /url: /templates
+      - generic [ref=f37e34]:
+        - generic [ref=f37e35]:
+          - heading [level=2] [ref=f37e47]:
+            - text: We design
+            - emphasis [ref=f37e48]: beautiful
+            - text: wedding website templates, and hand you the tools to make each one
+            - emphasis [ref=f37e49]: unmistakably
+            - emphasis [ref=f37e50]: yours
+            - text: .
+          - paragraph [ref=f37e51]: Your wedding day is a chapter in your love story — and your website is where you invite everyone into it. Pick a design, add your photos, colors, and details, and collect RSVPs in one place. No design skills, no code.
+        - generic [ref=f37e53]:
+          - 'img "The Mezzanine template: the couple''s wedding website on a laptop" [ref=f37e56]'
+          - img "The Jewel Tones template on a phone" [ref=f37e59]
+      - generic [ref=f37e61]:
+        - generic [ref=f37e62]:
+          - heading "In Every Template" [level=2] [ref=f37e74]
+          - paragraph [ref=f37e75]: Every website you buy comes with all three, ready to personalize.
+        - generic [ref=f37e76]:
+          - link [ref=f37e77] [cursor=pointer]:
+            - /url: /templates
+            - generic [ref=f37e78]:
+              - generic [ref=f37e79]:
+                - img "A Narra & Kapis invitation on a phone, the couple's names in a carved window" [ref=f37e80]
+                - paragraph [ref=f37e90]: Invitations
+              - paragraph [ref=f37e91]: Curated, customizable designs you make your own — photos, colors, and your story.
+          - link [ref=f37e92] [cursor=pointer]:
+            - /url: /templates
+            - generic [ref=f37e93]:
+              - generic [ref=f37e94]:
+                - img "The RSVP form of the Jewel Tones template" [ref=f37e95]
+                - paragraph [ref=f37e103]: RSVP & Guests
+              - paragraph [ref=f37e104]: A living guest list with meal counts and plus-ones, tracked and tallied for you.
+          - link [ref=f37e105] [cursor=pointer]:
+            - /url: /templates
+            - generic [ref=f37e106]:
+              - generic [ref=f37e107]:
+                - img "The story section of the Eucalyptus Folio template" [ref=f37e108]
+                - paragraph [ref=f37e115]: Your Story
+              - paragraph [ref=f37e116]: Registry, travel, schedule, gallery, and well-wishes — all on one shareable link.
+      - region "The Collection" [ref=f37e117]:
+        - generic [ref=f37e119]:
+          - heading "The Collection" [level=2] [ref=f37e131]
+          - paragraph [ref=f37e132]: "Each design opens the way your guests will see it: the invitation first, then your website."
+        - region "Wedding website templates" [ref=f37e133]:
+          - generic [ref=f37e135]:
+            - 'group "1 of 8: Jewel Tones" [ref=f37e136]':
+              - 'img "Jewel Tones: the opened wedding website" [ref=f37e139]'
+            - 'group "2 of 8: Monochrome" [ref=f37e140]':
+              - 'img "Monochrome: the opened wedding website" [ref=f37e143]'
+            - 'group "3 of 8: Apricot Hour" [ref=f37e144]':
+              - 'img "Apricot Hour: the opened wedding website" [ref=f37e147]'
+            - 'group "4 of 8: Narra & Kapis" [ref=f37e148]':
+              - 'img "Narra & Kapis: the opened wedding website" [ref=f37e151]'
+            - 'group "5 of 8: Shutter & Strip" [ref=f37e152]':
+              - 'img "Shutter & Strip: the opened wedding website" [ref=f37e155]'
+            - 'group "6 of 8: Wizarding Vows" [ref=f37e156]':
+              - 'img "Wizarding Vows: the opened wedding website" [ref=f37e159]'
+            - 'group "7 of 8: Eucalyptus Folio" [ref=f37e160]':
+              - 'img "Eucalyptus Folio: the opened wedding website" [ref=f37e163]'
+            - 'group "8 of 8: Mezzanine" [ref=f37e164]':
+              - 'img "Mezzanine: the opened wedding website" [ref=f37e167]'
+          - generic [ref=f37e168]:
+            - paragraph [ref=f37e169]: Jewel Tones
+            - paragraph [ref=f37e170]: Romantic · Luxe · ₱129.00
+            - generic [ref=f37e171]:
+              - link "Preview Jewel Tones" [ref=f37e172] [cursor=pointer]:
+                - /url: /preview/t12
+              - link "Details" [ref=f37e173] [cursor=pointer]:
+                - /url: /templates/t12
+          - generic [ref=f37e174]:
+            - button "Previous template" [ref=f37e175]
+            - group "Choose a template" [ref=f37e178]:
+              - button "Show Jewel Tones" [ref=f37e179]
+              - button "Show Monochrome" [ref=f37e181]
+              - button "Show Apricot Hour" [ref=f37e183]
+              - button "Show Narra & Kapis" [ref=f37e185]
+              - button "Show Shutter & Strip" [ref=f37e187]
+              - button "Show Wizarding Vows" [ref=f37e189]
+              - button "Show Eucalyptus Folio" [ref=f37e191]
+              - button "Show Mezzanine" [ref=f37e193]
+            - button "Next template" [ref=f37e195]
+            - button "Pause the slideshow" [ref=f37e198]
+        - link [ref=f37e203] [cursor=pointer]:
+          - /url: /templates
+          - button "Compare all 8 designs" [ref=f37e204]
+      - generic [ref=f37e206]:
+        - generic [ref=f37e207]:
+          - paragraph [ref=f37e219]: Anna & Miguel · Married in Tagaytay · Mar 2026
+          - paragraph [ref=f37e220]: “We had our website live in an afternoon. Our guests kept saying it was the most beautiful invite they'd ever opened — and RSVPs just took care of themselves.”
+        - img "An Apricot Hour wedding website on a phone, welcoming a guest by name" [ref=f37e224]
+      - generic [ref=f37e227]:
+        - heading "Find the template that tells your story." [level=2] [ref=f37e239]
+        - paragraph [ref=f37e240]: Browse the collection and make one your own — beautifully personalized, from ₱99.00, once.
+        - link "Get started" [ref=f37e242] [cursor=pointer]:
+          - /url: /templates
+      - generic [ref=f37e244]:
+        - generic [ref=f37e245]:
+          - paragraph [ref=f37e246]: Contact us
+          - heading [level=2] [ref=f37e247]:
+            - text: Let’s talk about
+            - emphasis [ref=f37e248]: your day
+          - paragraph [ref=f37e249]: Questions about a template, personalizing your site, or managing RSVPs? Send us a note and we’ll help you find the right fit.
+          - generic [ref=f37e250]:
+            - link "Email us hello@selahvie.com" [ref=f37e251] [cursor=pointer]:
+              - /url: mailto:hello@selahvie.com
+              - generic [ref=f37e256]:
+                - generic [ref=f37e257]: Email us
+                - generic [ref=f37e258]: hello@selahvie.com
+            - link "Or browse the templates first" [ref=f37e259] [cursor=pointer]:
+              - /url: /templates
+        - generic [ref=f37e263]:
+          - generic [ref=f37e264]:
+            - generic [ref=f37e265]: Your names
+            - textbox "Your names" [ref=f37e266]:
+              - /placeholder: Anna & Miguel
+          - generic [ref=f37e267]:
+            - generic [ref=f37e268]: Email
+            - textbox "Email" [ref=f37e269]:
+              - /placeholder: you@example.com
+          - generic [ref=f37e271]:
+            - generic [ref=f37e272]: Wedding date (optional)
+            - button "Wedding date (optional) Choose a date" [ref=f37e273] [cursor=pointer]:
+              - generic [ref=f37e274]: Choose a date
+          - generic [ref=f37e278]:
+            - generic [ref=f37e279]: Message
+            - textbox "Message" [ref=f37e280]:
+              - /placeholder: Tell us a little about your wedding and what you need.
+          - generic [ref=f37e281]:
+            - status [ref=f37e282]: Opens in your email app, ready to send.
+            - button "Send message" [ref=f37e283] [cursor=pointer]
+  - contentinfo [ref=f37e284]:
+    - generic [ref=f37e288]: BMG
+    - generic [ref=f37e341]:
+      - generic [ref=f37e342]:
+        - generic [ref=f37e343]:
+          - paragraph [ref=f37e344]:
+            - text: Let us be
+            - strong [ref=f37e345]: the one
+            - text: who brings
+            - strong [ref=f37e346]: your love story
+            - text: to every
+            - strong [ref=f37e347]: guest.
+          - link "Find your template" [ref=f37e348] [cursor=pointer]:
+            - /url: /templates
+        - generic [ref=f37e351]:
+          - generic [ref=f37e352]:
+            - paragraph [ref=f37e353]: Explore
+            - list [ref=f37e354]:
+              - listitem [ref=f37e355]:
+                - link "Templates" [ref=f37e356] [cursor=pointer]:
+                  - /url: /templates
+              - listitem [ref=f37e357]:
+                - link "About Us" [ref=f37e358] [cursor=pointer]:
+                  - /url: /about
+          - generic [ref=f37e359]:
+            - paragraph [ref=f37e360]: Account
+            - list [ref=f37e361]:
+              - listitem [ref=f37e362]:
+                - link "Log in" [ref=f37e363] [cursor=pointer]:
+                  - /url: /login
+              - listitem [ref=f37e364]:
+                - link "Dashboard" [ref=f37e365] [cursor=pointer]:
+                  - /url: /dashboard
+          - generic [ref=f37e366]:
+            - paragraph [ref=f37e367]: Contact
+            - list [ref=f37e368]:
+              - listitem [ref=f37e369]:
+                - link "Email us" [ref=f37e370] [cursor=pointer]:
+                  - /url: mailto:hello@selahvie.com
+              - listitem [ref=f37e371]:
+                - link "Send a message" [ref=f37e372] [cursor=pointer]:
+                  - /url: /#contact
+      - generic [ref=f37e373]:
+        - paragraph [ref=f37e374]: © 2026 Be My Guest. All rights reserved.
+        - generic [ref=f37e375]:
+          - link "Privacy Policy" [ref=f37e377] [cursor=pointer]:
+            - /url: "#"
+          - generic [ref=f37e378]:
+            - generic [aria-hidden] [ref=f37e379]: "|"
+            - link "Terms & Conditions" [ref=f37e380] [cursor=pointer]:
+              - /url: "#"
+  - button "Open Next.js Dev Tools" [ref=f37e386] [cursor=pointer]

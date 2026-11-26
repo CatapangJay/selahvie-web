@@ -64,7 +64,7 @@ export default function Navbar() {
   // even when the bar flips between transparent and solid mid-hover.
   // No display class here: callers add inline-flex (or hidden md:inline-flex).
   const linkClass =
-    "min-h-11 items-center text-[0.9375rem] text-[var(--nav-link)] transition-colors duration-200 hover:text-[var(--nav-link-hover)] focus-visible:text-[var(--nav-link-hover)]";
+    "link-draw min-h-11 items-center text-[0.9375rem] text-[var(--nav-link)] transition-colors duration-200 hover:text-[var(--nav-link-hover)] focus-visible:text-[var(--nav-link-hover)]";
 
   return (
     <header

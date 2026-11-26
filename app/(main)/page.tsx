@@ -1,268 +1,249 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight } from "lucide-react";
-import Hero from "@/components/landing/Hero";
-import GuestListPreview from "@/components/landing/GuestListPreview";
+import ButtonSecondary from "@/components/ui/ButtonSecondary";
+import VideoHero from "@/components/layout/VideoHero";
 import ContactSection from "@/components/layout/ContactSection";
-import { BmgMark } from "@/components/brand/BmgMark";
+import Reveal from "@/components/ui/Reveal";
+import Statement from "@/components/ui/Statement";
+import DeviceShowcase from "@/components/landing/DeviceShowcase";
+import TemplateCarousel from "@/components/landing/TemplateCarousel";
+import { sectionScreens } from "@/lib/templateScreens";
+import DevelopPhoto from "@/components/ui/DevelopPhoto";
+import FloralSprig from "@/components/ui/FloralSprig";
+import ArchCard from "@/components/ui/ArchCard";
+import { Palette, MailCheck, Globe } from "lucide-react";
 import { templates } from "@/data/templates";
 import { testimonials } from "@/data/testimonials";
-import { weddingImages } from "@/lib/weddingImages";
 import { formatPrice } from "@/lib/utils";
 
-const INK = "var(--color-on-surface)";
-const INK_VARIANT = "var(--color-on-surface-variant)";
-const CREAM = "#FDF8F7";
-
-const sectionY = { paddingTop: "clamp(5rem, 10vw, 8.5rem)", paddingBottom: "clamp(5rem, 10vw, 8.5rem)" };
-
-const h2Style: React.CSSProperties = {
-  fontFamily: "var(--font-display)",
-  fontSize: "clamp(2.25rem, 5vw, 3.75rem)",
-  fontWeight: 400,
-  lineHeight: 1.04,
-  letterSpacing: "-0.015em",
-  color: INK,
-  textWrap: "balance",
-};
-
-const GUEST_FEATURES = [
-  { title: "Groups and households", body: "Keep families, barkadas and office tables together in one group." },
-  { title: "Meals and dietary notes", body: "Every reply carries its meal choice, so your caterer gets one clean count." },
-  { title: "Plus-ones you decide", body: "Allow a plus-one site-wide, or, on Premium, give particular guests extra seats of their own." },
-  { title: "Import, export, done", body: "Bring your list in from a spreadsheet, and take it back out whenever you need it." },
+const SERVICES = [
+  { icon: Palette, title: "Invitations", body: "Curated, customizable designs you make your own — photos, colors, and your story.", img: sectionScreens.invitation, alt: "A Narra & Kapis invitation on a phone, the couple's names in a carved window" },
+  { icon: MailCheck, title: "RSVP & Guests", body: "A living guest list with meal counts and plus-ones, tracked and tallied for you.", img: sectionScreens.rsvp, alt: "The RSVP form of the Jewel Tones template" },
+  { icon: Globe, title: "Your Story", body: "Registry, travel, schedule, gallery, and well-wishes — all on one shareable link.", img: sectionScreens.story, alt: "The story section of the Eucalyptus Folio template" },
 ];
 
 /*
  * ─── Pricing "packages" — HIDDEN FOR NOW ───────────────────────────────────
- * Templates are sold individually; the tiered "packages" section that used to
- * live here was removed in the Be My Guest redesign. Restore from git history
- * (pre-rebrand app/(main)/page.tsx) if packages return to the landing page.
+ * We don't offer tiered packages yet; templates are sold individually. Kept
+ * here (and the <section> below is commented out) so we can revisit later.
+ *
+ * const PACKAGES = [
+ *   { tier: "Silver", label: "Essential", price: 3900, features: ["A curated template", "Full personalization", "Unlimited RSVPs", "Mobile-optimized"] },
+ *   { tier: "Gold", label: "Most loved", price: 4900, features: ["Everything in Silver", "Guest photo gallery", "Countdown & schedule", "Registry & travel"], featured: true },
+ *   { tier: "Platinum", label: "Premium", price: 7900, features: ["Everything in Gold", "Priority support", "Custom domain", "Ambient music"] },
+ * ];
  */
 
 export default function HomePage() {
-  // Skip any design whose preview is the hero photo, so no picture appears twice.
-  const heroPhoto = weddingImages.guestsPetals.split("?")[0];
-  const featured = templates.filter((t) => t.isFeatured && !t.previewImage.startsWith(heroPhoto)).slice(0, 5);
   const minPrice = Math.min(...templates.map((t) => t.price));
-  const story = testimonials[0];
-
-  const steps = [
-    {
-      title: "Choose a design",
-      body: `Start from one of ${templates.length} designs, from garden-soft to black-and-white. Never a blank page.`,
-    },
-    {
-      title: "Make it yours",
-      body: "Your names, photos, colours and story, set into the design you chose. No design skills, no code.",
-    },
-    {
-      title: "Send it, then watch the replies",
-      body: "Share one link with everyone (or, on Premium, give each guest their own). RSVPs, meal choices and plus-ones land in your list as they arrive.",
-    },
-  ];
+  const featuredCouple = testimonials[0];
 
   return (
-    <div style={{ background: "var(--color-surface)", fontFamily: "var(--font-brand)" }}>
-      <Hero minPrice={minPrice} />
+    <div className="overflow-x-clip" style={{ background: "var(--color-surface)" }}>
+      {/* ─── Hero — cinematic video, reference-style curved transition ─── */}
+      <VideoHero />
 
-      {/* ─── How it works: a real sequence, so the numbers carry meaning ─── */}
-      <section id="how-it-works" className="scroll-mt-20" style={sectionY}>
-        <div className="mx-auto grid max-w-6xl grid-cols-1 gap-12 px-6 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-5">
-            <div className="lg:sticky lg:top-32">
-              <h2 style={h2Style}>
-                From &ldquo;save the date&rdquo; to{" "}
-                <span style={{ color: "var(--color-primary)" }}>&ldquo;see you there.&rdquo;</span>
-              </h2>
-              <p className="mt-6 max-w-md text-base leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
-                Setting up takes an afternoon, not a season. After that, your guest list stays in order on its own, all the way to the wedding day.
-              </p>
-            </div>
+      {/* ─── About / passionate intro ─── */}
+      <section style={{ paddingTop: "clamp(3rem, 6vw, 5rem)", paddingBottom: "clamp(4rem, 8vw, 7rem)" }}>
+        <div className="mx-auto max-w-6xl px-6">
+          <Reveal className="flex flex-col items-center text-center">
+            <FloralSprig size={44} color="var(--color-primary)" />
+            {/* Moment: the statement fills with ink word by word as it crosses the screen. */}
+            <Statement
+              className="mt-8 max-w-3xl"
+              style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(1.6rem, 3.6vw, 2.6rem)", fontWeight: 400, lineHeight: 1.32, letterSpacing: "0.02em", color: "var(--color-on-surface)", textWrap: "balance" }}
+              emStyle={{ fontStyle: "italic", color: "var(--color-primary)" }}
+              parts={[
+                { text: "We design " },
+                { text: "beautiful", em: true },
+                { text: " wedding website templates, and hand you the tools to make each one " },
+                { text: "unmistakably yours", em: true },
+                { text: "." },
+              ]}
+            />
+            <p className="mx-auto mt-6 max-w-xl text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>
+              Your wedding day is a chapter in your love story — and your website is where you invite everyone into it.
+              Pick a design, add your photos, colors, and details, and collect RSVPs in one place. No design skills, no
+              code.
+            </p>
+          </Reveal>
+
+          {/* The product itself: a real template on a laptop (its invitation opens once) and another on a phone */}
+          <div className="mt-16">
+            <DeviceShowcase laptopId="t19" phoneId="t12" laptopName="Mezzanine" phoneName="Jewel Tones" />
           </div>
-
-          <ol className="lg:col-span-7">
-            {steps.map((s, i) => (
-              <li
-                key={s.title}
-                className="bmg-rise grid grid-cols-[3.5rem_1fr] gap-x-5 py-9 sm:grid-cols-[5rem_1fr] sm:gap-x-8"
-                style={{ borderTop: "1px solid var(--color-outline)", ...(i === steps.length - 1 ? { borderBottom: "1px solid var(--color-outline)" } : {}) }}
-              >
-                <span
-                  aria-hidden
-                  style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.75rem, 5vw, 3.75rem)", lineHeight: 0.9, color: "var(--color-primary)" }}
-                >
-                  {i + 1}
-                </span>
-                <div>
-                  <h3 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(1.5rem, 2.4vw, 1.9rem)", lineHeight: 1.15, color: INK }}>
-                    {s.title}
-                  </h3>
-                  <p className="mt-3 max-w-[36rem] text-base leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
-                    {s.body}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ol>
         </div>
       </section>
 
-      {/* ─── Templates: one large lead design, four companions ─── */}
-      <section style={{ ...sectionY, paddingTop: 0 }}>
+      {/* ─── Our Services — arched cards ─── */}
+      <section style={{ paddingTop: "clamp(4rem, 8vw, 7rem)", paddingBottom: "clamp(4rem, 8vw, 7rem)", background: "var(--color-surface-container-low)", borderTop: "1px solid var(--color-outline)", borderBottom: "1px solid var(--color-outline)" }}>
         <div className="mx-auto max-w-6xl px-6">
-          <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
-            <h2 style={h2Style} className="max-w-xl">
-              Pick the one that already feels like you.
+          <Reveal className="mb-14 flex flex-col items-center text-center">
+            <FloralSprig size={38} color="var(--color-primary)" />
+            <h2 className="mt-6" style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(1.9rem, 4vw, 3rem)", fontWeight: 400, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-on-surface)" }}>
+              In Every Template
             </h2>
-            <Link
-              href="/templates"
-              className="group inline-flex min-h-11 shrink-0 items-center gap-2 text-[0.95rem] font-medium"
-              style={{ color: "var(--color-primary-dim)" }}
-            >
-              <span className="underline decoration-[var(--color-outline-variant)] underline-offset-[6px] transition-colors group-hover:decoration-[var(--color-primary)]">
-                See all {templates.length} designs
-              </span>
-              <ArrowRight size={16} strokeWidth={1.5} className="transition-transform duration-300 group-hover:translate-x-0.5" />
-            </Link>
-          </div>
+            <p className="mt-4 max-w-md text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
+              Every website you buy comes with all three, ready to personalize.
+            </p>
+          </Reveal>
 
-          <ul className="mt-12 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-4 md:grid-rows-2">
-            {featured.map((t, i) => {
-              const lead = i === 0;
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
+            {SERVICES.map((s) => (
+              <Link key={s.title} href="/templates" className="lift block" style={{ borderRadius: "999px 999px var(--radius-lg) var(--radius-lg)" }}>
+                <ArchCard className="h-full" style={{ border: "1px solid var(--color-outline)", background: "var(--color-surface-container-lowest)" }}>
+                  <div className="zoom-frame relative" style={{ aspectRatio: "4/5" }}>
+                    <Image src={s.img} alt={s.alt} fill className="object-cover object-top" sizes="(max-width: 640px) 100vw, 33vw" />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(47,20,30,0.9) 0%, rgba(47,20,30,0.6) 28%, transparent 62%)" }} aria-hidden />
+                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-center p-6 text-center">
+                      <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-full" style={{ background: "rgba(253,248,247,0.16)", backdropFilter: "blur(4px)" }}>
+                        <s.icon size={18} style={{ color: "#FDF8F7" }} />
+                      </span>
+                      <p style={{ fontFamily: "var(--font-serif)", fontSize: "1.4rem", letterSpacing: "0.1em", textTransform: "uppercase", color: "#FDF8F7" }}>{s.title}</p>
+                    </div>
+                  </div>
+                  <p className="px-6 py-6 text-center text-sm font-light leading-relaxed" style={{ color: "var(--color-on-surface-variant)" }}>{s.body}</p>
+                </ArchCard>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── The collection: every template, one at a time ─── */}
+      <section aria-labelledby="collection-heading" style={{ paddingTop: "clamp(4rem, 8vw, 7rem)", paddingBottom: "clamp(4rem, 8vw, 7rem)" }}>
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="mb-10 flex flex-col items-center text-center">
+            <FloralSprig size={38} color="var(--color-primary)" />
+            <h2
+              id="collection-heading"
+              className="mt-6"
+              style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(1.9rem, 4vw, 3rem)", fontWeight: 400, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-on-surface)" }}
+            >
+              The Collection
+            </h2>
+            <p className="mt-4 max-w-md text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
+              Each design opens the way your guests will see it: the invitation first, then your website.
+            </p>
+          </div>
+        </div>
+        <TemplateCarousel templates={templates} />
+        <div className="mt-10 flex justify-center px-6">
+          <Link href="/templates"><ButtonSecondary size="sm">Compare all {templates.length} designs</ButtonSecondary></Link>
+        </div>
+      </section>
+
+      {/* ─── Our Packages — HIDDEN: we don't offer tiered packages yet.
+           Kept intact to revisit later; the PACKAGES data is commented out above.
+      <section id="pricing" style={{ paddingTop: "clamp(4rem, 8vw, 7rem)", paddingBottom: "clamp(4rem, 8vw, 7rem)", background: "var(--color-surface-container-low)", borderTop: "1px solid var(--color-outline)", borderBottom: "1px solid var(--color-outline)" }}>
+        <div className="mx-auto max-w-6xl px-6">
+          <Reveal className="mb-14 flex flex-col items-center text-center">
+            <FloralSprig size={38} color="var(--color-primary)" />
+            <h2 className="mt-6" style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(1.9rem, 4vw, 3rem)", fontWeight: 400, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--color-on-surface)" }}>
+              Our Packages
+            </h2>
+            <p className="mt-4 text-sm font-light" style={{ color: "var(--color-on-surface-variant)" }}>
+              One-time pricing. No subscriptions, yours forever.
+            </p>
+          </Reveal>
+
+          <div className="mx-auto grid max-w-5xl grid-cols-1 items-end gap-6 md:grid-cols-3">
+            {PACKAGES.map((p, i) => {
+              const featured = p.featured;
               return (
-                <li key={t.id} className={`bmg-rise ${lead ? "col-span-2 md:row-span-2" : ""}`}>
-                  <Link href={`/templates/${t.id}`} className="group flex h-full flex-col">
-                    <div
-                      className="relative flex-1 overflow-hidden"
-                      style={{ aspectRatio: lead ? "4 / 4.4" : "4 / 5", borderRadius: "var(--radius-md)", background: "var(--color-surface-container)" }}
-                    >
-                      <Image
-                        src={t.previewImage}
-                        alt={`Preview of the ${t.name} template`}
-                        fill
-                        className="object-cover transition-transform duration-[900ms] ease-out group-hover:scale-[1.04]"
-                        sizes={lead ? "(max-width: 768px) 100vw, 560px" : "(max-width: 768px) 50vw, 270px"}
-                      />
-                    </div>
-                    <div className={`mt-3 flex gap-x-3 gap-y-0.5 ${lead ? "items-baseline justify-between" : "flex-col"}`}>
-                      <p
-                        className="transition-colors duration-200 group-hover:text-[var(--color-primary)]"
-                        style={{ fontFamily: "var(--font-display)", fontSize: lead ? "1.5rem" : "1.15rem", lineHeight: 1.2, color: INK }}
-                      >
-                        {t.name}
+                <Reveal key={p.tier} index={i}>
+                  <ArchCard
+                    className="h-full text-center"
+                    style={{
+                      background: featured ? "var(--bordeaux)" : "var(--color-surface-container-lowest)",
+                      border: `1px solid ${featured ? "transparent" : "var(--color-outline)"}`,
+                      paddingTop: featured ? "clamp(3rem, 5vw, 4rem)" : "clamp(2.5rem, 4vw, 3.25rem)",
+                    }}
+                  >
+                    <div className="px-7 pb-8">
+                      <p className="label-luxury" style={{ color: featured ? "var(--gold)" : "var(--color-primary)" }}>{p.label}</p>
+                      <p className="mt-2" style={{ fontFamily: "var(--font-serif)", fontSize: "1.9rem", letterSpacing: "0.12em", textTransform: "uppercase", color: featured ? "#FDF8F7" : "var(--color-on-surface)" }}>
+                        {p.tier}
                       </p>
-                      <p className="shrink-0 text-sm" style={{ color: INK_VARIANT }}>{formatPrice(t.price)}</p>
+                      <div className="my-6 h-px" style={{ background: featured ? "rgba(253,248,247,0.2)" : "var(--color-outline)" }} />
+                      <ul className="flex flex-col gap-3 text-left">
+                        {p.features.map((f) => (
+                          <li key={f} className="flex items-start gap-2.5 text-sm font-light" style={{ color: featured ? "rgba(253,248,247,0.85)" : "var(--color-on-surface-variant)" }}>
+                            <Check size={14} className="mt-0.5 shrink-0" style={{ color: featured ? "var(--gold)" : "var(--color-primary)" }} />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="mt-8 font-serif" style={{ fontFamily: "var(--font-serif)", fontSize: "2.5rem", fontWeight: 400, lineHeight: 1, color: featured ? "var(--gold)" : "var(--color-primary)" }}>
+                        {formatPrice(p.price)}
+                      </p>
+                      <div className="mt-6">
+                        <Link href="/templates">
+                          {featured ? (
+                            <button className="inline-flex min-h-[48px] w-full items-center justify-center rounded-full px-6 text-sm transition-all hover:scale-[1.03]" style={{ background: "#FDF8F7", color: "var(--bordeaux)", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500 }}>
+                              Choose {p.tier}
+                            </button>
+                          ) : (
+                            <ButtonPrimary size="lg" fullWidth>Choose {p.tier}</ButtonPrimary>
+                          )}
+                        </Link>
+                      </div>
                     </div>
-                    {lead && (
-                      <p className="mt-1 text-sm" style={{ color: INK_VARIANT }}>{t.tags.join(" · ")}</p>
-                    )}
-                  </Link>
-                </li>
+                  </ArchCard>
+                </Reveal>
               );
             })}
-          </ul>
+          </div>
         </div>
       </section>
+      */}
 
-      {/* ─── The guest side: real product UI over a set reception table ─── */}
-      <section
-        style={{ ...sectionY, background: "var(--color-surface-container-low)", borderTop: "1px solid var(--color-outline)", borderBottom: "1px solid var(--color-outline)" }}
-      >
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-14 px-6 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:order-2 lg:col-span-5">
-            <h2 style={h2Style}>The guest list that keeps count.</h2>
-            <p className="mt-6 max-w-md text-base leading-relaxed" style={{ color: INK_VARIANT, textWrap: "pretty" }}>
-              Every reply lands in one place, already counted. No spreadsheet to chase, no group chat to scroll back
-              through.
+      {/* ─── Testimonial — split with photo ─── */}
+      <section style={{ paddingTop: "clamp(4rem, 8vw, 7rem)", paddingBottom: "clamp(4rem, 8vw, 7rem)" }}>
+        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-10 px-6 lg:grid-cols-2 lg:gap-16">
+          <Reveal from="left">
+            <FloralSprig size={40} color="var(--color-primary)" />
+            <p className="mt-5 label-luxury" style={{ color: "var(--color-primary)" }}>{featuredCouple.names} · {featuredCouple.detail}</p>
+            <p className="mt-6" style={{ fontFamily: "var(--font-serif)", fontSize: "clamp(1.5rem, 3vw, 2.25rem)", fontStyle: "italic", lineHeight: 1.35, color: "var(--color-on-surface)", textWrap: "balance" }}>
+              &ldquo;{featuredCouple.quote}&rdquo;
             </p>
-            <dl className="mt-10 grid grid-cols-1 gap-x-8 sm:grid-cols-2">
-              {GUEST_FEATURES.map((f) => (
-                <div key={f.title} className="py-5" style={{ borderTop: "1px solid var(--color-outline)" }}>
-                  <dt className="text-[0.95rem] font-semibold" style={{ color: INK }}>{f.title}</dt>
-                  <dd className="mt-1.5 text-sm leading-relaxed" style={{ color: INK_VARIANT }}>{f.body}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-
-          <div className="relative lg:order-1 lg:col-span-7">
-            <div
-              aria-hidden
-              className="absolute -top-8 right-0 hidden w-[58%] overflow-hidden sm:block"
-              style={{ aspectRatio: "4 / 3", borderRadius: "var(--radius-lg)" }}
-            >
-              <Image src={weddingImages.rsvp} alt="" fill className="object-cover" sizes="400px" />
-            </div>
-            <div className="relative sm:mr-[18%] sm:mt-24">
-              <GuestListPreview />
-            </div>
-          </div>
+          </Reveal>
+          <Reveal from="right" index={1}>
+            {/* Moment: the website develops on the phone (grey print → darks → colour) the first time it's seen. */}
+            <DevelopPhoto className="device-phone relative mx-auto w-[62%] max-w-[300px]">
+              <div className="device-screen">
+                <Image src="/screens/apricot-hour-phone.webp" alt="An Apricot Hour wedding website on a phone, welcoming a guest by name" fill className="object-cover object-top" sizes="300px" />
+              </div>
+            </DevelopPhoto>
+          </Reveal>
         </div>
       </section>
 
-      {/* ─── A couple's word ─── */}
-      <section style={sectionY}>
-        <div className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-6 lg:grid-cols-12 lg:gap-16">
-          <figure className="lg:col-span-7">
-            <blockquote
-              style={{
-                fontFamily: "var(--font-display)",
-                fontSize: "clamp(1.65rem, 3.2vw, 2.6rem)",
-                lineHeight: 1.22,
-                letterSpacing: "-0.01em",
-                color: INK,
-                textWrap: "pretty",
-              }}
-            >
-              <span aria-hidden style={{ color: "var(--color-primary)" }}>&ldquo;</span>
-              {story.quote}
-              <span aria-hidden style={{ color: "var(--color-primary)" }}>&rdquo;</span>
-            </blockquote>
-            <figcaption className="mt-8 flex items-center gap-3 text-sm" style={{ color: INK_VARIANT }}>
-              <span aria-hidden className="h-px w-10" style={{ background: "var(--color-primary)" }} />
-              <span>
-                <span className="font-semibold" style={{ color: INK }}>{story.names}</span> · {story.detail}
-              </span>
-            </figcaption>
-          </figure>
-          <div className="lg:col-span-5">
-            <div className="relative ml-auto w-full max-w-sm overflow-hidden lg:max-w-none" style={{ aspectRatio: "4 / 5", borderRadius: "var(--radius-lg)" }}>
-              <Image
-                src={weddingImages.bouquet}
-                alt="A bride holds her bouquet of peach roses, white blooms and baby’s breath"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1024px) 384px, 420px"
-              />
+      {/* ─── Newsletter + closing CTA — bordeaux band ─── */}
+      <section className="on-dark" style={{ background: "var(--bordeaux)", paddingTop: "clamp(4rem, 8vw, 6.5rem)", paddingBottom: "clamp(4rem, 8vw, 6.5rem)" }}>
+        <div className="mx-auto max-w-2xl px-6 text-center">
+          <Reveal>
+            <FloralSprig size={40} color="var(--gold)" className="mx-auto" />
+            <h2 className="mt-6" style={{ fontFamily: "'Instrument Serif', 'Fraunces', serif", fontSize: "clamp(2rem, 5vw, 3.5rem)", fontStyle: "italic", lineHeight: 1.15, color: "#FDF8F7", textWrap: "balance" }}>
+              Find the template that tells your story.
+            </h2>
+            <p className="mx-auto mt-5 max-w-md text-sm font-light leading-relaxed" style={{ color: "rgba(253,248,247,0.8)" }}>
+              Browse the collection and make one your own — beautifully personalized, from {formatPrice(minPrice)}, once.
+            </p>
+            <div className="mt-9 flex justify-center">
+              <Link
+                href="/templates"
+                className="btn-step inline-flex min-h-[52px] items-center rounded-full px-11 text-sm"
+                style={{ background: "#FDF8F7", color: "var(--bordeaux)", letterSpacing: "0.14em", textTransform: "uppercase", fontWeight: 500 }}
+              >
+                Get started
+              </Link>
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
-      {/* ─── Closing: the invitation, extended ─── */}
-      <section className="on-dark relative overflow-hidden" style={{ background: "var(--bordeaux)", color: CREAM, ...sectionY }}>
-        <div className="relative mx-auto flex max-w-3xl flex-col items-center px-6 text-center">
-          <BmgMark size={64} color="var(--gold)" />
-          <h2
-            className="mt-8"
-            style={{ fontFamily: "var(--font-display)", fontSize: "clamp(2.5rem, 6.5vw, 4.75rem)", lineHeight: 1.02, letterSpacing: "-0.02em", textWrap: "balance" }}
-          >
-            Your guests are waiting to hear from you.
-          </h2>
-          <p className="mx-auto mt-6 max-w-md text-base leading-relaxed" style={{ color: "rgba(253,248,247,0.84)" }}>
-            Choose a design tonight, and send the link this week. From {formatPrice(minPrice)}, paid once.
-          </p>
-          <Link
-            href="/templates"
-            className="mt-10 inline-flex min-h-[52px] items-center rounded-full px-8 text-[0.95rem] font-medium transition-[transform,background-color] duration-300 ease-out hover:-translate-y-0.5 hover:bg-white active:translate-y-0"
-            style={{ background: CREAM, color: "var(--bordeaux)" }}
-          >
-            Find your template
-          </Link>
-        </div>
-      </section>
-
+      {/* ─── Contact — tinted band the footer's curved edge rises into ─── */}
       <ContactSection />
     </div>
   );

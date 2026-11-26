@@ -96,7 +96,7 @@ export default function AboutPage() {
           >
             <Image
               src={weddingImages.aboutPortrait}
-              alt="A couple reviewing their wedding website together"
+              alt="A bride leans on her groom on a garden path beside clipped hedges"
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 45vw"

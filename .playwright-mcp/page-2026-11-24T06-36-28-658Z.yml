@@ -1,0 +1,389 @@
+- generic [active] [ref=f36e1]:
+  - generic [ref=f36e2]:
+    - generic [ref=f36e4]:
+      - dialog "Wedding invitation for Maria Santos" [ref=f36e5]:
+        - paragraph [ref=f36e6]: You are invited
+        - generic [ref=f36e9]:
+          - generic [ref=f36e12]:
+            - generic [ref=f36e13]: Save the Date
+            - generic [ref=f36e14]: Amara
+            - generic [ref=f36e15]: "&"
+            - generic [ref=f36e16]: Teodoro
+            - generic [ref=f36e17]: 03.13.27
+          - generic:
+            - generic: Reserved for
+            - generic: Maria Santos
+          - button "Break the seal to open the invitation for Maria Santos" [ref=f36e19] [cursor=pointer]:
+            - img [aria-hidden] [ref=f36e21]:
+              - generic [ref=f36e28]:
+                - generic [ref=f36e29]: A&T
+                - generic [ref=f36e30]: A&T
+            - img [aria-hidden] [ref=f36e33]:
+              - generic [ref=f36e40]:
+                - generic [ref=f36e41]: A&T
+                - generic [ref=f36e42]: A&T
+        - paragraph [ref=f36e44]: Touch the seal to open
+        - button "Skip" [ref=f36e45] [cursor=pointer]
+      - main [ref=f36e46]:
+        - region "Amara and Teodoro" [ref=f36e47]:
+          - generic [ref=f36e48]:
+            - generic [ref=f36e49]:
+              - img "Amara and Teodoro" [ref=f36e53]
+              - note "Invitation for Maria Santos & guests" [ref=f36e55]:
+                - generic [ref=f36e56]:
+                  - paragraph [ref=f36e57]: Dear
+                  - paragraph [ref=f36e58]: Maria Santos & guests,
+                  - paragraph [ref=f36e63]: We saved a seat just for you.
+            - generic [ref=f36e64]:
+              - paragraph [ref=f36e65]: Together with their families
+              - heading "Amara and Teodoro" [level=1] [ref=f36e66]:
+                - generic [ref=f36e67]: Amara
+                - generic [aria-hidden] [ref=f36e68]: "&"
+                - generic [ref=f36e69]: and
+                - generic [ref=f36e70]: Teodoro
+              - generic [ref=f36e74]:
+                - paragraph [ref=f36e75]: Saturday, March 13, 2027
+                - paragraph [ref=f36e76]: Casa Rubí Gardens · Tagaytay City, Cavite
+              - timer [ref=f36e78]:
+                - generic [aria-hidden] [ref=f36e79]:
+                  - paragraph [ref=f36e80]: –
+                  - paragraph [ref=f36e81]: Days
+                - generic [aria-hidden] [ref=f36e82]:
+                  - paragraph [ref=f36e84]: –
+                  - paragraph [ref=f36e85]: Hours
+                - generic [aria-hidden] [ref=f36e86]:
+                  - paragraph [ref=f36e88]: –
+                  - paragraph [ref=f36e89]: Minutes
+                - generic [aria-hidden] [ref=f36e90]:
+                  - paragraph [ref=f36e92]: –
+                  - paragraph [ref=f36e93]: Seconds
+              - link "Kindly Reply" [ref=f36e95] [cursor=pointer]:
+                - /url: "#rsvp"
+        - region "Mark the Date" [ref=f36e96]:
+          - generic [ref=f36e97]:
+            - generic [ref=f36e98]:
+              - paragraph [ref=f36e99]: The Celebration
+              - heading "Mark the Date" [level=2] [ref=f36e100]
+            - generic [ref=f36e105]:
+              - generic [ref=f36e107]:
+                - paragraph [ref=f36e111]: When
+                - generic [ref=f36e112]:
+                  - paragraph [ref=f36e113]: March 13
+                  - paragraph [ref=f36e114]: Saturday, 2027
+              - generic [ref=f36e116]:
+                - paragraph [ref=f36e121]: Ceremony
+                - generic [ref=f36e122]:
+                  - paragraph [ref=f36e123]: 3:00 PM
+                  - paragraph [ref=f36e127]: Casa Rubí Gardens
+                  - paragraph [ref=f36e128]: 88 Calle Esmeralda, Tagaytay City, Cavite
+                  - paragraph [ref=f36e129]:
+                    - link "Open in Maps" [ref=f36e130] [cursor=pointer]:
+                      - /url: https://www.google.com/maps/search/?api=1&query=Casa%20Rub%C3%AD%20Gardens%2C%2088%20Calle%20Esmeralda%2C%20Tagaytay%20City%2C%20Cavite
+                    - link "Get directions" [ref=f36e131] [cursor=pointer]:
+                      - /url: https://www.google.com/maps/dir/?api=1&destination=Casa%20Rub%C3%AD%20Gardens%2C%2088%20Calle%20Esmeralda%2C%20Tagaytay%20City%2C%20Cavite
+              - generic [ref=f36e133]:
+                - paragraph [ref=f36e138]: Reply By
+                - generic [ref=f36e139]:
+                  - paragraph [ref=f36e140]: January 10, 2027
+                  - link "Send your RSVP" [ref=f36e141] [cursor=pointer]:
+                    - /url: "#rsvp"
+            - generic [ref=f36e142]:
+              - generic [ref=f36e144]:
+                - paragraph [ref=f36e148]: Reception
+                - generic [ref=f36e149]:
+                  - paragraph [ref=f36e150]: 6:00 PM
+                  - paragraph [ref=f36e154]: Casa Rubí Gardens Garden Pavilion
+                  - paragraph [ref=f36e155]: 88 Calle Esmeralda, Tagaytay City, Cavite
+                  - paragraph [ref=f36e156]:
+                    - link "Open in Maps" [ref=f36e157] [cursor=pointer]:
+                      - /url: https://www.google.com/maps/search/?api=1&query=Casa%20Rub%C3%AD%20Gardens%20Garden%20Pavilion%2C%2088%20Calle%20Esmeralda%2C%20Tagaytay%20City%2C%20Cavite
+                    - link "Get directions" [ref=f36e158] [cursor=pointer]:
+                      - /url: https://www.google.com/maps/dir/?api=1&destination=Casa%20Rub%C3%AD%20Gardens%20Garden%20Pavilion%2C%2088%20Calle%20Esmeralda%2C%20Tagaytay%20City%2C%20Cavite
+              - generic [ref=f36e160]:
+                - paragraph [ref=f36e164]: Dress Code
+                - generic [ref=f36e165]:
+                  - paragraph [ref=f36e166]: Formal
+                  - paragraph [ref=f36e167]: Long gowns or cocktail dresses, suits or barongs. Please leave white and ivory to the bride.
+                  - list "Suggested colour palette" [ref=f36e168]:
+                    - 'img "Palette colour #c4205f" [ref=f36e169]'
+                    - 'img "Palette colour #2b6a62" [ref=f36e170]'
+            - generic [ref=f36e171]:
+              - paragraph [ref=f36e172]: Share the day
+              - paragraph [ref=f36e173]: "#AmaraAndTeodoroSayIDo"
+        - region "Our Story" [ref=f36e174]:
+          - generic [ref=f36e175]:
+            - generic [ref=f36e176]:
+              - paragraph [ref=f36e177]: How It Began
+              - heading "Our Story" [level=2] [ref=f36e178]
+            - generic [ref=f36e183]:
+              - img "Amara and Teodoro" [ref=f36e188]
+              - generic [ref=f36e189]:
+                - paragraph [ref=f36e191]:
+                  - generic [aria-hidden] [ref=f36e192]: T
+                  - generic [ref=f36e193]: T
+                  - text: hey met in a museum hall of old-master still lifes, both lingering in front of the same overflowing vase of tulips and roses.
+                - paragraph [ref=f36e195]: Amara said the red anemone was the only honest flower in the painting. Teodoro said he'd been waiting an hour to hear someone say exactly that. They have been arguing happily about everything since.
+                - paragraph [ref=f36e197]: Years later, beneath a different painting, he asked. She said yes before he finished the sentence, and now we get to invite you into the next chapter.
+        - region "Order of Events" [ref=f36e198]:
+          - generic [ref=f36e199]:
+            - generic [ref=f36e200]:
+              - paragraph [ref=f36e201]: The Day
+              - heading "Order of Events" [level=2] [ref=f36e202]
+            - list [ref=f36e207]:
+              - listitem [ref=f36e208]:
+                - paragraph [ref=f36e209]: 3:00 PM
+                - generic [ref=f36e213]:
+                  - paragraph [ref=f36e214]: Guests Arrive
+                  - paragraph [ref=f36e215]: Welcome drinks in the conservatory
+              - listitem [ref=f36e216]:
+                - paragraph [ref=f36e217]: 4:00 PM
+                - generic [ref=f36e221]:
+                  - paragraph [ref=f36e222]: Ceremony
+                  - paragraph [ref=f36e223]: Beneath the garden arch
+              - listitem [ref=f36e224]:
+                - paragraph [ref=f36e225]: 5:30 PM
+                - paragraph [ref=f36e230]: Cocktails & Canapés
+              - listitem [ref=f36e231]:
+                - paragraph [ref=f36e232]: 7:00 PM
+                - paragraph [ref=f36e237]: Dinner & Toasts
+              - listitem [ref=f36e238]:
+                - paragraph [ref=f36e239]: 9:00 PM
+                - paragraph [ref=f36e244]: First Dance & Celebration
+        - region "The Entourage" [ref=f36e245]:
+          - generic [ref=f36e246]:
+            - generic [ref=f36e247]:
+              - paragraph [ref=f36e248]: By Our Side
+              - heading "The Entourage" [level=2] [ref=f36e249]
+            - generic [ref=f36e254]:
+              - generic [ref=f36e255]:
+                - heading "Parents" [level=3] [ref=f36e256]
+                - generic [ref=f36e257]:
+                  - generic [ref=f36e258]:
+                    - paragraph [ref=f36e259]: Amara's parents
+                    - list [ref=f36e260]:
+                      - listitem [ref=f36e261]:
+                        - generic [ref=f36e262]: Mr. & Mrs. Rafael Dizon
+                        - generic [ref=f36e263]: “I've waited years to stand beside you two. Here's to forever.”
+                  - generic [ref=f36e264]:
+                    - paragraph [ref=f36e265]: Teodoro's parents
+                    - list [ref=f36e266]:
+                      - listitem [ref=f36e267]:
+                        - generic [ref=f36e268]: Mr. & Mrs. Andres Villareal
+              - generic [ref=f36e269]:
+                - heading "Principal sponsors" [level=3] [ref=f36e274]
+                - generic [ref=f36e275]:
+                  - generic [ref=f36e276]:
+                    - paragraph [ref=f36e277]: Godfathers
+                    - list [ref=f36e278]:
+                      - listitem [ref=f36e279]:
+                        - generic [ref=f36e280]: Hon. Ernesto Lacson
+                      - listitem [ref=f36e281]:
+                        - generic [ref=f36e282]: Dr. Miguel Santos
+                  - generic [ref=f36e283]:
+                    - paragraph [ref=f36e284]: Godmothers
+                    - list [ref=f36e285]:
+                      - listitem [ref=f36e286]:
+                        - generic [ref=f36e287]: Mrs. Teresa Lacson
+                      - listitem [ref=f36e288]:
+                        - generic [ref=f36e289]: Dra. Carmela Santos
+              - generic [ref=f36e290]:
+                - heading "Honor attendants" [level=3] [ref=f36e295]
+                - generic [ref=f36e296]:
+                  - generic [ref=f36e297]:
+                    - paragraph [ref=f36e298]: Best Man
+                    - list [ref=f36e299]:
+                      - listitem [ref=f36e300]:
+                        - generic [ref=f36e301]: Paolo Villareal
+                  - generic [ref=f36e302]:
+                    - paragraph [ref=f36e303]: Maid of Honor
+                    - list [ref=f36e304]:
+                      - listitem [ref=f36e305]:
+                        - generic [ref=f36e306]: Isabel Dizon
+              - generic [ref=f36e307]:
+                - heading "Secondary sponsors" [level=3] [ref=f36e312]
+                - generic [ref=f36e313]:
+                  - generic [ref=f36e314]:
+                    - paragraph [ref=f36e315]: Candle Sponsor
+                    - list [ref=f36e316]:
+                      - listitem [ref=f36e317]:
+                        - generic [ref=f36e318]: Marco & Bea Reyes
+                  - generic [ref=f36e319]:
+                    - paragraph [ref=f36e320]: Veil Sponsor
+                    - list [ref=f36e321]:
+                      - listitem [ref=f36e322]:
+                        - generic [ref=f36e323]: Luis & Ana Cruz
+                  - generic [ref=f36e324]:
+                    - paragraph [ref=f36e325]: Cord Sponsor
+                    - list [ref=f36e326]:
+                      - listitem [ref=f36e327]:
+                        - generic [ref=f36e328]: Jon & Mika Tan
+              - generic [ref=f36e329]:
+                - heading "Groomsmen & bridesmaids" [level=3] [ref=f36e334]
+                - generic [ref=f36e335]:
+                  - generic [ref=f36e336]:
+                    - paragraph [ref=f36e337]: Groomsmen
+                    - list [ref=f36e338]:
+                      - listitem [ref=f36e339]:
+                        - generic [ref=f36e340]: Diego Ramos
+                      - listitem [ref=f36e341]:
+                        - generic [ref=f36e342]: Enzo Navarro
+                  - generic [ref=f36e343]:
+                    - paragraph [ref=f36e344]: Bridesmaids
+                    - list [ref=f36e345]:
+                      - listitem [ref=f36e346]:
+                        - generic [ref=f36e347]: Lia Ferrer
+                      - listitem [ref=f36e348]:
+                        - generic [ref=f36e349]: Pia Gomez
+              - generic [ref=f36e350]:
+                - heading "Bearers & flower girls" [level=3] [ref=f36e355]
+                - generic [ref=f36e356]:
+                  - generic [ref=f36e357]:
+                    - paragraph [ref=f36e358]: Ring Bearer
+                    - list [ref=f36e359]:
+                      - listitem [ref=f36e360]:
+                        - generic [ref=f36e361]: Theo Villareal
+                  - generic [ref=f36e362]:
+                    - paragraph [ref=f36e363]: Flower Girl
+                    - list [ref=f36e364]:
+                      - listitem [ref=f36e365]:
+                        - generic [ref=f36e366]: Sofia Dizon
+        - region "The Gallery" [ref=f36e367]:
+          - generic [ref=f36e368]:
+            - generic [ref=f36e369]:
+              - paragraph [ref=f36e370]: Moments
+              - heading "The Gallery" [level=2] [ref=f36e371]
+            - generic [ref=f36e376]:
+              - heading "Prenup" [level=3] [ref=f36e377]
+              - list [ref=f36e378]:
+                - listitem [ref=f36e379]:
+                  - button "Enlarge Amara and Teodoro, prenup, photograph 1" [ref=f36e380]
+                - listitem [ref=f36e383]:
+                  - button "Enlarge Amara and Teodoro, prenup, photograph 2" [ref=f36e384]
+            - generic [ref=f36e387]:
+              - heading "Engagement" [level=3] [ref=f36e388]
+              - list [ref=f36e389]:
+                - listitem [ref=f36e390]:
+                  - button "Enlarge Amara and Teodoro, engagement, photograph 1" [ref=f36e391]
+                - listitem [ref=f36e394]:
+                  - button "Enlarge Amara and Teodoro, engagement, photograph 2" [ref=f36e395]
+            - generic [ref=f36e398]:
+              - heading "Favorite memories" [level=3] [ref=f36e399]
+              - list [ref=f36e400]:
+                - listitem [ref=f36e401]:
+                  - button "Enlarge Amara and Teodoro, favorite memories, photograph 1" [ref=f36e402]
+                - listitem [ref=f36e405]:
+                  - button "Enlarge Amara and Teodoro, favorite memories, photograph 2" [ref=f36e406]
+        - region "Just for you, Maria" [ref=f36e410]:
+          - generic [ref=f36e411]:
+            - generic [ref=f36e412]:
+              - heading "Just for you, Maria" [level=2] [ref=f36e413]
+              - paragraph [ref=f36e414]: A few details we're sharing only with the people who received this invitation.
+            - list [ref=f36e415]:
+              - listitem [ref=f36e416]:
+                - article [ref=f36e417]:
+                  - heading "A note for family" [level=3] [ref=f36e418]
+                  - paragraph [ref=f36e419]: Please come an hour early for family photos by the garden steps. Lola has already claimed the front row.
+        - region "Questions & Answers" [ref=f36e420]:
+          - generic [ref=f36e421]:
+            - generic [ref=f36e422]:
+              - paragraph [ref=f36e423]: Good to Know
+              - heading "Questions & Answers" [level=2] [ref=f36e424]
+            - list [ref=f36e429]:
+              - listitem [ref=f36e430]:
+                - group [ref=f36e431]:
+                  - generic "What should I wear?" [ref=f36e432] [cursor=pointer]
+              - listitem [ref=f36e435]:
+                - group [ref=f36e436]:
+                  - generic "Is there parking at Casa Rubí?" [ref=f36e437] [cursor=pointer]
+              - listitem [ref=f36e440]:
+                - group [ref=f36e441]:
+                  - generic "Are children invited?" [ref=f36e442] [cursor=pointer]
+              - listitem [ref=f36e445]:
+                - group [ref=f36e446]:
+                  - generic "When should I arrive?" [ref=f36e447] [cursor=pointer]
+        - region "RSVP" [ref=f36e450]:
+          - generic [ref=f36e451]:
+            - generic [ref=f36e452]:
+              - paragraph [ref=f36e453]: Kindly Reply
+              - heading "RSVP" [level=2] [ref=f36e454]
+            - paragraph [ref=f36e459]: Please respond by January 10, 2027
+            - form "RSVP" [ref=f36e460]:
+              - generic [ref=f36e461]:
+                - generic [ref=f36e462]:
+                  - generic [ref=f36e463]: Your full name
+                  - textbox "Your full name" [ref=f36e464]: Maria Santos
+                - generic [ref=f36e465]:
+                  - generic [ref=f36e466]: Email address
+                  - textbox "Email address" [ref=f36e467]
+              - generic [ref=f36e468]:
+                - generic [ref=f36e469]: Phone number (optional)
+                - textbox "Phone number (optional)" [ref=f36e470]
+              - group "Will you attend?" [ref=f36e471]:
+                - generic [ref=f36e473]:
+                  - button "Joyfully accepts" [pressed] [ref=f36e474] [cursor=pointer]
+                  - button "Regretfully declines" [ref=f36e475] [cursor=pointer]
+              - group "Meal preference" [ref=f36e476]:
+                - generic [ref=f36e478]:
+                  - button "Beef Short Rib" [ref=f36e479] [cursor=pointer]
+                  - button "Pan-Seared Salmon" [ref=f36e480] [cursor=pointer]
+                  - button "Wild Mushroom Risotto" [ref=f36e481] [cursor=pointer]
+              - generic [ref=f36e482]:
+                - generic [ref=f36e483]: Dietary restrictions (optional)
+                - textbox "Dietary restrictions (optional)" [ref=f36e484]:
+                  - /placeholder: Allergies or dietary needs
+              - group "Additional guests (up to 3)" [ref=f36e486]:
+                - button "Add a guest" [ref=f36e488]
+              - generic [ref=f36e490]:
+                - generic [ref=f36e491]: A note for the couple (optional)
+                - textbox "A note for the couple (optional)" [ref=f36e492]
+              - button "Send RSVP" [ref=f36e493] [cursor=pointer]
+        - region "Guestbook" [ref=f36e494]:
+          - generic [ref=f36e495]:
+            - generic [ref=f36e496]:
+              - paragraph [ref=f36e497]: Well Wishes
+              - heading "Guestbook" [level=2] [ref=f36e498]
+            - form "Sign the guestbook" [ref=f36e503]:
+              - generic [ref=f36e504]:
+                - generic [ref=f36e505]: Your name
+                - textbox "Your name" [ref=f36e506]
+              - generic [ref=f36e507]:
+                - generic [ref=f36e508]: Your wishes for the couple
+                - textbox "Your wishes for the couple" [ref=f36e509]
+              - button "Sign the guestbook" [ref=f36e510] [cursor=pointer]
+      - contentinfo [ref=f36e511]:
+        - paragraph [ref=f36e519]: Amara & Teodoro
+        - paragraph [ref=f36e520]: 03.13.27
+        - paragraph [ref=f36e521]: "#AmaraAndTeodoroSayIDo"
+        - generic [ref=f36e522]:
+          - paragraph [ref=f36e523]: Questions? Write to us
+          - paragraph [ref=f36e524]: Our coordinator, Ana
+          - paragraph [ref=f36e525]:
+            - link "hello@example.com" [ref=f36e526] [cursor=pointer]:
+              - /url: mailto:hello@example.com
+            - link "+63 917 555 0142" [ref=f36e527] [cursor=pointer]:
+              - /url: tel:+639175550142
+        - list "Follow along" [ref=f36e528]:
+          - listitem [ref=f36e529]:
+            - link "Instagram (opens in a new tab)" [ref=f36e530] [cursor=pointer]:
+              - /url: https://instagram.com/
+              - text: Instagram
+              - generic [ref=f36e531]: (opens in a new tab)
+        - link "Download the invitation" [ref=f36e532] [cursor=pointer]:
+          - /url: /wedding/jewel-tones-demo/invitation
+    - generic [ref=f36e534]:
+      - link "Back to template details" [ref=f36e535] [cursor=pointer]:
+        - /url: /templates/t12
+      - generic [ref=f36e538]:
+        - paragraph [ref=f36e539]: Previewing · sample content
+        - paragraph [ref=f36e540]: Jewel Tones
+      - generic [ref=f36e541]:
+        - generic [ref=f36e542]:
+          - generic [ref=f36e543]: View as
+          - combobox "View as" [ref=f36e545] [cursor=pointer]:
+            - generic [ref=f36e546]: Maria Santos
+        - group "Preview device" [ref=f36e549]:
+          - button "desktop preview" [pressed] [ref=f36e550]
+          - button "mobile preview" [ref=f36e553]
+        - generic [ref=f36e556]: ₱929.00
+      - button "Use this template" [ref=f36e557]
+  - button "Open Next.js Dev Tools" [ref=f36e567] [cursor=pointer]

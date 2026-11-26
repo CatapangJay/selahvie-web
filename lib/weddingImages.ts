@@ -18,14 +18,14 @@ export const weddingImages = {
   heroCouple: U("1519741497674-611481863552", 1920),
   ceremony: U("1465495976277-4387d4b0b4c6", 1920),
   // About collage
-  aboutPortrait: U("1511285560929-80b456fea0bc", 900),
-  aboutWide: U("1522673607200-164d1b6ce486", 1200),
+  aboutPortrait: U("1775126964550-122cc9c1ecaf", 900),
+  aboutWide: U("1550784718-990c6de52adf", 1200),
   // Feature / service visuals
-  invitation: U("1607190074257-dd4b7af0309f", 800),
+  invitation: U("1546032996-6dfacbacbf3f", 800),
   rsvp: U("1519225421980-715cb0215aed", 800),
   story: U("1460978812857-470ed1c77af0", 800),
-  // Be My Guest hero: newlyweds kiss under a shower of petals from their guests
-  guestsPetals: U("1583939003579-730e3918a45a", 1200),
+  // Home hero: the couple walking hand in hand across a golden meadow at sunset
+  heroMeadow: U("1607190074257-dd4b7af0309f", 2000),
   // Landing testimonial companion: peach-rose bridal bouquet
   bouquet: U("1525258946800-98cfd641d0de", 900),
   // Testimonial

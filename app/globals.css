@@ -263,16 +263,14 @@ body::before {
   font-weight: 500;
   /* Sentence-case labels (Be My Guest); the tracked uppercase style is retired. */
   /* Ease-out only — no bounce/overshoot (retired in redesign). */
-  transition: background 200ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 120ms cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 200ms ease;
+  /* Buttons answer the pointer with colour only (no lift, scale or glow). */
+  transition: background 180ms ease, color 180ms ease;
 }
 .btn-primary:hover {
   background: var(--color-primary-dim);
-  box-shadow: 0 6px 24px rgba(167, 84, 99, 0.28);
 }
 .btn-primary:active {
-  transform: scale(0.985);
+  background: var(--bordeaux);
 }
 
 .btn-outline {
@@ -281,8 +279,7 @@ body::before {
   border: 1px solid var(--color-outline);
   font-family: var(--font-sans);
   font-weight: 500;
-  transition: border-color 200ms ease, color 200ms ease,
-              background 200ms ease, transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
 }
 .btn-outline:hover {
   border-color: var(--color-primary);
@@ -290,7 +287,7 @@ body::before {
   background: var(--color-primary-container);
 }
 .btn-outline:active {
-  transform: scale(0.985);
+  background: var(--color-primary-container-strong);
 }
 
 /* ─── Glass Effect (rare — sticky nav only, not a default card treatment) ─── */
@@ -337,14 +334,7 @@ body::before {
   pointer-events: none;
 }
 
-/* ─── Cinematic entrance (fade + rise), reduced-motion safe via global block ─── */
-@keyframes fade-rise {
-  from { opacity: 0; transform: translateY(24px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-rise        { animation: fade-rise 0.8s ease-out both; }
-.animate-fade-rise-delay  { animation: fade-rise 0.8s ease-out 0.2s both; }
-.animate-fade-rise-delay-2 { animation: fade-rise 0.8s ease-out 0.4s both; }
+
 
 /* ─── Ambient Shadow (soft daylight — ink-tinted) ─── */
 .shadow-ambient {
@@ -415,60 +405,174 @@ body:has(.bmg-app) {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   BE MY GUEST — landing page motion. Scroll-linked motion is transform
-   only and never hides content. The hero has one short page-load entrance
-   (done within ~1.6s, no scroll trigger) and none under reduced motion.
+   HOME PAGE MOTION. Three layers only:
+   1. the hero enters once on load;
+   2. hover and press on every link, button and linked photo;
+   3. two scroll moments in their own sections (a statement whose words
+      fill with ink, a photograph that develops).
+   Nothing else moves on scroll, content is whole at rest, and under
+   reduced motion everything stands.
    ═══════════════════════════════════════════════════════════════ */
-
-/* Hero headline: each word rises out of its own line mask on load. */
-@keyframes bmg-word-rise {
-  from { transform: translateY(105%); }
-  to   { transform: translateY(0); }
-}
-.bmg-word { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.08em; margin-bottom: -0.08em; }
-.bmg-word > span { display: inline-block; animation: bmg-word-rise 900ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-@keyframes bmg-fade-up {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.bmg-fade-up { animation: bmg-fade-up 800ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-/* The RSVP card drops in and settles onto the photo. */
-@keyframes bmg-card-settle {
-  from { opacity: 0; transform: translateY(28px) rotate(-6deg); }
-  to   { opacity: 1; transform: translateY(0) rotate(-2.5deg); }
-}
-.bmg-card { transform: rotate(-2.5deg); animation: bmg-card-settle 1000ms cubic-bezier(0.22, 1, 0.36, 1) 650ms both; }
-
-/* Tally number tick when a reply lands. */
-@keyframes bmg-tick {
-  0%   { transform: translateY(0.5em); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
-}
-.bmg-tick { display: inline-block; animation: bmg-tick 420ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-
-@keyframes bmg-rise {
-  from { transform: translateY(40px); }
-  to   { transform: translateY(0); }
+:root {
+  --m-in: 150ms;
+  --m-out: 120ms;
+  --m-press: 90ms;
+  --m-image: 600ms;
+  --m-image-out: 400ms;
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-/* Scroll-linked rise for sections — CSS scroll timelines only, so content is
-   never gated on JS. Unsupported browsers simply show everything. */
+/* ─── 1. Hero entrance ─── */
+@keyframes hero-line-rise { from { transform: translateY(105%); } to { transform: translateY(0); } }
+@keyframes hero-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes hero-settle { from { transform: scale(1.05); } to { transform: scale(1); } }
+/* Each line sits in its own mask; the words start wholly under it. */
+.hero-mask { display: block; overflow: hidden; padding-bottom: 0.06em; margin-bottom: -0.06em; }
+.hero-line { display: block; animation: hero-line-rise 700ms var(--ease-enter) both; }
+.hero-mask:nth-child(2) > .hero-line { animation-delay: 80ms; }
+.hero-after { animation: hero-fade-up 520ms var(--ease-enter) both; }
+/* The photograph is never hidden; it only settles. */
+.hero-photo { animation: hero-settle 1.1s var(--ease-enter) both; }
+
+/* ─── 2. Hover and press ─── */
+@media (hover: hover) and (pointer: fine) {
+  /* A linked card lifts 2px; its photograph zooms inside its own frame. */
+  .lift { transition: transform 180ms var(--ease-ui), box-shadow 180ms var(--ease-ui); }
+  .lift:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -12px rgba(47, 30, 38, 0.18); }
+  .zoom-frame { overflow: hidden; }
+  .zoom-frame img { transition: transform var(--m-image-out) var(--ease-ui); }
+  .lift:hover .zoom-frame img,
+  .zoom-frame:hover img { transform: scale(1.03); transition-duration: var(--m-image); }
+
+  /* Arrows nudge 3px toward where they lead. */
+  .arrow-nudge svg { transition: transform var(--m-out) var(--ease-ui); }
+  .arrow-nudge:hover svg { transform: translateX(3px); transition-duration: var(--m-in); }
+}
+/* The cream buttons on photographs and the bordeaux band turn rose on hover (colour only).
+   !important beats their inline cream fill. */
+.btn-step { transition: background 180ms ease, color 180ms ease; }
+.btn-step:hover,
+.btn-step:focus-visible { background: var(--color-primary) !important; color: #fff !important; }
+.btn-step:active { background: var(--color-primary-dim) !important; }
+
+/* Nav and footer words draw a 1px line under themselves, left to right. */
+.link-draw { position: relative; }
+.link-draw::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.55em;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform var(--m-out) var(--ease-ui);
+}
+.link-draw:hover::after,
+.link-draw:focus-visible::after { transform: scaleX(1); transform-origin: left; transition-duration: var(--m-in); }
+
+/* ─── 3a. Word highlight: the statement fills with ink as it crosses the screen ─── */
+/* At rest (and without support) every word is in full ink; the muted start still reads at 3:1+. */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
-    /* Transform only: never opacity, so a page that is never scrolled
-       (screenshots, crawlers, link previews) still shows every block. */
-    .bmg-rise {
-      animation: bmg-rise linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 55%;
+    .statement { view-timeline-name: --statement; }
+    .statement .w {
+      animation: word-ink linear both;
+      animation-timeline: --statement;
+      animation-range: cover calc(18% + var(--i) * 1.6%) cover calc(26% + var(--i) * 1.6%);
+    }
+    .statement em.w { animation-name: word-ink-rose; }
+  }
+}
+@keyframes word-ink { from { color: #9a888f; } to { color: var(--color-on-surface); } }
+@keyframes word-ink-rose { from { color: #b48a93; } to { color: var(--color-primary); } }
+
+/* ─── 3b. Picture develops: up out of a faint grey print, darks first, then colour ─── */
+/* Script arms it (.develop-armed) only when motion is allowed and the photo is still below the fold;
+   without script the photograph simply stands. */
+.develop-armed img { filter: grayscale(1) contrast(0.55) brightness(1.22); }
+@keyframes develop {
+  0% { filter: grayscale(1) contrast(0.55) brightness(1.22); }
+  55% { filter: grayscale(0.7) contrast(1) brightness(1); }
+  100% { filter: none; }
+}
+.develop-in img { animation: develop 1.6s var(--ease-enter) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-line,
+  .hero-after,
+  .hero-photo { animation: none; }
+  .develop-armed img { filter: none; }
+  .develop-in img { animation: none; }
+}
+
+
+/* ─── Hero parallax: the photograph drifts down at a fraction of the scroll ─── */
+/* The layer starts 22vh above the hero (hidden by its overflow) so the drift never shows a gap.
+   CSS scroll timeline: no script, no scroll-jacking; static where unsupported or reduced. */
+.hero-parallax { top: -22vh; }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .hero-parallax {
+      animation: hero-drift linear both;
+      animation-timeline: scroll(root block);
+      animation-range: 0 100vh;
     }
   }
 }
+@keyframes hero-drift { from { transform: translateY(0); } to { transform: translateY(20vh); } }
 
-/* Reduced motion: no entrance at all. Delays would otherwise hold elements
-   hidden for up to ~0.9s before they pop in. */
-@media (prefers-reduced-motion: reduce) {
-  .bmg-word > span, .bmg-fade-up, .bmg-card, .bmg-tick { animation: none; }
+/* ─── Devices: a laptop and a phone holding real template screens ─── */
+.device-laptop {
+  position: relative;
+  border-radius: 14px 14px 4px 4px;
+  background: #1f1a1c;
+  padding: 1.6% 1.6% 0;
+  box-shadow: 0 30px 60px -30px rgba(47, 30, 38, 0.45);
 }
+.device-laptop::after {
+  /* the base */
+  content: "";
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -14px;
+  height: 14px;
+  border-radius: 0 0 14px 14px;
+  background: linear-gradient(#d9cfd0, #b9adae);
+}
+.device-screen { position: relative; overflow: hidden; aspect-ratio: 1200 / 700; border-radius: 4px 4px 0 0; background: #2a2224; }
+.device-phone {
+  /* position comes from the call site (absolute beside the laptop, relative alone) */
+  border-radius: 30px;
+  background: #1f1a1c;
+  padding: 7px;
+  box-shadow: 0 24px 48px -20px rgba(47, 30, 38, 0.5);
+}
+.device-phone .device-screen { aspect-ratio: 390 / 784; border-radius: 24px; }
+/* The invitation "opens" once: intro screen → opened home screen. */
+.screen-swap img { transition: opacity 900ms var(--ease-enter); }
+.screen-swap .screen-after { opacity: 0; }
+.screen-swap.is-open .screen-after { opacity: 1; }
+
+/* ─── Template carousel ─── */
+/* Slides sit around the centre (offset −1, 0, +1 visible); the wrap happens while a slide is invisible. */
+.tc-slide {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: var(--tc-w);
+  transform: translateX(calc(-50% + var(--o) * (var(--tc-w) + var(--tc-gap)))) scale(var(--s));
+  transition: transform 700ms var(--ease-enter), opacity 700ms var(--ease-enter);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-parallax { animation: none; }
+  .tc-slide,
+  .screen-swap img { transition: none; }
+}
+/* Slide width and gap; the track's transform reads them to centre the active slide. */
+.tc-track { --tc-w: 80%; --tc-gap: 1rem; }
+@media (min-width: 640px) { .tc-track { --tc-w: 68%; --tc-gap: 1.5rem; } }
+@media (min-width: 1024px) { .tc-track { --tc-w: 62%; --tc-gap: 2rem; } }
